@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 from loguru import logger
+import itertools
+import tarfile
+from io import BytesIO
 import threading
 import sys
 
@@ -171,6 +174,66 @@ def _prepare_teacher_agent():
     # teacher_agent.set_route(
     #    manager._start_pose.location, manager._end_pose.location
     # )
+
+
+class Store:
+    def push_student_driving(self, step, control, rgb):
+        pass
+
+    def push_teacher_driving(self, step, control, rgb):
+        pass
+
+
+class TarStore(Store):
+    def __init__(self, archive: tarfile.TarFile):
+        self._archive = archive
+        self._meta = {}
+        self._recent_student_driving = []
+        self._teacher_in_control = False
+        self._intervention_step = 0
+
+    def push_student_driving(self, step, control, rgb):
+        self._teacher_in_control = False
+        self._recent_student_driving.append((step, control, rgb))
+        if len(self._recent_student_driving) > 20:
+            self._recent_student_driving.pop(0)
+
+    def push_teacher_driving(self, step, control, rgb):
+        if not self._teacher_in_control:
+            self._intervention_step = step
+            self._teacher_in_control = True
+            self._store_student_driving()
+
+        rgb_filename = f"{step}-rgb-teacher.bin"
+        self._add_file(rgb_filename, rgb.tobytes(order="C"))
+        self._meta[step] = {
+            "type": "teacher",
+            "control": control,
+            "timeFromIntervention": step - self._intervention_step,
+            "rgbFile": rgb_filename,
+        }
+
+    @meta.getter
+    def get_meta():
+        return self._meta
+
+    def _add_file(self, filename: str, data: bytes):
+        tar_file = tarfile.TarInfo(filename)
+        tar_file.size = len(data)
+        buffer = BytesIO(data)
+        self._archive.addfile(tar_file, buffer)
+
+    def _store_student_driving(self):
+        for (step, control, rgb) in reversed(self._recent_student_driving):
+            rgb_filename = f"{step}-rgb-student.bin"
+            self._add_file(rgb_filename, rgb.tobytes(order="C"))
+            self._meta[step] = {
+                "type": "student",
+                "control": control,
+                "timeToIntervention": step - self._intervention_step,
+                "rgbFile": rgb_filename,
+            }
+        self._recent_student_driving = []
 
 
 def run():
