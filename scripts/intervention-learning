@@ -14,11 +14,11 @@ def cli():
 
 @cli.command()
 def demo():
-    intervention.run.run()
+    intervention.run.demo()
 
 @cli.command()
 def collect():
-    print("asd")
+    intervention.run.collect()
 
 
 if __name__ == "__main__":

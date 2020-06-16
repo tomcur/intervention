@@ -236,7 +236,7 @@ class TarStore(Store):
         self._recent_student_driving = []
 
 
-def run():
+def run(store: Store):
     visualizer = visualization.Visualizer()
 
     logger.trace("Creating manager.")
@@ -255,8 +255,10 @@ def run():
             comparer.evaluate_and_compare(state)
 
             if comparer.student_in_control:
+                store.push_student_driving(step, comparer.student_control, state["rgb"])
                 manager.apply_control(comparer.student_control)
             else:
+                store.push_teacher_driving(step, comparer.teacher_control, state["rgb"])
                 manager.apply_control(comparer.teacher_control)
 
             birdview = manager.render_birdview()
@@ -270,3 +272,12 @@ def run():
             )
             if visualization.Action.SWITCH_CONTROL in actions:
                 comparer.student_in_control != comparer.student_in_control
+
+
+def demo():
+    run(Store())
+
+def collect():
+    with tarfile.open("episode-x.tar", "w") as tar:
+        store = TarStore(tar)
+        run(store)
