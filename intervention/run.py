@@ -249,7 +249,7 @@ def run():
         teacher = _prepare_teacher_agent()
         comparer = Comparer(student, teacher)
 
-        while True:
+        for step in itertools.count():
             state = manager.tick()
             logger.trace("command {}", state["command"])
             comparer.evaluate_and_compare(state)
