@@ -122,7 +122,6 @@ class Comparer:
                 self._stable_frames = 0
 
 
-
 def _prepare_student_agent():
     image_model = image.ImagePolicyModelSS(backbone="resnet34")
     # image_model.load_state_dict(torch.load("../LearningByCheating/ckpts/image/model-10.th"))
@@ -186,23 +185,12 @@ def run():
         student = _prepare_student_agent()
         teacher = _prepare_teacher_agent()
         comparer = Comparer(student, teacher)
-        # student_agent.set_route(manager._start_pose.location, manager._end_pose.location)
 
         while True:
             state = manager.tick()
-            # command = teacher_agent._local_planner.checkpoint[1]
             logger.trace("command {}", state["command"])
             comparer.evaluate_and_compare(state)
 
-            # heatmap = student_agent.get_heatmap(
-            #     {
-            #         "rgb": res["rgb"],
-            #         "velocity": res["velocity"],
-            #         "command": res["command"],
-            #     }
-            # )
-            # print(heatmap.size())
-            # visualizer.render_heatmap(heatmap)
             if comparer.student_in_control:
                 manager.apply_control(comparer.student_control)
             else:
