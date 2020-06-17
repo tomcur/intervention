@@ -213,8 +213,8 @@ class TarStore(Store):
             "rgbFile": rgb_filename,
         }
 
-    @meta.getter
-    def get_meta():
+    @property
+    def meta():
         return self._meta
 
     def _add_file(self, filename: str, data: bytes):
