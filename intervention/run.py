@@ -204,7 +204,7 @@ class TarStore(Store):
             self._teacher_in_control = True
             self._store_student_driving()
 
-        rgb_filename = f"{step}-rgb-teacher.bin"
+        rgb_filename = "{}-rgb-teacher.bin".format(step)
         self._add_file(rgb_filename, rgb.tobytes(order="C"))
         self._meta[step] = {
             "type": "teacher",
@@ -225,7 +225,7 @@ class TarStore(Store):
 
     def _store_student_driving(self):
         for (step, control, rgb) in reversed(self._recent_student_driving):
-            rgb_filename = f"{step}-rgb-student.bin"
+            rgb_filename = "{}-rgb-student.bin".format(step)
             self._add_file(rgb_filename, rgb.tobytes(order="C"))
             self._meta[step] = {
                 "type": "student",
