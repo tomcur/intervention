@@ -15,16 +15,15 @@ let
       pytorchWithCuda
       pygame
     ];
-  python-with-packages = (pkgs.python35.withPackages python-packages);
-  # .override (args: { ignoreCollissions = true; });
+  python-with-packages = (pkgs.python37.withPackages python-packages);
 in pkgs.mkShell {
   venvDir = "./.venv";
   buildInputs = with pkgs; [
     python-with-packages
     cmake
-    python3Packages.black
-    python3Packages.python-language-server
-    python35Packages.venvShellHook
+    python37Packages.black
+    python37Packages.python-language-server
+    python37Packages.venvShellHook
   ];
   LD_LIBRARY_PATH = with pkgs;
     "${glib.out}/lib:${xlibs.libSM.out}/lib:${xlibs.libICE.out}/lib:${xlibs.libXext.out}/lib:${stdenv.cc.cc.lib}/lib:${libpng_apng.out}/lib:${libjpeg_original.out}/lib:${libtiff.out}/lib:${xlibs.libXrender.out}/lib:${xlibs.libX11.out}/lib";
