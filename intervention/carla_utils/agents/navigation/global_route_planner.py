@@ -11,8 +11,8 @@ import numpy as np
 import networkx as nx
 
 import carla
-from agents.navigation.local_planner import RoadOption
-from agents.tools.misc import vector
+from .local_planner import RoadOption
+from ..tools.misc import vector
 
 
 class GlobalRoutePlanner(object):
@@ -327,7 +327,7 @@ class GlobalRoutePlanner(object):
         origin      : carla.Location object of the route's start position
         destination : carla.Location object of the route's end position
         return      : list of turn by turn navigation decisions as
-        agents.navigation.local_planner.RoadOption elements
+        .local_planner.RoadOption elements
         Possible values are STRAIGHT, LEFT, RIGHT, LANEFOLLOW, VOID
         CHANGELANELEFT, CHANGELANERIGHT
         """

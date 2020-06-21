@@ -1,7 +1,7 @@
 import numpy as np
 
-from agents.navigation.agent import Agent
-from agents.navigation.local_planner import LocalPlannerNew
+from ..carla_utils.agents.navigation.agent import Agent
+from ..carla_utils.agents.navigation.local_planner import LocalPlannerNew
 
 from .controller import PIDController
 

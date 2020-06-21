@@ -5,11 +5,11 @@ from loguru import logger
 
 import carla
 
-from agents.navigation.local_planner import RoadOption, LocalPlannerNew
+from .agents.navigation.local_planner import RoadOption, LocalPlannerNew
 from .images import carla_image_to_np
 from .map_utils import Renderer
 
-VEHICLE_NAME = "vehicle.ford.mustang"
+VEHICLE_NAME = "vehicle.mustang.mustang"
 
 
 class Manager:
@@ -48,7 +48,6 @@ class Manager:
     def _spawn_player(self):
         self._player = self._world.spawn_actor(self._vehicle_bp, self._start_pose)
         self._player.set_autopilot(False)
-        self._player.start_dtcrowd()
         self._actor_dict["player"].append(self._player)
 
         def _enqueue_image(image):
@@ -92,12 +91,16 @@ class Manager:
         # TODO stop recording
 
     def setup(self):
+        logger.debug("spawn player")
         self._spawn_player()
+        logger.debug("spawn vehicles")
         self._spawn_vehicles(50)
 
+        logger.debug("spawn pedestrians")
         pedestrians, pedestrian_controllers = self._spawn_pedestrians(125)
         self._actor_dict["pedestrian"].extend(pedestrians)
         self._actor_dict["ped_controller"].extend(pedestrian_controllers)
+        logger.debug("controllers spawned")
 
         # FIXME run this periodically
         import random
@@ -201,7 +204,6 @@ class Manager:
                 )
 
             vehicle.set_autopilot(True)
-            vehicle.start_dtcrowd()
 
             self._actor_dict["vehicle"].append(vehicle)
 
