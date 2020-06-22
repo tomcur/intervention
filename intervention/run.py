@@ -239,12 +239,10 @@ class TarStore(Store):
 def run(store: Store):
     visualizer = visualization.Visualizer()
 
-    logger.trace("Creating manager.")
     with Manager() as manager:
-        logger.trace("Running manager setup.")
         manager.setup()
 
-        logger.trace("Creating agents.")
+        logger.debug("Creating agents.")
         student = _prepare_student_agent()
         teacher = _prepare_teacher_agent()
         comparer = Comparer(student, teacher)

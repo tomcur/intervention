@@ -16,6 +16,8 @@ class Manager:
     def __init__(
         self, town="Town01", vehicle_name=VEHICLE_NAME, port=2000, start=0, end=40
     ):
+        logger.debug("Creating manager.")
+
         self._client = carla.Client("localhost", port)
 
         self._player = None
@@ -80,27 +82,29 @@ class Manager:
             self._client.apply_batch([carla.command.DestroyActor(x) for x in actors])
 
     def __enter__(self):
+        logger.debug("Entering manager.")
         return self
 
         # TODO start recording
 
     def __exit__(self, *args):
+        logger.debug("Exiting manager.")
         self._clean_up()
         pass
 
         # TODO stop recording
 
     def setup(self):
-        logger.debug("spawn player")
+        logger.debug("Running manager setup.")
+        logger.debug("Spawning player.")
         self._spawn_player()
-        logger.debug("spawn vehicles")
+        logger.debug("Spawning vehicles.")
         self._spawn_vehicles(50)
 
-        logger.debug("spawn pedestrians")
+        logger.debug("Spawning pedestrians.")
         pedestrians, pedestrian_controllers = self._spawn_pedestrians(125)
         self._actor_dict["pedestrian"].extend(pedestrians)
         self._actor_dict["ped_controller"].extend(pedestrian_controllers)
-        logger.debug("controllers spawned")
 
         # FIXME run this periodically
         import random
