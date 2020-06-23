@@ -111,7 +111,7 @@ class Visualizer:
         teacher_control_surf = self._render_control(teacher_control)
         self._screen.blit(teacher_control_surf, (400, 170))
 
-        print(s)
+        # print(s)
         # print(s.shape)
         self._screen.blit(s, (300, 300))
 

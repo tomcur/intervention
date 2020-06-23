@@ -375,7 +375,7 @@ class Renderer():
         self.window_traffic_light_surface.set_colorkey(COLOR_BLACK)
         
         self.result_surface = pygame.Surface((self.surface_size, self.surface_size)).convert()
-        print("self.surface_size", self.surface_size)
+        # print("self.surface_size", self.surface_size)
         self.result_surface.set_colorkey(COLOR_BLACK)
 
         self.rendered_surface = pygame.Surface((320, 320)).convert()
@@ -682,10 +682,9 @@ class Renderer():
             speed_limits = []
             walkers = snapshot["walkers"]
         
-        # FIXME
         scale_factor = 1.0
-        print("scale_factor", scale_factor)
-        print("self.map_image.width", self.map_image.width)
+        # print("scale_factor", scale_factor)
+        # print("self.map_image.width", self.map_image.width)
         self.scaled_size = int(self.map_image.width * scale_factor)
 
         if self.scaled_size != self.prev_scaled_size:
@@ -730,7 +729,7 @@ class Renderer():
                 hero_orientation = snapshot["player"]["transform"]["orientation"]
                 hero_front = carla.Location(x=hero_orientation["x"], y=hero_orientation["y"])
 
-            print(hero_location_screen)
+            # print(hero_location_screen)
             offset = [0, 0]
             offset[0] += hero_location_screen[0] - self.hero_map_surface.get_width() / 2
             offset[0] += hero_front.x * PIXELS_AHEAD_VEHICLE
@@ -742,7 +741,7 @@ class Renderer():
                     offset[0], offset[1],
                     self.hero_map_surface.get_width(),
                     self.hero_map_surface.get_height())
-            print("clipping_rect", clipping_rect)
+            # print("clipping_rect", clipping_rect)
 
             self.clip_surfaces(clipping_rect)
             # self.border_round_surface.set_clip(clipping_rect)
@@ -784,7 +783,7 @@ class Renderer():
 
             # center = (display.get_width() / 2, display.get_height() / 2)
             center = (320.0 / 2, 320.0 / 2)
-            print("center", center)
+            # print("center", center)
             rotation_map_pivot = rotated_map_surface.get_rect(center=center)
             rotation_lane_pivot = rotated_lane_surface.get_rect(center=center)
             rotation_vehicle_pivot = rotated_vehicle_surface.get_rect(center=center)
@@ -810,7 +809,7 @@ class Renderer():
             self.hero_traffic_image = np.swapaxes(
                     pygame.surfarray.array3d(self.window_traffic_light_surface),
                     0, 1)
-            print("self.hero_map_image.shape", self.hero_map_image.shape)
+            # print("self.hero_map_image.shape", self.hero_map_image.shape)
             # self.hero_self_image = np.swapaxes(
             # pygame.surfarray.array3d(self.window_self_surface),0,1).mean(axis=-1)
         else:

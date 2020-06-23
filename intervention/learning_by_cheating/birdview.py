@@ -59,11 +59,7 @@ class BirdViewPolicyModelSS(common.ResnetBase):
         self.all_branch = all_branch
 
     def forward(self, bird_view, velocity, command):
-        # import time
-        # print(len(bird_view))
         h = self.conv(bird_view)
-        # print("....1")
-        # time.sleep(3)
         b, c, kh, kw = h.size()
 
         # Late fusion for velocity
@@ -74,12 +70,8 @@ class BirdViewPolicyModelSS(common.ResnetBase):
         h = self.deconv(h)
 
         location_preds = [location_pred(h) for location_pred in self.location_pred]
-        # print("...2")
-        # time.sleep(3)
         del h
         location_preds = torch.stack(location_preds, dim=1)
-        # print("...3")
-        # time.sleep(3)
             
         location_pred = common.select_branch(location_preds, command)
         

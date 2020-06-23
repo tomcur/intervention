@@ -211,7 +211,7 @@ class Manager:
 
             self._actor_dict["vehicle"].append(vehicle)
 
-        print("spawned %d vehicles" % len(self._actor_dict["vehicle"]))
+        logger.debug("spawned %d vehicles" % len(self._actor_dict["vehicle"]))
 
     def _spawn_pedestrians(self, n_pedestrians):
         import random
@@ -248,7 +248,7 @@ class Manager:
 
             for result in self._client.apply_batch_sync(batch, True):
                 if result.error:
-                    print(result.error)
+                    logger.trace(result.error)
                 else:
                     peds_spawned += 1
                     _walkers.append(result.actor_id)
@@ -261,13 +261,13 @@ class Manager:
 
             for result in self._client.apply_batch_sync(batch, True):
                 if result.error:
-                    print(result.error)
+                    logger.trace(result.error)
                 else:
                     _controllers.append(result.actor_id)
 
             controllers.extend(_controllers)
             walkers.extend(_walkers)
 
-        print("spawned %d pedestrians" % len(controllers))
+        logger.debug("spawned %d pedestrians" % len(controllers))
 
         return self._world.get_actors(walkers), self._world.get_actors(controllers)

@@ -85,8 +85,6 @@ class ImagePolicyModelSS(common.ResnetBase):
         location_preds = torch.stack(location_preds, dim=1)
         location_pred = common.select_branch(location_preds, command)
 
-        print(location_pred)
-
         if self.all_branch:
             return location_pred, location_preds
         
