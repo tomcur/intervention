@@ -204,7 +204,7 @@ class ZipStore(Store):
             self._teacher_in_control = True
             self._store_student_driving()
 
-        rgb_filename = "{}-rgb-teacher.bin".format(step)
+        rgb_filename = f"{step:05d}-rgb-teacher.bin"
         self._add_file(rgb_filename, rgb.tobytes(order="C"))
         self._meta[step] = {
             "type": "teacher",
@@ -222,7 +222,7 @@ class ZipStore(Store):
 
     def _store_student_driving(self):
         for (step, control, rgb) in reversed(self._recent_student_driving):
-            rgb_filename = "{}-rgb-student.bin".format(step)
+            rgb_filename = f"{step:05d}-rgb-student.bin"
             self._add_file(rgb_filename, rgb.tobytes(order="C"))
             self._meta[step] = {
                 "type": "student",
