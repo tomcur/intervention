@@ -3,3 +3,4 @@
 *.vim
 *.egg-info
 *.th
+.venv
