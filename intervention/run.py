@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from loguru import logger
 import itertools
-import tarfile
+import zipfile
 from io import BytesIO
 import threading
 import sys
@@ -184,8 +184,8 @@ class Store:
         pass
 
 
-class TarStore(Store):
-    def __init__(self, archive: tarfile.TarFile):
+class ZipStore(Store):
+    def __init__(self, archive: zipfile.ZipFile):
         self._archive = archive
         self._meta = {}
         self._recent_student_driving = []
@@ -218,10 +218,7 @@ class TarStore(Store):
         return self._meta
 
     def _add_file(self, filename: str, data: bytes):
-        tar_file = tarfile.TarInfo(filename)
-        tar_file.size = len(data)
-        buffer = BytesIO(data)
-        self._archive.addfile(tar_file, buffer)
+        self._archive.writestr(filename, data)
 
     def _store_student_driving(self):
         for (step, control, rgb) in reversed(self._recent_student_driving):
@@ -276,6 +273,6 @@ def demo():
     run(Store())
 
 def collect():
-    with tarfile.open("episode-x.tar", "w") as tar:
-        store = TarStore(tar)
+    with zipfile.ZipFile("episode-x.zip", mode="w") as zip_archive:
+        store = ZipStore(zip_archive)
         run(store)
