@@ -31,7 +31,24 @@ let
         platforms = stdenv.lib.platforms.unix;
       };
     };
-    libjpeg_original_8d = pkgs.callPackage libjpeg_original_8d_pkg {};
+  libjpeg_original_8d = pkgs.callPackage libjpeg_original_8d_pkg { };
+  libproj_pkg = { stdenv, fetchurl }:
+    stdenv.mkDerivation {
+      name = "proj-4.9.1";
+
+      src = fetchurl {
+        url = "http://download.osgeo.org/proj/proj-4.9.1.tar.gz";
+        sha256 = "06f36s7yi6yky92g235kj9wkcckm04qgzxnj0fla3icb7y7ki87w";
+      };
+
+      meta = with stdenv.lib; {
+        description = "Cartographic Projections Library";
+        homepage = "http://trac.osgeo.org/proj/";
+        license = licenses.mit;
+        platforms = platforms.linux;
+      };
+    };
+  libproj = pkgs.callPackage libproj_pkg { };
 in pkgs.mkShell {
   venvDir = "./.venv";
   buildInputs = with pkgs; [
@@ -42,5 +59,9 @@ in pkgs.mkShell {
     python37Packages.venvShellHook
   ];
   LD_LIBRARY_PATH = with pkgs;
-    "/run/opengl-driver/lib:${glib.out}/lib:${xlibs.libSM.out}/lib:${xlibs.libICE.out}/lib:${xlibs.libXext.out}/lib:${stdenv.cc.cc.lib}/lib:${libpng_apng.out}/lib:${libjpeg_original_8d.out}/lib:${libtiff.out}/lib:${xlibs.libXrender.out}/lib:${xlibs.libX11.out}/lib";
+    "/run/opengl-driver/lib:${glib.out}/lib:${xlibs.libSM.out}/lib:${xlibs.libICE.out}/lib"
+    + ":${xlibs.libXext.out}/lib:${stdenv.cc.cc.lib}/lib:${libpng_apng.out}/lib:${libjpeg_original_8d.out}/lib"
+    + ":${libtiff.out}/lib:${xlibs.libXrender.out}/lib:${xlibs.libX11.out}/lib"
+    # For Carla RSS integration:
+    + ":${tbb.out}/lib:${libproj}/lib";
 }
