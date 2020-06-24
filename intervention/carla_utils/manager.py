@@ -47,6 +47,15 @@ class Manager:
         self._vehicle_bp = np.random.choice(self._blueprints.filter(vehicle_name))
         self._vehicle_bp.set_attribute("role_name", "hero")
 
+        if self._vehicle_bp.has_attribute('color'):
+            color = np.random.choice(self._vehicle_bp.get_attribute('color').recommended_values)
+            self._vehicle_bp.set_attribute('color', color)
+        if self._vehicle_bp.has_attribute('driver_id'):
+            driver_id = np.random.choice(self._vehicle_bp.get_attribute('driver_id').recommended_values)
+            self._vehicle_bp.set_attribute('driver_id', driver_id)
+        if self._vehicle_bp.has_attribute('is_invincible'):
+            self._vehicle_bp.set_attribute('is_invincible', 'true')
+
         self._actor_dict = collections.defaultdict(list)
 
         self._renderer = None
