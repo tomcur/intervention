@@ -18,11 +18,16 @@ class Manager:
     ):
         logger.debug("Creating manager.")
 
+        logger.trace("Connecting to Carla simulator.")
         self._client = carla.Client("localhost", port)
+        logger.trace("Connected to Carla simulator.")
 
+        logger.trace("Setting up/connecting to traffic manager.")
         self._traffic_manager = self._client.get_trafficmanager()
+        logger.trace("Connected to traffic manager.")
         self._traffic_manager.set_synchronous_mode(True)
         self._tm_port = self._traffic_manager.get_port()
+        logger.trace("Traffic manager has been set up.")
 
         self._player = None
         self._rgb_queue = queue.Queue()
