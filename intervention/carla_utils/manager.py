@@ -81,6 +81,34 @@ class Manager:
         rgb_camera.listen(_enqueue_image)
         self._actor_dict["sensor"].append(rgb_camera)
 
+        def rss_response(event):
+            print(event)
+
+        rss_sensor_bp = self._blueprints.find("sensor.other.rss")
+        rss_sensor = self._world.spawn_actor(
+            rss_sensor_bp,
+            carla.Transform(carla.Location(x=0.0, z=0.0)),
+            attach_to=self._player,
+        )
+        rss_sensor.listen(rss_response)
+        rss_sensor.road_boundaries_mode = carla.RssRoadBoundariesMode.On
+        rss_sensor.visualization_mode = carla.RssVisualizationMode.All
+        rss_sensor.visualize_results = True
+
+        # default, from ad_rss documentation
+        rss_sensor.ego_vehicle_dynamics.alphaLon.accelMax = 3.5
+        rss_sensor.ego_vehicle_dynamics.alphaLon.brakeMin = -4
+        rss_sensor.ego_vehicle_dynamics.alphaLon.brakeMax = -8
+        rss_sensor.ego_vehicle_dynamics.alphaLon.brakeMinCorrect = -3
+        rss_sensor.ego_vehicle_dynamics.alphaLat.brakeMin = -0.8
+        rss_sensor.ego_vehicle_dynamics.alphaLat.accelMax = 0.2
+        rss_sensor.ego_vehicle_dynamics.lateralFluctuationMargin = 0.1
+        rss_sensor.ego_vehicle_dynamics.responseTime = 1.0
+        rss_sensor.ego_vehicle_dynamics.maxSpeed = 100
+
+        rss_sensor.reset_routing_targets()
+        self._actor_dict["sensor"].append(rss_sensor)
+
         # FIXME
         self._local_planner = LocalPlannerNew(self._player, 2.5, 9.0, 1.5)
         self._local_planner.set_route(
