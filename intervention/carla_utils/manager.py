@@ -20,7 +20,9 @@ class Manager:
 
         logger.trace("Connecting to Carla simulator.")
         self._client = carla.Client("localhost", port)
-        logger.trace("Connected to Carla simulator.")
+        logger.trace("Connected to Carla simulator. Loading world.")
+        self._world = self._client.load_world(town)
+        logger.trace("World loaded.")
 
         logger.trace("Setting up/connecting to traffic manager.")
         self._traffic_manager = self._client.get_trafficmanager()
@@ -34,7 +36,6 @@ class Manager:
 
         self._client.set_timeout(30.0)
 
-        self._world = self._client.load_world(town)
         self._world.set_weather(carla.WeatherParameters.ClearNoon)
         # self._world.set_weather(carla.WeatherParameters.Default)
         self._map = self._world.get_map()
