@@ -20,6 +20,10 @@ class Manager:
 
         self._client = carla.Client("localhost", port)
 
+        self._traffic_manager = self._client.get_trafficmanager()
+        self._traffic_manager.set_synchronous_mode(True)
+        self._tm_port = self._traffic_manager.get_port()
+
         self._player = None
         self._rgb_queue = queue.Queue()
 
@@ -49,7 +53,7 @@ class Manager:
 
     def _spawn_player(self):
         self._player = self._world.spawn_actor(self._vehicle_bp, self._start_pose)
-        self._player.set_autopilot(False)
+        self._player.set_autopilot(False, self._tm_port)
         self._actor_dict["player"].append(self._player)
 
         def _enqueue_image(image):
@@ -185,6 +189,7 @@ class Manager:
         ]
         spawn_points = self._map.get_spawn_points()
 
+        # TODO: don't use same spawnpoint twice (loop through shuffled spawnpoints)
         for i in range(n_vehicles):
             blueprint = np.random.choice(blueprints)
             blueprint.set_attribute("role_name", "autopilot")
@@ -207,7 +212,7 @@ class Manager:
                     blueprint, np.random.choice(spawn_points)
                 )
 
-            vehicle.set_autopilot(True)
+            vehicle.set_autopilot(True, self._tm_port)
 
             self._actor_dict["vehicle"].append(vehicle)
 
