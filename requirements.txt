@@ -7,6 +7,7 @@ torch~=1.5.1
 torchvision~=0.6.1
 pid_controller~=0.2.0
 
+data-science-types~=0.2.16
 scipy~=1.4
 scikit-image~=0.15
 numpy~=1.19

@@ -1,3 +1,4 @@
+import abc
 import numpy as np
 import torch
 from loguru import logger
@@ -13,6 +14,9 @@ from intervention import visualization
 from intervention.learning_by_cheating import image
 from intervention.learning_by_cheating import birdview
 from intervention.learning_by_cheating import roaming
+
+
+from typing import Any, Optional, Tuple, Dict, List
 
 
 def controls_differ(observation, supervisor_control, model_control) -> bool:
@@ -89,6 +93,8 @@ class Comparer:
         self.student_in_control = False
         self.student = student
         self.teacher = teacher
+        self.student_control = None
+        self.teacher_control = None
 
     def evaluate_and_compare(self, state):
         self.student_control = self.student.run_step(
@@ -123,6 +129,10 @@ class Comparer:
                     self._stable_frames = 0
             else:
                 self._stable_frames = 0
+
+    def switch_control(self):
+        """Switch control from the student to the teacher or vice-versa."""
+        self.student_in_control = not self.student_in_control
 
 
 def _prepare_student_agent():
@@ -165,40 +175,49 @@ def _prepare_teacher_agent():
     teacher_agent = birdview.BirdViewAgent(**teacher_agent_args)
 
     return teacher_agent
-    # teacher_agent = roaming.RoamingAgentMine(
-    #     vehicle=manager._player,
-    #     resolution=1.0,
-    #     threshold_before=7.5,
-    #     threshold_after=5.0,
-    # )
-    # teacher_agent.set_route(
-    #    manager._start_pose.location, manager._end_pose.location
-    # )
 
 
 class Store:
-    def push_student_driving(self, step, control, rgb):
+    """Episode store."""
+
+    @abc.abstractmethod
+    def push_student_driving(self, step: int, control: Any, rgb: Any) -> None:
+        """Add one example of student driving to the store."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def push_teacher_driving(self, step: int, control: Any, rgb: Any) -> None:
+        """Add one example of teacher driving to the store."""
+        raise NotImplementedError
+
+
+class BlackHoleStore(Store):
+    """Episode store backed by a black hole."""
+
+    def push_student_driving(self, step: int, control: Any, rgb: Any) -> None:
         pass
 
-    def push_teacher_driving(self, step, control, rgb):
+    def push_teacher_driving(self, step: int, control: Any, rgb: Any) -> None:
         pass
 
 
 class ZipStore(Store):
+    """Episode store backed by zip-file."""
+
     def __init__(self, archive: zipfile.ZipFile):
         self._archive = archive
-        self._meta = {}
-        self._recent_student_driving = []
+        self._meta: Dict[int, Dict[str, Any]] = {}
+        self._recent_student_driving: List[Tuple[int, Any, Any]] = []
         self._teacher_in_control = False
         self._intervention_step = 0
 
-    def push_student_driving(self, step, control, rgb):
+    def push_student_driving(self, step: int, control: Any, rgb: Any) -> None:
         self._teacher_in_control = False
         self._recent_student_driving.append((step, control, rgb))
         if len(self._recent_student_driving) > 20:
             self._recent_student_driving.pop(0)
 
-    def push_teacher_driving(self, step, control, rgb):
+    def push_teacher_driving(self, step: int, control: Any, rgb: Any) -> None:
         if not self._teacher_in_control:
             self._intervention_step = step
             self._teacher_in_control = True
@@ -214,13 +233,14 @@ class ZipStore(Store):
         }
 
     @property
-    def meta():
+    def meta(self) -> Dict[int, Dict[str, Any]]:
+        """The metadata of the episode."""
         return self._meta
 
-    def _add_file(self, filename: str, data: bytes):
+    def _add_file(self, filename: str, data: bytes) -> None:
         self._archive.writestr(filename, data)
 
-    def _store_student_driving(self):
+    def _store_student_driving(self) -> None:
         for (step, control, rgb) in reversed(self._recent_student_driving):
             rgb_filename = f"{step:05d}-rgb-student.bin"
             self._add_file(rgb_filename, rgb.tobytes(order="C"))
@@ -233,7 +253,7 @@ class ZipStore(Store):
         self._recent_student_driving = []
 
 
-def run(store: Store):
+def run(store: Store) -> None:
     visualizer = visualization.Visualizer()
 
     with Manager() as manager:
@@ -256,23 +276,24 @@ def run(store: Store):
                 store.push_teacher_driving(step, comparer.teacher_control, state["rgb"])
                 manager.apply_control(comparer.teacher_control)
 
-            birdview = manager.render_birdview()
+            birdview_render = manager.render_birdview()
             actions = visualizer.render(
                 state["rgb"],
                 "student" if comparer.student_in_control else "teacher",
                 comparer.difference_integral,
                 comparer.student_control,
                 comparer.teacher_control,
-                birdview,
+                birdview_render,
             )
             if visualization.Action.SWITCH_CONTROL in actions:
-                comparer.student_in_control != comparer.student_in_control
+                comparer.switch_control()
 
 
-def demo():
-    run(Store())
+def demo() -> None:
+    run(BlackHoleStore())
 
-def collect():
+
+def collect() -> None:
     with zipfile.ZipFile("episode-x.zip", mode="w") as zip_archive:
         store = ZipStore(zip_archive)
         run(store)
