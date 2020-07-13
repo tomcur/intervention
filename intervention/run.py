@@ -8,12 +8,12 @@ from io import BytesIO
 import threading
 import sys
 
-from intervention.carla_utils import Manager, carla_image_to_np
-from intervention import visualization
+from .carla_utils import connect, carla_image_to_np
+from . import visualization
 
-from intervention.learning_by_cheating import image
-from intervention.learning_by_cheating import birdview
-from intervention.learning_by_cheating import roaming
+from .learning_by_cheating import image
+from .learning_by_cheating import birdview
+from .learning_by_cheating import roaming
 
 
 from typing import Any, Optional, Tuple, Dict, List
@@ -252,27 +252,26 @@ class ZipStore(Store):
 def run(store: Store) -> None:
     visualizer = visualization.Visualizer()
 
-    with Manager() as manager:
-        manager.setup()
-
+    managed_episode = connect()
+    with managed_episode as episode:
         logger.debug("Creating agents.")
         student = _prepare_student_agent()
         teacher = _prepare_teacher_agent()
         comparer = Comparer(student, teacher)
 
         for step in itertools.count():
-            state = manager.tick()
+            state = episode.tick()
             logger.trace("command {}", state["command"])
             comparer.evaluate_and_compare(state)
 
             if comparer.student_in_control:
                 store.push_student_driving(step, comparer.student_control, state["rgb"])
-                manager.apply_control(comparer.student_control)
+                episode.apply_control(comparer.student_control)
             else:
                 store.push_teacher_driving(step, comparer.teacher_control, state["rgb"])
-                manager.apply_control(comparer.teacher_control)
+                episode.apply_control(comparer.teacher_control)
 
-            birdview_render = manager.render_birdview()
+            birdview_render = episode.render_birdview()
             actions = visualizer.render(
                 state["rgb"],
                 "student" if comparer.student_in_control else "teacher",

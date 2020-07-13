@@ -289,7 +289,12 @@ def _compute_connection(current_waypoint, next_waypoint):
 
 
 class LocalPlannerNew(object):
-    def __init__(self, vehicle, resolution=15, threshold_before=2.5, threshold_after=5.0):
+    """
+    After creating an object of this class, you need to call set_route and then
+    set_vehicle.
+    """
+
+    def __init__(self, carla_map, resolution=15, threshold_before=2.5, threshold_after=5.0):
         from .global_route_planner import GlobalRoutePlanner
         from .global_route_planner_dao import GlobalRoutePlannerDAO
 
@@ -298,8 +303,8 @@ class LocalPlannerNew(object):
         self._threshold_before = threshold_before
         self._threshold_after = threshold_after
 
-        self._vehicle = vehicle
-        self._map = vehicle.get_world().get_map()
+        self._vehicle = None
+        self._map = carla_map
         self._grp = GlobalRoutePlanner(GlobalRoutePlannerDAO(self._map, resolution))
         self._grp.setup()
 
@@ -334,6 +339,9 @@ class LocalPlannerNew(object):
             prev = cur
 
         self.target = self._waypoints_queue[0]
+
+    def set_vehicle(self, vehicle):
+        self._vehicle = vehicle
         self.checkpoint = (
                 self._map.get_waypoint(self._vehicle.get_location()),
                 RoadOption.LANEFOLLOW)
