@@ -23,32 +23,28 @@ def controls_differ(observation, supervisor_control, model_control) -> bool:
     """Determines whether supervisor and model controls differ.
     This function is not guaranteed to be symmetric.
     """
-    if supervisor_control.hand_brake != model_control.hand_brake:
-        return True
-    elif supervisor_control.reverse != model_control.reverse:
-        return True
-    # FIXME high threshold because of jittery throttle
-    elif abs(supervisor_control.throttle - model_control.throttle) >= 0.95:
-        return True
-    elif abs(supervisor_control.steer - model_control.steer) >= 0.25:
-        return True
-    elif (
-        observation["speed"] > 5.0 * 1000 / 60 / 60
-        and abs(supervisor_control.brake - model_control.brake) >= 0.95
-    ):
-        return True
-    elif (
-        observation["speed"] > 10.0 * 1000 / 60 / 60
-        and abs(supervisor_control.brake - model_control.brake) >= 0.8
-    ):
-        return True
-    elif (
-        observation["speed"] > 30.0 * 1000 / 60 / 60
-        and abs(supervisor_control.brake - model_control.brake) >= 0.5
-    ):
-        return True
-
-    return False
+    return (
+        supervisor_control.hand_brake != model_control.hand_brake
+        or supervisor_control.reverse != model_control.reverse
+        or (
+            # FIXME high threshold because of jittery throttle
+            abs(supervisor_control.throttle - model_control.throttle)
+            >= 0.95
+        )
+        or (abs(supervisor_control.steer - model_control.steer) >= 0.25)
+        or (
+            observation["speed"] > 5.0 * 1000 / 60 / 60
+            and abs(supervisor_control.brake - model_control.brake) >= 0.95
+        )
+        or (
+            observation["speed"] > 10.0 * 1000 / 60 / 60
+            and abs(supervisor_control.brake - model_control.brake) >= 0.8
+        )
+        or (
+            observation["speed"] > 30.0 * 1000 / 60 / 60
+            and abs(supervisor_control.brake - model_control.brake) >= 0.5
+        )
+    )
 
 
 def controls_difference(observation, supervisor_control, model_control) -> float:
