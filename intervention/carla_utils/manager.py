@@ -151,12 +151,17 @@ class ManagedEpisode:
         self, carla_map: carla.Map
     ) -> Tuple[LocalPlannerNew, carla.Transform, carla.Transform]:
         spawn_points = carla_map.get_spawn_points()
-        start_pose = np.random.choice(spawn_points)
-        end_pose = np.random.choice(spawn_points)
-        local_planner = LocalPlannerNew(carla_map, 2.5, 9.0, 1.5)
-        local_planner.set_route(start_pose.location, end_pose.location)
 
-        return local_planner, start_pose, end_pose
+        while True:
+            start_pose = np.random.choice(spawn_points)
+            end_pose = np.random.choice(spawn_points)
+
+            # FIXME
+            local_planner = LocalPlannerNew(carla_map, 2.5, 9.0, 1.5)
+            local_planner.set_route(start_pose.location, end_pose.location)
+
+            if local_planner.distance_to_goal >= self.minimal_route_distance:
+                return local_planner, start_pose, end_pose
 
     def _set_up(self) -> Episode:
         logger.trace("Loading world.")
