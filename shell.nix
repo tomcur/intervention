@@ -58,6 +58,7 @@ in pkgs.mkShell {
     python37Packages.python-language-server
     python37Packages.venvShellHook
   ];
+  MYPYPATH=toString ./stubs;
   LD_LIBRARY_PATH = with pkgs;
     "/run/opengl-driver/lib:${glib.out}/lib:${xlibs.libSM.out}/lib:${xlibs.libICE.out}/lib"
     + ":${xlibs.libXext.out}/lib:${stdenv.cc.cc.lib}/lib:${libpng_apng.out}/lib:${libjpeg_original_8d.out}/lib"

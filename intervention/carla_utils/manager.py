@@ -16,18 +16,18 @@ from .map_utils import Renderer
 class EgoVehicle:
     def __init__(self, vehicle: carla.Vehicle):
         self.vehicle = vehicle
-        self._rgb_queue = queue.Queue()
+        self._rgb_queue: queue.Queue[np.ndarray] = queue.Queue()
 
-    def apply_control(self, control) -> None:
+    def apply_control(self, control: carla.VehicleControl) -> None:
         self.vehicle.apply_control(control)
 
-    def current_speed_and_velocity(self):
+    def current_speed_and_velocity(self) -> Tuple[np.ndarray, np.ndarray]:
         velocity = self.vehicle.get_velocity()
         speed = np.linalg.norm([velocity.x, velocity.y, velocity.z])
         velocity = np.float32([velocity.x, velocity.y, velocity.z])
         return (speed, velocity)
 
-    def latest_rgb(self):
+    def latest_rgb(self) -> np.ndarray:
         """Blocks until an image is available."""
         rgb = None
         while rgb is None or not self._rgb_queue.empty():
@@ -67,8 +67,8 @@ class Episode:
         self._local_planner = local_planner
         self._renderer = renderer
 
-    def apply_control(self, player_control):
-        """Apply control on the player vehicle."""
+    def apply_control(self, control: carla.VehicleControl):
+        """Apply control on the ego vehicle."""
         self._ego_vehicle.apply_control(player_control)
 
     def restore(self):

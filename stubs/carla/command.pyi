@@ -1,0 +1,6 @@
+from . import Actor
+
+class Command: ...
+
+class DestroyActor(Command):
+    def __init__(self, actor: Actor): ...

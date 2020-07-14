@@ -7,7 +7,7 @@ torch~=1.5.1
 torchvision~=0.6.1
 pid_controller~=0.2.0
 
-data-science-types~=0.2.16
+git+https://github.com/numpy/numpy-stubs.git@c49d2d6875971a669a166ea93ef998911af283a1#egg=numpy-stubs
 scipy~=1.4
 scikit-image~=0.15
 numpy~=1.19
