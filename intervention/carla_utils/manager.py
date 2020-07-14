@@ -1,18 +1,16 @@
-import abc
+from typing import Optional, Tuple, Dict, List
+
 import collections
 from dataclasses import dataclass
 import random
 import queue
 import numpy as np
 from loguru import logger
-
 import carla
 
-from .agents.navigation.local_planner import RoadOption, LocalPlannerNew
+from .agents.navigation.local_planner import LocalPlannerNew
 from .images import carla_image_to_np
 from .map_utils import Renderer
-
-from typing import Optional, Tuple, Dict, List
 
 
 class EgoVehicle:
@@ -173,7 +171,6 @@ class ManagedEpisode:
 
         self._set_up_world_settings(carla_world)
 
-        # blueprints = self._world.get_blueprint_library()
         carla_map = carla_world.get_map()
 
         logger.debug("Generating route.")

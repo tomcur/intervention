@@ -10,9 +10,9 @@ class Agent(object):
         assert model is not None
 
         if len(kwargs) > 0:
-            print('Unused kwargs: %s' % kwargs)
+            print("Unused kwargs: %s" % kwargs)
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.transform = transforms.ToTensor()
 
         self.one_hot = torch.FloatTensor(torch.eye(4))

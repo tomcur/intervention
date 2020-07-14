@@ -1,22 +1,17 @@
+from typing import Any, Tuple, Dict, List
+
 import abc
+import itertools
+import zipfile
 import numpy as np
 import torch
 from loguru import logger
-import itertools
-import zipfile
-from io import BytesIO
-import threading
-import sys
 
-from .carla_utils import connect, carla_image_to_np
+from .carla_utils import connect
 from . import visualization
 
 from .learning_by_cheating import image
 from .learning_by_cheating import birdview
-from .learning_by_cheating import roaming
-
-
-from typing import Any, Optional, Tuple, Dict, List
 
 
 def controls_differ(observation, supervisor_control, model_control) -> bool:
