@@ -14,6 +14,7 @@ class Location:
         ...
 
 
+@dataclass
 class Rotation:
     pitch: float = 0.0
     yaw: float = 0.0
@@ -31,6 +32,28 @@ class Transform:
         ...
 
 
+@dataclass
+class Vector3D:
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+
+
+class ActorAttributeType:
+    Bool: Any
+    Int: Any
+    Float: Any
+    String: Any
+    RGBColor: Any
+
+
+class ActorAttribute:
+    id: str
+    is_modifiable: bool
+    recommended_values: List[str]
+    type: ActorAttributeType
+
+
 class ActorBlueprint:
     id: str
     tags: List[str]
@@ -42,6 +65,12 @@ class ActorBlueprint:
         ...
 
     def match_tags(self, wildcard_pattern: str) -> bool:
+        ...
+
+    def get_attribute(self, id: str) -> Optional[ActorAttribute]:
+        ...
+
+    def set_attribute(self, id: str, value: str) -> None:
         ...
 
 
@@ -80,11 +109,43 @@ class Image(SensorData):
 
 
 class Actor:
+    def destroy(self) -> bool:
+        ...
+
+    def get_velocity(self) -> Vector3D:
+        ...
+
+    def get_transform(self) -> Transform:
+        ...
+
+    def set_transform(self, transform: Transform) -> None:
+        ...
+
+    def set_velocity(self, velocity: Vector3D) -> None:
+        ...
+
+
+class ActorList:
+    def filter(self, wildcard_pattern: str) -> List[Actor]:
+        ...
+
+
+class Walker(Actor):
     ...
 
 
-class Walker:
-    ...
+class WalkerAiController(Actor):
+    def go_to_location(self, destination: Location) -> None:
+        ...
+
+    def start(self) -> None:
+        ...
+
+    def stop(self) -> None:
+        ...
+
+    def set_max_speed(self, speed: float = 1.4) -> None:
+        ...
 
 
 @dataclass
