@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import Iterator, List, Any
 from dataclasses import dataclass
 
 from .command import Command, Response
@@ -79,6 +79,9 @@ class BlueprintLibrary:
         ...
 
     def find(self, id: str) -> ActorBlueprint:
+        ...
+
+    def __iter__(self) -> Iterator[ActorBlueprint]:
         ...
 
 
@@ -218,8 +221,27 @@ class TrafficManager:
         ...
 
 
+class AttachmentType:
+    Rigid: Any
+    SpringArm: Any
+
+
 class DebugHelper:
     ...
+
+
+@dataclass
+class WeatherParameters:
+    cloudiness: float
+    precipitation: float
+    precipitation_deposits: float
+    wind_intensity: float
+    sun_azimuth_angle: float
+    sun_altitude_angle: float
+    fog_density: float
+    fog_distance: float
+    wetness: float
+    fog_falloff: float
 
 
 @dataclass
@@ -234,6 +256,33 @@ class World:
     debug: DebugHelper
 
     def apply_settings(self, world_settings: WorldSettings):
+        ...
+
+    def spawn_actor(
+        self,
+        blueprint: ActorBlueprint,
+        transform: Transform,
+        attach_to: Optional[Actor] = None,
+        attachment: AttachmentType = AttachmentType.Rigid,
+    ):
+        ...
+
+    def get_actor(self, actor_id: int) -> Optional[Actor]:
+        ...
+
+    def get_actors(self, actor_ids: List[int]) -> ActorList:
+        ...
+
+    def get_blueprint_library(self) -> BlueprintLibrary:
+        ...
+
+    def get_map(self) -> Map:
+        ...
+
+    def get_weather(self) -> WeatherParameters:
+        ...
+
+    def set_weather(self, weather: WeatherParameters) -> None:
         ...
 
 
