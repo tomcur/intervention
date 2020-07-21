@@ -23,9 +23,10 @@ class EgoVehicle:
 
     def current_speed_and_velocity(self) -> Tuple[np.ndarray, np.ndarray]:
         velocity = self.vehicle.get_velocity()
-        speed = np.linalg.norm([velocity.x, velocity.y, velocity.z])
-        velocity = np.float32([velocity.x, velocity.y, velocity.z])
-        return (speed, velocity)
+        return (
+            np.linalg.norm([velocity.x, velocity.y, velocity.z]),  # type: ignore
+            np.float32([velocity.x, velocity.y, velocity.z]),  # type: ignore
+        )
 
     def latest_rgb(self) -> np.ndarray:
         """Blocks until an image is available."""
@@ -34,7 +35,7 @@ class EgoVehicle:
             rgb = self._rgb_queue.get()
         return carla_image_to_np(rgb)
 
-    def add_rgb_camera(self, carla_world: carla.World) -> carla.Actor:
+    def add_rgb_camera(self, carla_world: carla.World) -> carla.Sensor:
         def _enqueue_image(image):
             logger.trace("Received image: {}", image)
             self._rgb_queue.put(image)
@@ -49,6 +50,7 @@ class EgoVehicle:
             carla.Transform(carla.Location(x=2.0, z=1.4), carla.Rotation(pitch=0)),
             attach_to=self.vehicle,
         )
+        assert isinstance(rgb_camera, carla.Sensor)
         rgb_camera.listen(_enqueue_image)
 
         return rgb_camera
@@ -69,7 +71,7 @@ class Episode:
 
     def apply_control(self, control: carla.VehicleControl):
         """Apply control on the ego vehicle."""
-        self._ego_vehicle.apply_control(player_control)
+        self._ego_vehicle.apply_control(control)
 
     def restore(self):
         """Restore to N seconds ago."""
@@ -130,6 +132,7 @@ class ManagedEpisode:
     def __init__(self, carla_client: carla.Client):
         self._client = carla_client
         self._traffic_manager: Optional[carla.TrafficManager] = None
+        self._pedestrian_controllers: List[carla.WalkerAiController] = []
         self._actor_dict: Dict[str, List[carla.Actor]] = collections.defaultdict(list)
 
     def _set_up_world_settings(self, world: carla.World):
@@ -188,7 +191,7 @@ class ManagedEpisode:
         logger.debug("Spawning pedestrians.")
         self._spawn_pedestrians(carla_world, 125)
 
-        for controller in self._actor_dict["pedestrian_controllers"]:
+        for controller in self._pedestrian_controllers:
             controller.start()
             controller.go_to_location(carla_world.get_random_location_from_navigation())
             controller.set_max_speed(1 + random.random())
@@ -322,6 +325,7 @@ class ManagedEpisode:
         logger.debug(f"Spawned {len(controllers)} pedestrians.")
         self._actor_dict["pedestrians"] = carla_world.get_actors(walkers)
         self._actor_dict["pedestrian_controllers"] = carla_world.get_actors(controllers)
+        self._pedestrian_controllers = carla_world.get_actors(controllers)
 
     def _spawn_ego_vehicle(
         self,
@@ -347,6 +351,7 @@ class ManagedEpisode:
             blueprint.set_attribute("is_invincible", "true")
 
         player = carla_world.spawn_actor(blueprint, start_pose)
+        assert isinstance(player, carla.Vehicle)
         player.set_autopilot(False, traffic_manager_port)
         self._actor_dict["player"].append(player)
 
