@@ -228,11 +228,11 @@ class ManagedEpisode:
         traffic_manager_port: int,
         n_vehicles: int,
     ) -> None:
-        blueprints = [
-            x
-            for x in carla_world.get_blueprint_library().filter("vehicle.*")
-            if int(x.get_attribute("number_of_wheels")) == 4
-        ]
+        blueprints = []
+        for blueprint in carla_world.get_blueprint_library().filter("vehicle.*"):
+            wheels = blueprint.get_attribute("number_of_wheels")
+            if wheels is not None and wheels.as_int() == 4:
+                blueprints.append(blueprint)
         spawn_points = carla_map.get_spawn_points()
 
         # TODO: don't use same spawnpoint twice (loop through shuffled spawnpoints)
