@@ -1,4 +1,4 @@
-from typing import Iterator, List, Any
+from typing import Iterator, List, Any, Optional, Callable
 from dataclasses import dataclass
 
 from .command import Command, Response
@@ -25,7 +25,9 @@ class Transform:
     location: Location
     rotation: Rotation
 
-    def __init__(self, location: Location, rotation: Rotation):
+    def __init__(
+        self, location: Location = Location(), rotation: Rotation = Rotation()
+    ):
         ...
 
     def transform(self, in_point: Location):
@@ -133,6 +135,18 @@ class ActorList:
         ...
 
 
+class Sensor(Actor):
+    def listen(self, callback: Callable[[SensorData], None]):
+        ...
+
+    def stop(self):
+        ...
+
+    @property
+    def is_listening(self) -> bool:
+        ...
+
+
 class Walker(Actor):
     ...
 
@@ -164,6 +178,9 @@ class VehicleControl:
 
 class Vehicle(Actor):
     def apply_control(self, control: VehicleControl):
+        ...
+
+    def set_autopilot(self, enabled: bool = True, port: int = 8000) -> None:
         ...
 
 
@@ -220,6 +237,9 @@ class TrafficManager:
     def set_hybrid_mode_radius(self, r: float = 70.0):
         ...
 
+    def set_synchronous_mode(self, mode: bool) -> None:
+        ...
+
 
 class AttachmentType:
     Rigid: Any
@@ -232,6 +252,21 @@ class DebugHelper:
 
 @dataclass
 class WeatherParameters:
+    ClearNoon: "WeatherParameters"
+    CloudyNoon: "WeatherParameters"
+    WetNoon: "WeatherParameters"
+    WetCloudyNoon: "WeatherParameters"
+    SoftRainNoon: "WeatherParameters"
+    MidRainyNoon: "WeatherParameters"
+    HardRainNoon: "WeatherParameters"
+    ClearSunset: "WeatherParameters"
+    CloudySunset: "WeatherParameters"
+    WetSunset: "WeatherParameters"
+    WetCloudySunset: "WeatherParameters"
+    SoftRainSunset: "WeatherParameters"
+    MidRainSunset: "WeatherParameters"
+    HardRainSunset: "WeatherParameters"
+
     cloudiness: float
     precipitation: float
     precipitation_deposits: float
@@ -242,6 +277,15 @@ class WeatherParameters:
     fog_distance: float
     wetness: float
     fog_falloff: float
+
+
+class Map:
+    def get_spawn_points(self) -> List[Transform]:
+        ...
+
+    @property
+    def name(self) -> str:
+        ...
 
 
 @dataclass
@@ -264,7 +308,15 @@ class World:
         transform: Transform,
         attach_to: Optional[Actor] = None,
         attachment: AttachmentType = AttachmentType.Rigid,
-    ):
+    ) -> Actor:
+        ...
+
+    def try_spawn_actor(
+        blueprint: ActorBlueprint,
+        transform: Transform,
+        attach_to: Optional[Actor] = None,
+        attachment: AttachmentType = AttachmentType.Rigid,
+    ) -> Optional[Actor]:
         ...
 
     def get_actor(self, actor_id: int) -> Optional[Actor]:
@@ -277,6 +329,12 @@ class World:
         ...
 
     def get_map(self) -> Map:
+        ...
+
+    def get_random_location_from_navigation(self) -> Location:
+        ...
+
+    def get_settings(self) -> WorldSettings:
         ...
 
     def get_weather(self) -> WeatherParameters:
