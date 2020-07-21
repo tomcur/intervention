@@ -1,4 +1,4 @@
-from typing import Iterator, List, Any, Optional, Callable
+from typing import List, Any, Optional, Callable, Sequence
 from dataclasses import dataclass
 
 from .command import Command, Response
@@ -76,14 +76,11 @@ class ActorBlueprint:
         ...
 
 
-class BlueprintLibrary:
+class BlueprintLibrary(Sequence[ActorBlueprint]):
     def filter(self, wildcard_pattern: str) -> "BlueprintLibrary":
         ...
 
     def find(self, id: str) -> ActorBlueprint:
-        ...
-
-    def __iter__(self) -> Iterator[ActorBlueprint]:
         ...
 
 
@@ -130,7 +127,7 @@ class Actor:
         ...
 
 
-class ActorList:
+class ActorList(Sequence[Actor]):
     def filter(self, wildcard_pattern: str) -> List[Actor]:
         ...
 
