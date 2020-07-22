@@ -148,7 +148,7 @@ class Walker(Actor):
     ...
 
 
-class WalkerAiController(Actor):
+class WalkerAIController(Actor):
     def go_to_location(self, destination: Location) -> None:
         ...
 

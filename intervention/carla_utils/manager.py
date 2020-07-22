@@ -132,7 +132,7 @@ class ManagedEpisode:
     def __init__(self, carla_client: carla.Client):
         self._client = carla_client
         self._traffic_manager: Optional[carla.TrafficManager] = None
-        self._pedestrian_controllers: List[carla.WalkerAiController] = []
+        self._pedestrian_controllers: List[carla.WalkerAIController] = []
         self._actor_dict: Dict[str, List[carla.Actor]] = collections.defaultdict(list)
 
     def _set_up_world_settings(self, world: carla.World):
