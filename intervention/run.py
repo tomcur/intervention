@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from loguru import logger
 
-from .carla_utils import connect
+from .carla_utils import connect, TickState
 from . import visualization
 
 from .learning_by_cheating import image
@@ -42,7 +42,7 @@ def controls_differ(observation, supervisor_control, model_control) -> bool:
     )
 
 
-def controls_difference(observation, supervisor_control, model_control) -> float:
+def controls_difference(state: TickState, supervisor_control, model_control) -> float:
     diff = 0
 
     if supervisor_control.hand_brake != model_control.hand_brake:
@@ -53,11 +53,11 @@ def controls_difference(observation, supervisor_control, model_control) -> float
     diff += 0.7 * abs(supervisor_control.throttle - model_control.throttle)
     diff += 1.5 * abs(supervisor_control.steer - model_control.steer)
 
-    if observation["speed"] > 30.0 * 1000 / 60 / 60:
+    if state.speed > 30.0 * 1000 / 60 / 60:
         diff += abs(supervisor_control.brake - model_control.brake)
-    elif observation["speed"] > 10.0 * 1000 / 60 / 60:
+    elif state.speed > 10.0 * 1000 / 60 / 60:
         diff += 0.5 * abs(supervisor_control.brake - model_control.brake)
-    elif observation["speed"] > 5.0 * 1000 / 60 / 60:
+    elif state.speed > 5.0 * 1000 / 60 / 60:
         diff += 0.25 * abs(supervisor_control.brake - model_control.brake)
     else:
         diff += 0.1 * abs(supervisor_control.brake - model_control.brake)
@@ -87,17 +87,28 @@ class Comparer:
         self.student_control = None
         self.teacher_control = None
 
-    def evaluate_and_compare(self, state):
+    def evaluate_and_compare(self, state: TickState) -> None:
         self.student_control = self.student.run_step(
             {
-                "rgb": state["rgb"],
-                "velocity": state["velocity"],
+                "rgb": state.rgb,
+                "velocity": np.float32(
+                    [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
+                ),
                 # "command": int(command),
-                "command": state["command"],
+                "command": state.command,
             }
         )
 
-        self.teacher_control, _ = self.teacher.run_step(state, teaching=True)
+        self.teacher_control, _ = self.teacher.run_step(
+            {
+                "birdview": state.birdview,
+                "velocity": np.float32(
+                    [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
+                ),
+                "command": state.command,
+            },
+            teaching=True,
+        )
 
         logger.trace(self.student_control)
         logger.trace(self.teacher_control)
@@ -256,19 +267,19 @@ def run(store: Store) -> None:
 
         for step in itertools.count():
             state = episode.tick()
-            logger.trace("command {}", state["command"])
+            logger.trace("command {}", state.command)
             comparer.evaluate_and_compare(state)
 
             if comparer.student_in_control:
-                store.push_student_driving(step, comparer.student_control, state["rgb"])
+                store.push_student_driving(step, comparer.student_control, state.rgb)
                 episode.apply_control(comparer.student_control)
             else:
-                store.push_teacher_driving(step, comparer.teacher_control, state["rgb"])
+                store.push_teacher_driving(step, comparer.teacher_control, state.rgb)
                 episode.apply_control(comparer.teacher_control)
 
             birdview_render = episode.render_birdview()
             actions = visualizer.render(
-                state["rgb"],
+                state.rgb,
                 "student" if comparer.student_in_control else "teacher",
                 comparer.difference_integral,
                 comparer.student_control,

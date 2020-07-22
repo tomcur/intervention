@@ -13,6 +13,17 @@ from .images import carla_image_to_np
 from .map_utils import Renderer
 
 
+@dataclass
+class TickState:
+    location: carla.Location
+    rotation: carla.Rotation
+    rgb: np.ndarray
+    speed: float
+    velocity: carla.Vector3D
+    command: int
+    birdview: np.ndarray
+
+
 class EgoVehicle:
     def __init__(self, vehicle: carla.Vehicle):
         self.vehicle = vehicle
@@ -21,12 +32,15 @@ class EgoVehicle:
     def apply_control(self, control: carla.VehicleControl) -> None:
         self.vehicle.apply_control(control)
 
-    def current_speed_and_velocity(self) -> Tuple[np.ndarray, np.ndarray]:
+    def current_speed_and_velocity(self) -> Tuple[float, carla.Vector3D]:
         velocity = self.vehicle.get_velocity()
-        return (
-            np.linalg.norm([velocity.x, velocity.y, velocity.z]),  # type: ignore
-            np.float32([velocity.x, velocity.y, velocity.z]),  # type: ignore
-        )
+        return (np.linalg.norm([velocity.x, velocity.y, velocity.z]), velocity)
+
+    def current_location(self) -> carla.Location:
+        return self.vehicle.get_transform().location
+
+    def current_rotation(self) -> carla.Rotation:
+        return self.vehicle.get_transform().rotation
 
     def latest_rgb(self) -> np.ndarray:
         """Blocks until an image is available."""
@@ -78,7 +92,7 @@ class Episode:
         # TODO
         raise NotImplementedError
 
-    def tick(self):
+    def tick(self) -> TickState:
         self._carla_world.tick()
 
         self._local_planner.run_step()
@@ -92,15 +106,19 @@ class Episode:
         # logger.trace("next {}", next)
 
         (speed, velocity) = self._ego_vehicle.current_speed_and_velocity()
+        location = self._ego_vehicle.current_location()
+        rotation = self._ego_vehicle.current_rotation()
         rgb = self._ego_vehicle.latest_rgb()
 
-        return {
-            "rgb": rgb,
-            "speed": speed,
-            "velocity": velocity,
-            "command": int(command),
-            "birdview": self.get_birdview(),
-        }
+        return TickState(
+            location=location,
+            rotation=rotation,
+            rgb=rgb,
+            speed=speed,
+            velocity=velocity,
+            command=int(command),
+            birdview=self.get_birdview(),
+        )
 
     def render_birdview(self):
         return self._renderer.get_render()
