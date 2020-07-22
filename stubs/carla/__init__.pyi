@@ -309,6 +309,7 @@ class World:
         ...
 
     def try_spawn_actor(
+        self,
         blueprint: ActorBlueprint,
         transform: Transform,
         attach_to: Optional[Actor] = None,
