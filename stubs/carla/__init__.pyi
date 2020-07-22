@@ -1,4 +1,4 @@
-from typing import List, Any, Optional, Callable, Sequence
+from typing import List, Any, Optional, Callable, Sequence, Union
 from dataclasses import dataclass
 
 from .command import Command, Response
@@ -54,6 +54,9 @@ class ActorAttribute:
     is_modifiable: bool
     recommended_values: List[str]
     type: ActorAttributeType
+
+    def __eq__(self, other: Union[bool, int, float, str, "ActorAttribute"]):
+        ...
 
 
 class ActorBlueprint:
