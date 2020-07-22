@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List, cast
 
 import collections
 from dataclasses import dataclass
@@ -323,9 +323,13 @@ class ManagedEpisode:
             walkers.extend(_walkers)
 
         logger.debug(f"Spawned {len(controllers)} pedestrians.")
-        self._actor_dict["pedestrians"] = carla_world.get_actors(walkers)
-        self._actor_dict["pedestrian_controllers"] = carla_world.get_actors(controllers)
-        self._pedestrian_controllers = carla_world.get_actors(controllers)
+        self._actor_dict["pedestrians"] = list(carla_world.get_actors(walkers))
+        self._actor_dict["pedestrian_controllers"] = list(
+            carla_world.get_actors(controllers)
+        )
+        self._pedestrian_controllers = cast(
+            List[carla.WalkerAIController], list(carla_world.get_actors(controllers))
+        )
 
     def _spawn_ego_vehicle(
         self,
