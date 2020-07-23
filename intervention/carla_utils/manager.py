@@ -259,15 +259,15 @@ class ManagedEpisode:
             blueprint.set_attribute("role_name", "autopilot")
 
             if blueprint.has_attribute("color"):
-                color = np.random.choice(
-                    blueprint.get_attribute("color").recommended_values
-                )
+                color_attribute = blueprint.get_attribute("color")
+                assert color_attribute is not None
+                color = np.random.choice(color_attribute.recommended_values)
                 blueprint.set_attribute("color", color)
 
             if blueprint.has_attribute("driver_id"):
-                driver_id = np.random.choice(
-                    blueprint.get_attribute("driver_id").recommended_values
-                )
+                driver_id_attribute = blueprint.get_attribute("driver_id")
+                assert driver_id_attribute is not None
+                driver_id = np.random.choice(driver_id_attribute.recommended_values)
                 blueprint.set_attribute("driver_id", driver_id)
 
             vehicle = None
