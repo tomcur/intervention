@@ -3,9 +3,11 @@ from typing import Any, Tuple, Dict, List
 import abc
 import itertools
 import zipfile
+import csv
 import numpy as np
 import torch
 from loguru import logger
+import carla
 
 from .carla_utils import connect, TickState
 from . import visualization
@@ -196,63 +198,83 @@ class Store:
 class BlackHoleStore(Store):
     """Episode store backed by a black hole."""
 
-    def push_student_driving(self, step: int, control: Any, rgb: Any) -> None:
+    def push_student_driving(
+        self, step: int, control: carla.VehicleControl, state: TickState
+    ) -> None:
         pass
 
-    def push_teacher_driving(self, step: int, control: Any, rgb: Any) -> None:
+    def push_teacher_driving(
+        self, step: int, control: carla.VehicleControl, state: TickState
+    ) -> None:
         pass
 
 
 class ZipStore(Store):
     """Episode store backed by zip-file."""
 
-    def __init__(self, archive: zipfile.ZipFile):
+    def __init__(self, archive: zipfile.ZipFile, csv: csv.DictWriter):
         self._archive = archive
-        self._meta: Dict[int, Dict[str, Any]] = {}
-        self._recent_student_driving: List[Tuple[int, Any, Any]] = []
+        self._csv = csv
+        self._recent_student_driving: List[
+            Tuple[int, carla.VehicleControl, TickState]
+        ] = []
         self._teacher_in_control = False
         self._intervention_step = 0
 
-    def push_student_driving(self, step: int, control: Any, rgb: Any) -> None:
+    def push_student_driving(
+        self, step: int, control: carla.VehicleControl, state: TickState
+    ) -> None:
         self._teacher_in_control = False
-        self._recent_student_driving.append((step, control, rgb))
+        self._recent_student_driving.append((step, control, state))
         if len(self._recent_student_driving) > 20:
             self._recent_student_driving.pop(0)
 
-    def push_teacher_driving(self, step: int, control: Any, rgb: Any) -> None:
+    def push_teacher_driving(
+        self, step: int, control: carla.VehicleControl, state: TickState
+    ) -> None:
         if not self._teacher_in_control:
             self._intervention_step = step
             self._teacher_in_control = True
             self._store_student_driving()
 
         rgb_filename = f"{step:05d}-rgb-teacher.bin"
-        self._add_file(rgb_filename, rgb.tobytes(order="C"))
-        self._meta[step] = {
-            "type": "teacher",
-            "control": control,
-            "timeFromIntervention": step - self._intervention_step,
-            "rgbFile": rgb_filename,
-        }
-
-    @property
-    def meta(self) -> Dict[int, Dict[str, Any]]:
-        """The metadata of the episode."""
-        return self._meta
+        self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+        self._csv.writerow(
+            {
+                "tick": step,
+                "controller": "teacher",
+                "rgb_filename": rgb_filename,
+                "time_to_intervention": None,
+                "time_from_intervention": step - self._intervention_step,
+                "location_x": state.location.x,
+                "location_y": state.location.y,
+                "location_z": state.location.z,
+            }
+        )
 
     def _add_file(self, filename: str, data: bytes) -> None:
         self._archive.writestr(filename, data)
 
     def _store_student_driving(self) -> None:
-        for (step, control, rgb) in reversed(self._recent_student_driving):
+        for (step, _control, state) in reversed(self._recent_student_driving):
             rgb_filename = f"{step:05d}-rgb-student.bin"
-            self._add_file(rgb_filename, rgb.tobytes(order="C"))
-            self._meta[step] = {
-                "type": "student",
-                "control": control,
-                "timeToIntervention": step - self._intervention_step,
-                "rgbFile": rgb_filename,
-            }
+            self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+            self._csv.writerow(
+                {
+                    "tick": step,
+                    "controller": "student",
+                    "rgb_filename": rgb_filename,
+                    "time_to_intervention": self._intervention_step - step,
+                    "time_from_intervention": None,
+                    "location_x": state.location.x,
+                    "location_y": state.location.y,
+                    "location_z": state.location.z,
+                }
+            )
         self._recent_student_driving = []
+
+    def stop(self) -> None:
+        self._store_student_driving()
 
 
 def run(store: Store) -> None:
@@ -271,10 +293,10 @@ def run(store: Store) -> None:
             comparer.evaluate_and_compare(state)
 
             if comparer.student_in_control:
-                store.push_student_driving(step, comparer.student_control, state.rgb)
+                store.push_student_driving(step, comparer.student_control, state)
                 episode.apply_control(comparer.student_control)
             else:
-                store.push_teacher_driving(step, comparer.teacher_control, state.rgb)
+                store.push_teacher_driving(step, comparer.teacher_control, state)
                 episode.apply_control(comparer.teacher_control)
 
             birdview_render = episode.render_birdview()
@@ -296,5 +318,20 @@ def demo() -> None:
 
 def collect() -> None:
     with zipfile.ZipFile("episode-x.zip", mode="w") as zip_archive:
-        store = ZipStore(zip_archive)
-        run(store)
+        with open("episode.csv", mode="w", newline="") as csv_file:
+            csv_writer = csv.DictWriter(
+                csv_file,
+                fieldnames=[
+                    "tick",
+                    "controller",
+                    "rgb_filename",
+                    "time_to_intervention",
+                    "time_from_intervention",
+                    "location_x",
+                    "location_y",
+                    "location_z",
+                ],
+            )
+            csv_writer.writeheader()
+            store = ZipStore(zip_archive, csv_writer)
+            run(store)
