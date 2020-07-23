@@ -41,6 +41,14 @@ class Vector3D:
     z: float = 0.0
 
 
+@dataclass
+class Color:
+    r: int
+    g: int
+    b: int
+    a: int
+
+
 class ActorAttributeType:
     Bool: Any
     Int: Any
@@ -54,6 +62,25 @@ class ActorAttribute:
     is_modifiable: bool
     recommended_values: List[str]
     type: ActorAttributeType
+
+    @property
+    def recommended_values(self) -> List[str]:
+        ...
+
+    def as_bool(self) -> bool:
+        ...
+
+    def as_color(self) -> Color:
+        ...
+
+    def as_float(self) -> float:
+        ...
+
+    def as_int(self) -> int:
+        ...
+
+    def as_str(self) -> str:
+        ...
 
     def __eq__(self, other: Union[bool, int, float, str, "ActorAttribute"]):
         ...
@@ -318,6 +345,9 @@ class World:
         attach_to: Optional[Actor] = None,
         attachment: AttachmentType = AttachmentType.Rigid,
     ) -> Optional[Actor]:
+        ...
+
+    def tick(self) -> int:
         ...
 
     def get_actor(self, actor_id: int) -> Optional[Actor]:
