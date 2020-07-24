@@ -5,6 +5,13 @@ from .command import Command, Response
 
 
 @dataclass
+class Vector3D:
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+
+
+@dataclass
 class Location:
     x: float = 0.0
     y: float = 0.0
@@ -20,6 +27,9 @@ class Rotation:
     yaw: float = 0.0
     roll: float = 0.0
 
+    def get_forward_vector(self) -> Vector3D:
+        ...
+
 
 class Transform:
     location: Location
@@ -32,13 +42,6 @@ class Transform:
 
     def transform(self, in_point: Location):
         ...
-
-
-@dataclass
-class Vector3D:
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 0.0
 
 
 @dataclass
