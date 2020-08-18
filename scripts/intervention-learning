@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Intervention learning entrypoints."""
 
 import click
 from loguru import logger
