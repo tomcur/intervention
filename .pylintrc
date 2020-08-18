@@ -1,0 +1,8 @@
+[MESSAGES_CONTROL]
+
+disable =
+    bad-continuation,
+    fixme,
+    missing-docstring,
+    too-few-public-methods,
+    too-many-instance-attributes
