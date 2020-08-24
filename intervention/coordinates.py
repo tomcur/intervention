@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-CAMERA_Y_OFFSET = 1.4
+CAMERA_Z_OFFSET = 1.4
 CAMERA_FORWARD_OFFSET = 2.0
 
 PIXELS_PER_METER = 5
@@ -56,11 +56,11 @@ def world_coordinate_to_birdview_coordinate(
 
 def world_coordinate_to_image_coordinate(
     location_x: float,
-    location_z: float,
+    location_y: float,
     current_location_x: float,
-    current_location_z: float,
+    current_location_y: float,
     current_forward_x: float,
-    current_forward_z: float,
+    current_forward_y: float,
     fov: float = 90.0,
     image_width: int = 384,
     image_height: int = 160,
@@ -71,12 +71,12 @@ def world_coordinate_to_image_coordinate(
     current location and orientation.
 
     :param location_x: The x-component of a world location.
-    :param location_z: The z-component of a world location.
+    :param location_y: The y-component of a world location.
     :param current_location_x: The x-component of the current world location.
-    :param current_location_z: The z-component of the current world location.
+    :param current_location_y: The y-component of the current world location.
     :param current_forward_x: The x-component of the vector pointing forwards according
     to the current orientation.
-    :param current_forward_z: The z-component of the vector pointing forwards according
+    :param current_forward_y: The y-component of the vector pointing forwards according
     to the current orientation.
     :param fov: The camera field-of-view.
     :param image_width: The image width in pixels.
@@ -86,12 +86,12 @@ def world_coordinate_to_image_coordinate(
     of the frame.
     """
     dx = location_x - current_location_x
-    dz = location_z - current_location_z
+    dy = location_y - current_location_y
 
-    x = -current_forward_z * dx + current_forward_x * dz
-    z = current_forward_z * dz + current_forward_x * dx + 4.8
+    x = -current_forward_y * dx + current_forward_x * dy
+    y = current_forward_y * dy + current_forward_x * dx + 4.8
 
-    xyz = np.array([x, CAMERA_Y_OFFSET, z])
+    xyz = np.array([x, CAMERA_Z_OFFSET, y])
 
     rotation_vector = np.array([0.0, 0.0, 0.0])
     translation_vector = np.array([0.0, 0.0, 0.0])
@@ -144,8 +144,8 @@ def image_coordinate_to_ego_coordinate(
     x = (image_x - central_x) / focal_length
     y = (image_y - central_y) / focal_length
 
-    world_y = 0.0
-    world_z = CAMERA_Y_OFFSET / y
-    world_x = world_z * x
+    world_z = 0.0
+    world_y = CAMERA_Z_OFFSET / y
+    world_x = world_y * x
 
-    return world_x, world_z - forward_offset
+    return world_x, world_y - forward_offset
