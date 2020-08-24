@@ -7,17 +7,16 @@ from .. import coordinates
 class TestTransform(unittest.TestCase):
     def test_carla_to_opencv_singular(self):
         carla_coord = np.array([1, 2, 3])
+        opencv_coord = np.array([1, -3, 2])
         self.assertTrue(
-            (coordinates.carla_to_opencv(carla_coord) == np.array([1, -3, 2])).all()
+            (coordinates.carla_to_opencv(carla_coord) == opencv_coord).all()
         )
 
     def test_carla_to_opencv_multiple(self):
         carla_coord = np.array([[1, 2, 3], [4, 5, 6]])
+        opencv_coord = np.array([[1, -3, 2], [4, -6, 5]])
         self.assertTrue(
-            (
-                coordinates.carla_to_opencv(carla_coord)
-                == np.array([[1, -3, 2], [4, -6, 5]])
-            ).all()
+            (coordinates.carla_to_opencv(carla_coord) == opencv_coord).all()
         )
 
 
