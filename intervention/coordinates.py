@@ -12,6 +12,10 @@ BIRDVIEW_CROP_SIZE = 192
 ANGLE_JITTER = 15
 
 
+def carla_to_opencv(carla_xyz: np.ndarray) -> np.ndarray:
+    return np.array([carla_xyz[..., 0], -carla_xyz[..., 2], carla_xyz[..., 1]]).T
+
+
 def world_coordinate_to_birdview_coordinate(
     location_x: float,
     location_y: float,
