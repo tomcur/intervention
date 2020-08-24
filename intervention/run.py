@@ -239,6 +239,7 @@ class ZipStore(Store):
 
         rgb_filename = f"{step:05d}-rgb-teacher.bin"
         self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+        orientation = state.rotation.get_forward_vector()
         self._csv.writerow(
             {
                 "tick": step,
@@ -249,6 +250,9 @@ class ZipStore(Store):
                 "location_x": state.location.x,
                 "location_y": state.location.y,
                 "location_z": state.location.z,
+                "orientation_x": orientation.x,
+                "orientation_y": orientation.y,
+                "orientation_z": orientation.z,
             }
         )
 
@@ -259,6 +263,7 @@ class ZipStore(Store):
         for (step, _control, state) in reversed(self._recent_student_driving):
             rgb_filename = f"{step:05d}-rgb-student.bin"
             self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+            orientation = state.rotation.get_forward_vector()
             self._csv.writerow(
                 {
                     "tick": step,
@@ -269,6 +274,9 @@ class ZipStore(Store):
                     "location_x": state.location.x,
                     "location_y": state.location.y,
                     "location_z": state.location.z,
+                    "orientation_x": orientation.x,
+                    "orientation_y": orientation.y,
+                    "orientation_z": orientation.z,
                 }
             )
         self._recent_student_driving = []
@@ -330,6 +338,9 @@ def collect() -> None:
                     "location_x",
                     "location_y",
                     "location_z",
+                    "orientation_x",
+                    "orientation_y",
+                    "orientation_z",
                 ],
             )
             csv_writer.writeheader()
