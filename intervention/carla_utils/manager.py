@@ -387,4 +387,8 @@ def connect(carla_host: str = "localhost", carla_port: int = 2000) -> ManagedEpi
     logger.trace(f"Connecting to Carla simulator at {carla_host}:{carla_port}.")
     client = carla.Client(carla_host, carla_port)
     client.set_timeout(30.0)
+    client_version = client.get_client_version()
+    server_version = client.get_server_version()
+    logger.info(f"Carla client version: {client_version}.")
+    logger.info(f"Carla server version: {server_version}.")
     return ManagedEpisode(client)
