@@ -384,7 +384,7 @@ class ManagedEpisode:
 
 
 def connect(carla_host: str = "localhost", carla_port: int = 2000) -> ManagedEpisode:
-    logger.trace("Connecting to Carla simulator.")
+    logger.trace(f"Connecting to Carla simulator at {carla_host}:{carla_port}.")
     client = carla.Client(carla_host, carla_port)
     client.set_timeout(30.0)
     return ManagedEpisode(client)
