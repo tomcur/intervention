@@ -35,6 +35,7 @@ class Image(nn.Module):
     HEATMAP_WIDTH: int = 96
     HEATMAP_HEIGHT: int = 40
     COORDINATE_STEPS: int = 5
+    SPEED_FEATURE_MAPS: int = 1
 
     def __init__(self):
         super().__init__()
@@ -42,8 +43,8 @@ class Image(nn.Module):
         self.resnet = TaillessResnet34()
 
         self.higher = nn.Sequential(
-            nn.BatchNorm2d(512 + 1),
-            nn.ConvTranspose2d(512 + 1, 256, 3, 2, 1, 1),
+            nn.BatchNorm2d(512 + Image.SPEED_FEATURE_MAPS),
+            nn.ConvTranspose2d(512 + Image.SPEED_FEATURE_MAPS, 256, 3, 2, 1, 1),
             nn.ReLU(True),
             nn.BatchNorm2d(256),
             nn.ConvTranspose2d(256, 128, 3, 2, 1, 1),
@@ -71,7 +72,7 @@ class Image(nn.Module):
     def forward(self, image, speed):
         resnet_out = self.resnet(image)
 
-        speed = speed.repeat((1, 1, 5, 12))
+        speed = speed.repeat((1, Image.SPEED_FEATURE_MAPS, 5, 12))
         higher_in = torch.cat((resnet_out, speed), dim=1)
 
         higher_out = self.higher(higher_in)
