@@ -68,11 +68,11 @@ class Image(nn.Module):
             ]
         )
 
-    def forward(self, image, velocity):
+    def forward(self, image, speed):
         resnet_out = self.resnet(image)
 
-        velocity = velocity.repeat((1, 1, 5, 12))
-        higher_in = torch.cat((resnet_out, velocity), dim=1)
+        speed = speed.repeat((1, 1, 5, 12))
+        higher_in = torch.cat((resnet_out, speed), dim=1)
 
         higher_out = self.higher(higher_in)
 
