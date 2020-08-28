@@ -32,7 +32,7 @@ class SpatialSoftargmax(nn.Module):
 
     def forward(self, feature):
         # Output:
-        #   (N, C*2) x_0 y_0 ...
+        #   (N, C, 2) [[[x_0, y_0], ...]]
         if self.data_format == "NHWC":
             feature = (
                 feature.transpose(1, 3)
@@ -46,6 +46,6 @@ class SpatialSoftargmax(nn.Module):
         expected_x = torch.sum(self.pos_x * softmax_attention, dim=1, keepdim=True)
         expected_y = torch.sum(self.pos_y * softmax_attention, dim=1, keepdim=True)
         expected_xy = torch.cat([expected_x, expected_y], 1)
-        feature_keypoints = expected_xy.view(-1, self.channel * 2)
+        feature_keypoints = expected_xy.view(-1, self.channel, 2)
 
         return feature_keypoints
