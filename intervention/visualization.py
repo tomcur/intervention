@@ -5,6 +5,10 @@ import numpy as np
 
 class Action(Enum):
     SWITCH_CONTROL = 1
+    THROTTLE = 2
+    BRAKE = 3
+    LEFT = 4
+    RIGHT = 5
 
 
 class Visualizer:
@@ -122,6 +126,16 @@ class Visualizer:
         events = [event.key for event in events if event.type == pygame.KEYDOWN]
         if pygame.K_TAB in events:
             actions.append(Action.SWITCH_CONTROL)
+
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_w]:
+            actions.append(Action.THROTTLE)
+        if pressed[pygame.K_s]:
+            actions.append(Action.BRAKE)
+        if pressed[pygame.K_a]:
+            actions.append(Action.LEFT)
+        if pressed[pygame.K_d]:
+            actions.append(Action.RIGHT)
 
         return actions
 
