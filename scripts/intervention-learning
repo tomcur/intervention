@@ -18,6 +18,11 @@ def demo():
     intervention.run.demo()
 
 @cli.command()
+def manual():
+    intervention.run.manual()
+
+
+@cli.command()
 def collect():
     intervention.run.collect()
 

@@ -285,6 +285,39 @@ class ZipStore(Store):
         self._store_student_driving()
 
 
+def run_manual() -> None:
+    visualizer = visualization.Visualizer()
+
+    managed_episode = connect()
+    actions = []
+    with managed_episode as episode:
+        for step in itertools.count():
+            state = episode.tick()
+
+            control = carla.VehicleControl()
+            if visualization.Action.THROTTLE in actions:
+                control.throttle = 100.0
+            if visualization.Action.BRAKE in actions:
+                control.brake = 100.0
+            if visualization.Action.LEFT in actions:
+                control.steer = -100.0
+            if visualization.Action.RIGHT in actions:
+                control.steer = 100.0
+            episode.apply_control(control)
+
+            birdview_render = episode.render_birdview()
+            actions = visualizer.render(
+                state.rgb,
+                "manual",
+                0.0,
+                control,
+                control,
+                birdview_render,
+            )
+
+            if state.route_completed:
+                break
+
 def run(store: Store) -> None:
     visualizer = visualization.Visualizer()
 
@@ -322,6 +355,10 @@ def run(store: Store) -> None:
 
 def demo() -> None:
     run(BlackHoleStore())
+
+def manual() -> None:
+    run_manual()
+
 
 
 def collect() -> None:
