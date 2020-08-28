@@ -23,6 +23,7 @@ class RoadOption(Enum):
     """
     RoadOption represents the possible topological configurations when moving from a segment of lane to other.
     """
+
     VOID = -1
     LEFT = 1
     RIGHT = 2
@@ -30,10 +31,9 @@ class RoadOption(Enum):
     LANEFOLLOW = 4
     CHANGELANELEFT = 5
     CHANGELANERIGHT = 6
-    
+
     def __int__(self):
         return self.value
-
 
 
 class LocalPlanner(object):
@@ -93,40 +93,40 @@ class LocalPlanner(object):
         self._target_speed = 20.0  # Km/h
         self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
         self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
-        args_lateral_dict = {
-            'K_P': 1.0,
-            'K_D': 0.0,
-            'K_I': 0.5,
-            'dt': self._dt}
-        args_longitudinal_dict = {
-            'K_P': 1.0,
-            'K_D': 0,
-            'K_I': 1,
-            'dt': self._dt}
+        args_lateral_dict = {"K_P": 1.0, "K_D": 0.0, "K_I": 0.5, "dt": self._dt}
+        args_longitudinal_dict = {"K_P": 1.0, "K_D": 0, "K_I": 1, "dt": self._dt}
 
         # parameters overload
         if opt_dict:
-            if 'dt' in opt_dict:
-                self._dt = opt_dict['dt']
-            if 'target_speed' in opt_dict:
-                self._target_speed = opt_dict['target_speed']
-            if 'sampling_radius' in opt_dict:
-                self._sampling_radius = self._target_speed * \
-                    opt_dict['sampling_radius'] / 3.6
-            if 'lateral_control_dict' in opt_dict:
-                args_lateral_dict = opt_dict['lateral_control_dict']
-            if 'longitudinal_control_dict' in opt_dict:
-                args_longitudinal_dict = opt_dict['longitudinal_control_dict']
+            if "dt" in opt_dict:
+                self._dt = opt_dict["dt"]
+            if "target_speed" in opt_dict:
+                self._target_speed = opt_dict["target_speed"]
+            if "sampling_radius" in opt_dict:
+                self._sampling_radius = (
+                    self._target_speed * opt_dict["sampling_radius"] / 3.6
+                )
+            if "lateral_control_dict" in opt_dict:
+                args_lateral_dict = opt_dict["lateral_control_dict"]
+            if "longitudinal_control_dict" in opt_dict:
+                args_longitudinal_dict = opt_dict["longitudinal_control_dict"]
 
         self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-        self._vehicle_controller = VehiclePIDController(self._vehicle,
-                                                       args_lateral=args_lateral_dict,
-                                                       args_longitudinal=args_longitudinal_dict)
+        self._vehicle_controller = VehiclePIDController(
+            self._vehicle,
+            args_lateral=args_lateral_dict,
+            args_longitudinal=args_longitudinal_dict,
+        )
 
         self._global_plan = False
 
         # compute initial waypoints
-        self._waypoints_queue.append((self._current_waypoint.next(self._sampling_radius)[0], RoadOption.LANEFOLLOW))
+        self._waypoints_queue.append(
+            (
+                self._current_waypoint.next(self._sampling_radius)[0],
+                RoadOption.LANEFOLLOW,
+            )
+        )
 
         self._target_road_option = RoadOption.LANEFOLLOW
         # fill waypoint trajectory queue
@@ -160,11 +160,9 @@ class LocalPlanner(object):
                 road_option = RoadOption.LANEFOLLOW
             else:
                 # random choice between the possible options
-                road_options_list = _retrieve_options(
-                    next_waypoints, last_waypoint)
+                road_options_list = _retrieve_options(next_waypoints, last_waypoint)
                 road_option = random.choice(road_options_list)
-                next_waypoint = next_waypoints[road_options_list.index(
-                    road_option)]
+                next_waypoint = next_waypoints[road_options_list.index(road_option)]
 
             self._waypoints_queue.append((next_waypoint, road_option))
 
@@ -184,9 +182,10 @@ class LocalPlanner(object):
         """
 
         # not enough waypoints in the horizon? => add more!
-        if not self._global_plan and len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
+        if not self._global_plan and len(self._waypoints_queue) < int(
+            self._waypoints_queue.maxlen * 0.5
+        ):
             self._compute_next_waypoints(k=100)
-
 
         current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
 
@@ -207,8 +206,7 @@ class LocalPlanner(object):
         if not self._waypoint_buffer:
             for i in range(self._buffer_size):
                 if self._waypoints_queue:
-                    self._waypoint_buffer.append(
-                        self._waypoints_queue.popleft())
+                    self._waypoint_buffer.append(self._waypoints_queue.popleft())
                 else:
                     break
 
@@ -217,23 +215,28 @@ class LocalPlanner(object):
         # target waypoint
         self.target_waypoint, self._target_road_option = self._waypoint_buffer[0]
         # move using PID controllers
-        control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
+        control = self._vehicle_controller.run_step(
+            self._target_speed, self.target_waypoint
+        )
 
         # purge the queue of obsolete waypoints
         vehicle_transform = self._vehicle.get_transform()
         max_index = -1
 
         for i, (waypoint, _) in enumerate(self._waypoint_buffer):
-            if distance_vehicle(
-                    waypoint, vehicle_transform) < self._min_distance:
+            if distance_vehicle(waypoint, vehicle_transform) < self._min_distance:
                 max_index = i
         if max_index >= 0:
             for i in range(max_index + 1):
                 self._waypoint_buffer.popleft()
 
         if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
-    
+            draw_waypoints(
+                self._vehicle.get_world(),
+                [self.target_waypoint],
+                self._vehicle.get_location().z + 1.0,
+            )
+
         # if self._target_road_option != RoadOption.LANEFOLLOW not current_waypoint.is_intersection:
         #     self._target_road_option = RoadOption.LANEFOLLOW
         return control
@@ -294,7 +297,9 @@ class LocalPlannerNew(object):
     set_vehicle.
     """
 
-    def __init__(self, carla_map, resolution=15, threshold_before=2.5, threshold_after=5.0):
+    def __init__(
+        self, carla_map, resolution=15, threshold_before=2.5, threshold_after=5.0
+    ):
         from .global_route_planner import GlobalRoutePlanner
         from .global_route_planner_dao import GlobalRoutePlannerDAO
 
@@ -313,7 +318,7 @@ class LocalPlannerNew(object):
 
         self.target = (None, None)
         self.checkpoint = (None, None)
-        self.distance_to_goal = float('inf')
+        self.distance_to_goal = float("inf")
         self.distances = deque(maxlen=20000)
 
     def set_route(self, start, target):
@@ -343,8 +348,9 @@ class LocalPlannerNew(object):
     def set_vehicle(self, vehicle):
         self._vehicle = vehicle
         self.checkpoint = (
-                self._map.get_waypoint(self._vehicle.get_location()),
-                RoadOption.LANEFOLLOW)
+            self._map.get_waypoint(self._vehicle.get_location()),
+            RoadOption.LANEFOLLOW,
+        )
 
     def run_step(self):
         assert self._route is not None
@@ -417,7 +423,7 @@ class LocalPlannerOld(object):
 
         self.target = (None, None)
         self.checkpoint = (None, None)
-        self.distance_to_goal = float('inf')
+        self.distance_to_goal = float("inf")
         self.distances = deque(maxlen=20000)
 
     def set_route(self, start, target):
@@ -443,8 +449,9 @@ class LocalPlannerOld(object):
 
         self.target = self._waypoints_queue[0]
         self.checkpoint = (
-                self._map.get_waypoint(self._vehicle.get_location()),
-                RoadOption.LANEFOLLOW)
+            self._map.get_waypoint(self._vehicle.get_location()),
+            RoadOption.LANEFOLLOW,
+        )
 
     def run_step(self):
         assert self._route is not None
