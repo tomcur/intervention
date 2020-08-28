@@ -22,6 +22,7 @@ class TickState:
     velocity: carla.Vector3D
     command: int
     birdview: np.ndarray
+    route_completed: bool
 
 
 class EgoVehicle:
@@ -82,6 +83,7 @@ class Episode:
         self._ego_vehicle = ego_vehicle
         self._local_planner = local_planner
         self._renderer = renderer
+        self._route_completed = False
 
     def apply_control(self, control: carla.VehicleControl):
         """Apply control on the ego vehicle."""
@@ -96,6 +98,8 @@ class Episode:
         self._carla_world.tick()
 
         self._local_planner.run_step()
+        if self._local_planner.is_done():
+            self._route_completed = True
         command = self._local_planner.checkpoint[1]
         # node = self._local_planner.checkpoint[0].transform.location
         # next = self._local_planner.target[0].transform.location
@@ -118,6 +122,7 @@ class Episode:
             velocity=velocity,
             command=int(command),
             birdview=self.get_birdview(),
+            route_completed=self._route_completed,
         )
 
     def render_birdview(self):
