@@ -402,6 +402,9 @@ class LocalPlannerNew(object):
 
         return timeout_in_frames
 
+    def is_done(self):
+        return len(self._waypoints_queue) == 0
+
 
 class LocalPlannerOld(object):
     def __init__(self, vehicle, resolution=1.5):
