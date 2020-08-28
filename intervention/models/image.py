@@ -31,11 +31,20 @@ class TaillessResnet34(nn.Module):
 
 
 class Image(nn.Module):
+    """
+    This network produces a number of X and Y coordinate pairs (configured by
+    `Image.OUTPUTS`) which are the soft argmax of ego (camera perspective) heatmaps of
+    predicted next locations.
+
+    The X and Y coordinate pairs are in range of [-1, 1]. The resolution is configured
+    through `Image.HEATMAP_WIDTH` and `Image.HEATMAP_HEIGHT`.
+    """
+
     OUTPUTS: int = 4
-    HEATMAP_WIDTH: int = 96
-    HEATMAP_HEIGHT: int = 40
+    HEATMAP_WIDTH: int = 384 // 4
+    HEATMAP_HEIGHT: int = 160 // 4
     COORDINATE_STEPS: int = 5
-    SPEED_FEATURE_MAPS: int = 1
+    SPEED_FEATURE_MAPS: int = 128
 
     def __init__(self):
         super().__init__()
