@@ -32,11 +32,11 @@ class TaillessResnet34(nn.Module):
 
 class Image(nn.Module):
     """
-    This network produces a number of X and Y coordinate pairs (configured by
-    `Image.OUTPUTS`) which are the soft argmax of ego (camera perspective) heatmaps of
-    predicted next locations.
+    This network produces a number of X and Y coordinate pairs (dimensionality of
+    `[N, Image.OUTPUTS, 2]` with `N` the number of examples in the batch) which are
+    the soft argmax of ego (camera perspective) heatmaps of predicted next locations.
 
-    The X and Y coordinate pairs are in range of [-1, 1]. The resolution is configured
+    The X and Y coordinate pairs are in range of `[-1, 1]`. The resolution is configured
     through `Image.HEATMAP_WIDTH` and `Image.HEATMAP_HEIGHT`.
     """
 
