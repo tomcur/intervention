@@ -12,6 +12,9 @@ from .agents.navigation.local_planner import LocalPlannerNew
 from .images import carla_image_to_np
 from .map_utils import Renderer
 
+#: The number of ticks without movement after which we consider the vehicle to be stuck
+STUCK_TICKS: int = 90 * 10
+
 
 @dataclass
 class TickState:
@@ -23,6 +26,7 @@ class TickState:
     command: int
     birdview: np.ndarray
     route_completed: bool
+    probably_stuck: bool
 
 
 class EgoVehicle:
@@ -84,6 +88,7 @@ class Episode:
         self._local_planner = local_planner
         self._renderer = renderer
         self._route_completed = False
+        self._unmoved_ticks = 0
 
     def apply_control(self, control: carla.VehicleControl):
         """Apply control on the ego vehicle."""
@@ -114,6 +119,11 @@ class Episode:
         rotation = self._ego_vehicle.current_rotation()
         rgb = self._ego_vehicle.latest_rgb()
 
+        if speed > 0.0001:
+            self._unmoved_ticks = 0
+        else:
+            self._unmoved_ticks += 1
+
         return TickState(
             location=location,
             rotation=rotation,
@@ -123,6 +133,7 @@ class Episode:
             command=int(command),
             birdview=self.get_birdview(),
             route_completed=self._route_completed,
+            probably_stuck=self._unmoved_ticks > STUCK_TICKS,
         )
 
     def render_birdview(self):
