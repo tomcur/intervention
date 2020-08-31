@@ -5,8 +5,6 @@ import click
 from loguru import logger
 import sys
 
-import intervention.run
-
 
 @click.group()
 def cli():
@@ -15,15 +13,21 @@ def cli():
 
 @cli.command()
 def demo():
+    import intervention.run
+
     intervention.run.demo()
 
 @cli.command()
 def manual():
+    import intervention.run
+
     intervention.run.manual()
 
 
 @cli.command()
 def collect():
+    import intervention.run
+
     intervention.run.collect()
 
 
