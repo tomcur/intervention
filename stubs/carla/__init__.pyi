@@ -117,6 +117,28 @@ class BlueprintLibrary(Sequence[ActorBlueprint]):
         ...
 
 
+class Actor:
+    def destroy(self) -> bool:
+        ...
+
+    def get_velocity(self) -> Vector3D:
+        ...
+
+    def get_transform(self) -> Transform:
+        ...
+
+    def set_transform(self, transform: Transform) -> None:
+        ...
+
+    def set_velocity(self, velocity: Vector3D) -> None:
+        ...
+
+
+class ActorList(Sequence[Actor]):
+    def filter(self, wildcard_pattern: str) -> List[Actor]:
+        ...
+
+
 class SensorData:
     ...
 
@@ -143,26 +165,13 @@ class Image(SensorData):
         ...
 
 
-class Actor:
-    def destroy(self) -> bool:
-        ...
-
-    def get_velocity(self) -> Vector3D:
-        ...
-
-    def get_transform(self) -> Transform:
-        ...
-
-    def set_transform(self, transform: Transform) -> None:
-        ...
-
-    def set_velocity(self, velocity: Vector3D) -> None:
-        ...
+class LaneMarking:
+    ...
 
 
-class ActorList(Sequence[Actor]):
-    def filter(self, wildcard_pattern: str) -> List[Actor]:
-        ...
+class LaneInvasionEvent(SensorData):
+    actor: Actor
+    crossed_lane_markings: List[LaneMarking]
 
 
 class Sensor(Actor):
