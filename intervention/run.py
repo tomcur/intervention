@@ -3,6 +3,8 @@ from typing import Any, Tuple, Dict, List
 import abc
 import itertools
 import zipfile
+from pathlib import Path
+import uuid
 import csv
 import numpy as np
 import torch
@@ -359,6 +361,75 @@ def demo() -> None:
 def manual() -> None:
     run_manual()
 
+
+def run_example_episode(store: Store) -> None:
+    """
+    param store: the store for the episode information.
+    """
+    visualizer = visualization.Visualizer()
+
+    managed_episode = connect()
+    with managed_episode as episode:
+        logger.debug("Creating teacher agent.")
+        teacher = _prepare_teacher_agent()
+
+        for step in itertools.count():
+            state = episode.tick()
+
+            teacher_control, _ = teacher.run_step(
+                {
+                    "birdview": state.birdview,
+                    "velocity": np.float32(
+                        [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
+                    ),
+                    "command": state.command,
+                },
+                teaching=True,
+            )
+
+            store.push_teacher_driving(step, teacher_control, state)
+            episode.apply_control(teacher_control)
+
+            birdview_render = episode.render_birdview()
+            visualizer.render(
+                state.rgb,
+                "teacher",
+                0,
+                teacher_control,
+                teacher_control,
+                birdview_render,
+            )
+
+            if state.route_completed:
+                break
+
+
+def collect_example_episodes(num_episodes=1) -> None:
+    for episode in range(num_episodes):
+        logger.info(f"Collecting episode {episode+1}/{num_episodes}.")
+        episode_dir = Path(str(uuid.uuid4()))
+        episode_dir.mkdir(parents=True, exist_ok=False)
+        with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
+            with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
+                csv_writer = csv.DictWriter(
+                    csv_file,
+                    fieldnames=[
+                        "tick",
+                        "controller",
+                        "rgb_filename",
+                        "time_to_intervention",
+                        "time_from_intervention",
+                        "location_x",
+                        "location_y",
+                        "location_z",
+                        "orientation_x",
+                        "orientation_y",
+                        "orientation_z",
+                    ],
+                )
+                csv_writer.writeheader()
+                store = ZipStore(zip_archive, csv_writer)
+                run_example_episode(store)
 
 
 def collect() -> None:
