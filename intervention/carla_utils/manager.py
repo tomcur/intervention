@@ -22,6 +22,7 @@ class TickState:
     rotation: carla.Rotation
     rgb: np.ndarray
     lane_invasion: Optional[carla.LaneInvasionEvent]
+    collision: Optional[carla.CollisionEvent]
     speed: float
     velocity: carla.Vector3D
     command: int
@@ -35,6 +36,7 @@ class EgoVehicle:
         self.vehicle = vehicle
         self._rgb_queue: queue.Queue[np.ndarray] = queue.Queue()
         self._lane_invasion_queue: queue.Queue[carla.LaneInvasionEvent] = queue.Queue()
+        self._collision_queue: queue.Queue[carla.CollisionEvent] = queue.Queue()
 
     def apply_control(self, control: carla.VehicleControl) -> None:
         self.vehicle.apply_control(control)
@@ -60,6 +62,12 @@ class EgoVehicle:
         event = None
         while not self._lane_invasion_queue.empty():
             event = self._lane_invasion_queue.get()
+        return event
+
+    def latest_collision(self) -> Optional[carla.CollisionEvent]:
+        event = None
+        while not self._collision_queue.empty():
+            event = self._collision_queue.get()
         return event
 
     def add_rgb_camera(self, carla_world: carla.World) -> carla.Sensor:
@@ -96,6 +104,21 @@ class EgoVehicle:
         lane_invasion_detector.listen(_lane_invasion)
 
         return lane_invasion_detector
+
+    def add_collision_detector(self, carla_world: carla.World) -> carla.Sensor:
+        def _collision(event: carla.CollisionEvent) -> None:
+            logger.warning("Collision: {}", event)
+            self._collision_queue.put(event)
+
+        blueprints = carla_world.get_blueprint_library()
+        collision_detector_bp = blueprints.find("sensor.other.collision")
+        collision_detector = carla_world.spawn_actor(
+            collision_detector_bp, carla.Transform(), attach_to=self.vehicle,
+        )
+        assert isinstance(collision_detector, carla.Sensor)
+        collision_detector.listen(_collision)
+
+        return collision_detector
 
 
 class Episode:
@@ -142,6 +165,7 @@ class Episode:
         rotation = self._ego_vehicle.current_rotation()
         rgb = self._ego_vehicle.latest_rgb()
         lane_invasion = self._ego_vehicle.latest_lane_invasion()
+        collision = self._ego_vehicle.latest_collision()
 
         if speed > 0.0001:
             self._unmoved_ticks = 0
@@ -153,6 +177,7 @@ class Episode:
             rotation=rotation,
             rgb=rgb,
             lane_invasion=lane_invasion,
+            collision=collision,
             speed=speed,
             velocity=velocity,
             command=int(command),
@@ -425,6 +450,9 @@ class ManagedEpisode:
 
         lane_invasion_detector = ego_vehicle.add_lane_invasion_detector(carla_world)
         self._actor_dict["sensor"].append(lane_invasion_detector)
+
+        collision_detector = ego_vehicle.add_collision_detector(carla_world)
+        self._actor_dict["sensor"].append(collision_detector)
 
         return ego_vehicle
 
