@@ -12,7 +12,7 @@ from loguru import logger
 import carla
 
 from .carla_utils import connect, TickState
-from . import visualization
+from . import visualization, exceptions
 
 from .learning_by_cheating import image
 from .learning_by_cheating import birdview
@@ -408,6 +408,12 @@ def run_example_episode(store: Store) -> None:
                 birdview_render,
             )
 
+            if state.probably_stuck:
+                raise exceptions.EpisodeStuck()
+
+            if state.collision:
+                raise exceptions.CollisionInEpisode()
+
             if state.route_completed:
                 break
 
@@ -415,33 +421,42 @@ def run_example_episode(store: Store) -> None:
 def collect_example_episodes(num_episodes=1) -> None:
     for episode in range(num_episodes):
         logger.info(f"Collecting episode {episode+1}/{num_episodes}.")
-        episode_dir = Path(str(uuid.uuid4()))
+        episode_id = uuid.uuid4()
+        episode_dir = Path(str(episode_id))
         episode_dir.mkdir(parents=True, exist_ok=False)
-        with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
-            with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
-                csv_writer = csv.DictWriter(
-                    csv_file,
-                    fieldnames=[
-                        "tick",
-                        "controller",
-                        "rgb_filename",
-                        "time_to_intervention",
-                        "time_from_intervention",
-                        "location_x",
-                        "location_y",
-                        "location_z",
-                        "velocity_x",
-                        "velocity_y",
-                        "velocity_z",
-                        "speed",
-                        "orientation_x",
-                        "orientation_y",
-                        "orientation_z",
-                    ],
-                )
-                csv_writer.writeheader()
-                store = ZipStore(zip_archive, csv_writer)
-                run_example_episode(store)
+        try:
+            with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
+                with open(
+                    episode_dir / "episode.csv", mode="w", newline=""
+                ) as csv_file:
+                    csv_writer = csv.DictWriter(
+                        csv_file,
+                        fieldnames=[
+                            "tick",
+                            "controller",
+                            "rgb_filename",
+                            "time_to_intervention",
+                            "time_from_intervention",
+                            "location_x",
+                            "location_y",
+                            "location_z",
+                            "velocity_x",
+                            "velocity_y",
+                            "velocity_z",
+                            "speed",
+                            "orientation_x",
+                            "orientation_y",
+                            "orientation_z",
+                        ],
+                    )
+                    csv_writer.writeheader()
+                    store = ZipStore(zip_archive, csv_writer)
+                    run_example_episode(store)
+        except (exceptions.EpisodeStuck, exceptions.CollisionInEpisode) as exception:
+            logger.info(f"Removing episode because of episode exception: {exception}.")
+            (episode_dir / "images.zip").unlink()
+            (episode_dir / "episode.csv").unlink()
+            episode_dir.rmdir()
 
 
 def collect() -> None:

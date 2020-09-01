@@ -17,6 +17,7 @@ def demo():
 
     intervention.run.demo()
 
+
 @cli.command()
 def manual():
     import intervention.run
@@ -29,6 +30,14 @@ def collect():
     import intervention.run
 
     intervention.run.collect()
+
+
+@cli.command()
+@click.option("-n", "--num_episodes", required=True, type=int)
+def collect_teacher_examples(num_episodes: int):
+    import intervention.run
+
+    intervention.run.collect_example_episodes(num_episodes=num_episodes)
 
 
 if __name__ == "__main__":
