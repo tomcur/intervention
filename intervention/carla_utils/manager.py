@@ -393,63 +393,48 @@ class ManagedEpisode:
             "controller.ai.walker"
         )
 
-        peds_spawned = 0
-
         walkers = []
         controllers = []
+        spawn_collisions = 0
 
-        while peds_spawned < n_pedestrians:
-            spawn_points = []
-            _walkers = []
-            _controllers = []
-
-            for _ in range(n_pedestrians - peds_spawned):
-                spawn_point = carla.Transform()
-                loc = carla_world.get_random_location_from_navigation()
-
-                if loc is not None:
-                    spawn_point.location = loc
-                    spawn_points.append(spawn_point)
-
-            batch = []
-            for spawn_point in spawn_points:
+        while len(walkers) < n_pedestrians:
+            walker_batch = []
+            for _ in range(n_pedestrians - len(walkers)):
+                location = carla_world.get_random_location_from_navigation()
+                spawn_point = carla.Transform(location=location)
                 walker_bp = random.choice(walker_blueprints)
-
                 if walker_bp.has_attribute("is_invincible"):
                     walker_bp.set_attribute("is_invincible", "false")
+                walker_batch.append(carla.command.SpawnActor(walker_bp, spawn_point))
 
-                batch.append(carla.command.SpawnActor(walker_bp, spawn_point))
-
-            for result in self._client.apply_batch_sync(batch, True):
+            for result in self._client.apply_batch_sync(walker_batch, True):
                 if result.error:
-                    logger.trace(result.error)
+                    if "collision at spawn position" in result.error:
+                        spawn_collisions += 1
+                    else:
+                        logger.error(result.error)
                 else:
-                    peds_spawned += 1
-                    _walkers.append(result.actor_id)
+                    walkers.append(result.actor_id)
 
-            batch = [
-                carla.command.SpawnActor(
-                    controller_blueprint, carla.Transform(), walker
-                )
-                for walker in _walkers
-            ]
+        controller_batch = [
+            carla.command.SpawnActor(controller_blueprint, carla.Transform(), walker)
+            for walker in walkers
+        ]
+        for result in self._client.apply_batch_sync(controller_batch, True):
+            if result.error:
+                logger.error(result.error)
+            else:
+                controllers.append(result.actor_id)
 
-            for result in self._client.apply_batch_sync(batch, True):
-                if result.error:
-                    logger.trace(result.error)
-                else:
-                    _controllers.append(result.actor_id)
-
-            controllers.extend(_controllers)
-            walkers.extend(_walkers)
-
-        logger.debug(f"Spawned {len(controllers)} pedestrians.")
+        logger.debug(
+            f"Spawned {len(controllers)} pedestrians, after accounting for {spawn_collisions} spawn collisions."
+        )
         self._actor_dict["pedestrians"] = list(carla_world.get_actors(walkers))
         self._actor_dict["pedestrian_controllers"] = list(
             carla_world.get_actors(controllers)
         )
         self._pedestrian_controllers = cast(
-            List[carla.WalkerAIController], list(carla_world.get_actors(controllers))
+            List[carla.WalkerAIController], self._actor_dict["pedestrian_controllers"]
         )
 
     def _spawn_ego_vehicle(
