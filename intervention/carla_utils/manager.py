@@ -386,6 +386,11 @@ class ManagedEpisode:
         logger.debug("spawned %d vehicles" % len(self._actor_dict["vehicle"]))
 
     def _spawn_pedestrians(self, carla_world: carla.World, n_pedestrians: int) -> None:
+        """
+        Spawns `n_pedestrians` pedestrians. Sometimes spawning a pedestrian fails due to
+        a collision at the spawn location. This method keeps retrying in a loop until
+        exactly `n_pedestrians` have been spawned.
+        """
         walker_blueprints = carla_world.get_blueprint_library().filter(
             "walker.pedestrian.*"
         )
@@ -427,7 +432,8 @@ class ManagedEpisode:
                 controllers.append(result.actor_id)
 
         logger.debug(
-            f"Spawned {len(controllers)} pedestrians, after accounting for {spawn_collisions} spawn collisions."
+            f"Spawned {len(controllers)} pedestrians, after accounting for"
+            "{spawn_collisions} spawn collisions."
         )
         self._actor_dict["pedestrians"] = list(carla_world.get_actors(walkers))
         self._actor_dict["pedestrian_controllers"] = list(
