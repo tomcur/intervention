@@ -296,6 +296,14 @@ class ManagedEpisode:
         return Episode(self._carla_world, ego_vehicle, local_planner, renderer)
 
     def _clean_up(self) -> None:
+        self._traffic_manager.set_synchronous_mode(False)
+
+        settings = self._carla_world.get_settings()
+        settings.synchronous_mode = False
+        settings.fixed_delta_seconds = None
+        self._carla_world.apply_settings(settings)
+        self._carla_world.wait_for_tick()
+
         # For some reason sensors cannot be destroyed in batch
         for sensor in self._actor_dict["sensor"]:
             sensor.destroy()
