@@ -280,7 +280,13 @@ class ManagedEpisode:
         local_planner.set_vehicle(ego_vehicle.vehicle)
 
         logger.debug("Spawning vehicles.")
-        self._spawn_vehicles(self._carla_world, carla_map, traffic_manager_port, 50)
+        self._spawn_vehicles(
+            self._carla_world,
+            carla_map,
+            traffic_manager_port,
+            50,
+            [start_pose.location],
+        )
 
         logger.debug("Spawning pedestrians.")
         self._spawn_pedestrians(self._carla_world, 125)
@@ -348,7 +354,11 @@ class ManagedEpisode:
         carla_map: carla.Map,
         traffic_manager_port: int,
         n_vehicles: int,
+        disallowed_spawn_points: List[carla.Location] = [],
     ) -> None:
+        """
+        Spawns `n_vehicles` vehicles.
+        """
         blueprints = []
         for blueprint in carla_world.get_blueprint_library().filter("vehicle.*"):
             wheels = blueprint.get_attribute("number_of_wheels")
@@ -356,6 +366,12 @@ class ManagedEpisode:
                 blueprints.append(blueprint)
 
         spawn_points = carla_map.get_spawn_points()
+        spawn_points = [
+            spawn_point
+            for spawn_point in spawn_points
+            if spawn_point not in disallowed_spawn_points
+        ]
+
         random.shuffle(spawn_points)
 
         if n_vehicles > len(spawn_points):
