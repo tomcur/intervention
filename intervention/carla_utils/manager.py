@@ -359,7 +359,7 @@ class ManagedEpisode:
         random.shuffle(spawn_points)
 
         if n_vehicles > len(spawn_points):
-            logger.warn(
+            logger.warning(
                 "Requested spawning {} vehicles, but only {} spawn points are available.",
                 n_vehicles,
                 len(spawn_points),
@@ -389,7 +389,7 @@ class ManagedEpisode:
         spawned = []
         for result in self._client.apply_batch_sync(batch, True):
             if result.error:
-                logger.warn(result.error)
+                logger.warning(result.error)
             else:
                 spawned.append(result.actor_id)
 
