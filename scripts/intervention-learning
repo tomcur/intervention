@@ -47,7 +47,7 @@ if __name__ == "__main__":
         level="TRACE",
         format=(
             "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>"
-            "| <red>{thread.name: <10}</red>"
+            "| <red>{process.name: <10} {thread.name: <10}</red>"
             "| <level>{level: <8}</level>"
             "| <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>"
             "- <level>{message}</level>"
