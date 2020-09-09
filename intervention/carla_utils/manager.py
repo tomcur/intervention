@@ -307,9 +307,12 @@ class ManagedEpisode:
         # For some reason sensors cannot be destroyed in batch
         for sensor in self._actor_dict["sensor"]:
             sensor.destroy()
+        self._actor_dict["sensor"] = []
 
         for actors in self._actor_dict.values():
             self._client.apply_batch([carla.command.DestroyActor(x) for x in actors])
+
+        logger.info("Cleanup done.")
 
     def __enter__(self) -> Episode:
         logger.debug("Entering managed episode context.")
