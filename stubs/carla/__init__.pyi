@@ -174,6 +174,12 @@ class LaneInvasionEvent(SensorData):
     crossed_lane_markings: List[LaneMarking]
 
 
+class CollisionEvent(SensorData):
+    actor: Actor
+    other_actor: Actor
+    normal_impulse: Vector3D
+
+
 class Sensor(Actor):
     def listen(self, callback: Callable[[SensorData], None]):
         ...

@@ -34,7 +34,7 @@ class TickState:
 
 class EgoVehicle:
     def __init__(self, vehicle: carla.Vehicle):
-        self.vehicle = vehicle
+        self.vehicle: carla.Vehicle = vehicle
         self._rgb_queue: queue.Queue[np.ndarray] = queue.Queue()
         self._lane_invasion_queue: queue.Queue[carla.LaneInvasionEvent] = queue.Queue()
         self._collision_queue: queue.Queue[carla.CollisionEvent] = queue.Queue()
@@ -131,14 +131,14 @@ class Episode:
         local_planner: LocalPlannerNew,
         renderer: Renderer,
     ):
-        self._carla_world = carla_world
-        self._location = start_location
-        self._ego_vehicle = ego_vehicle
-        self._local_planner = local_planner
-        self._renderer = renderer
-        self._route_completed = False
-        self._unmoved_ticks = 0
-        self._distance_travelled = 0.0
+        self._carla_world: carla.World = carla_world
+        self._location: carla.Location = start_location
+        self._ego_vehicle: EgoVehicle = ego_vehicle
+        self._local_planner: LocalPlannerNew = local_planner
+        self._renderer: Renderer = renderer
+        self._route_completed: bool = False
+        self._unmoved_ticks: int = 0
+        self._distance_travelled: float = 0.0
 
     def apply_control(self, control: carla.VehicleControl):
         """Apply control on the ego vehicle."""
