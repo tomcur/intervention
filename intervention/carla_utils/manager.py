@@ -324,6 +324,11 @@ class ManagedEpisode:
         logger.debug("Exiting managed episode context.")
         self._clean_up()
 
+        # Most likely unnecessary deletes, but there have been issues with cleanup
+        del self._carla_world
+        del self._traffic_manager
+        del self._client
+
     def _spawn_vehicles(
         self,
         carla_world: carla.World,
