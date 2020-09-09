@@ -215,6 +215,7 @@ class ManagedEpisode:
 
     def __init__(self, carla_client: carla.Client):
         self._client = carla_client
+        self._carla_world: Optional[carla.World] = None
         self._traffic_manager: Optional[carla.TrafficManager] = None
         self._pedestrian_controllers: List[carla.WalkerAIController] = []
         self._actor_dict: Dict[str, List[carla.Actor]] = collections.defaultdict(list)
@@ -250,42 +251,49 @@ class ManagedEpisode:
 
     def _set_up(self) -> Episode:
         logger.trace("Loading world.")
-        carla_world = self._client.load_world(self.town)
+        self._carla_world = self._client.load_world(self.town)
+
         traffic_manager_port = self._set_up_traffic_manager()
 
         logger.trace(f"Setting world weather to {self.weather}.")
-        carla_world.set_weather(self.weather)
+        self._carla_world.set_weather(self.weather)
 
-        self._set_up_world_settings(carla_world)
+        self._set_up_world_settings(self._carla_world)
 
-        carla_map = carla_world.get_map()
+        carla_map = self._carla_world.get_map()
 
         logger.debug("Generating route.")
         (local_planner, start_pose, _) = self._generate_route(carla_map)
 
         logger.debug("Spawning ego vehicle.")
         ego_vehicle = self._spawn_ego_vehicle(
-            carla_world, traffic_manager_port, start_pose
+            self._carla_world, traffic_manager_port, start_pose
         )
         local_planner.set_vehicle(ego_vehicle.vehicle)
 
         logger.debug("Spawning vehicles.")
-        self._spawn_vehicles(carla_world, carla_map, traffic_manager_port, 50)
+        self._spawn_vehicles(self._carla_world, carla_map, traffic_manager_port, 50)
 
         logger.debug("Spawning pedestrians.")
         self._spawn_pedestrians(carla_world, 125)
 
         for controller in self._pedestrian_controllers:
             controller.start()
-            controller.go_to_location(carla_world.get_random_location_from_navigation())
+            controller.go_to_location(
+                self._carla_world.get_random_location_from_navigation()
+            )
             controller.set_max_speed(1 + random.random())
 
         renderer = Renderer(
-            "placeholder", self._client, carla_world, carla_map, ego_vehicle.vehicle
+            "placeholder",
+            self._client,
+            self._carla_world,
+            carla_map,
+            ego_vehicle.vehicle,
         )
         renderer.start()
 
-        return Episode(carla_world, ego_vehicle, local_planner, renderer)
+        return Episode(self._carla_world, ego_vehicle, local_planner, renderer)
 
     def _clean_up(self) -> None:
         # For some reason sensors cannot be destroyed in batch
