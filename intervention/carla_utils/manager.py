@@ -354,10 +354,21 @@ class ManagedEpisode:
             wheels = blueprint.get_attribute("number_of_wheels")
             if wheels is not None and wheels.as_int() == 4:
                 blueprints.append(blueprint)
-        spawn_points = carla_map.get_spawn_points()
 
-        # TODO: don't use same spawnpoint twice (loop through shuffled spawnpoints)
-        for _ in range(n_vehicles):
+        spawn_points = carla_map.get_spawn_points()
+        random.shuffle(spawn_points)
+
+        if n_vehicles > len(spawn_points):
+            logger.warn(
+                "Requested spawning {} vehicles, but only {} spawn points are available.",
+                n_vehicles,
+                len(spawn_points),
+            )
+            n_vehicles = len(spawn_points)
+
+        spawn_points = spawn_points[:n_vehicles]
+        batch = []
+        for spawn_point in spawn_points[:n_vehicles]:
             blueprint = np.random.choice(blueprints)
             blueprint.set_attribute("role_name", "autopilot")
 
@@ -373,17 +384,21 @@ class ManagedEpisode:
                 driver_id = np.random.choice(driver_id_attribute.recommended_values)
                 blueprint.set_attribute("driver_id", driver_id)
 
-            vehicle = None
-            while vehicle is None:
-                vehicle = carla_world.try_spawn_actor(
-                    blueprint, np.random.choice(spawn_points)
-                )
+            batch.append(carla.command.SpawnActor(blueprint, spawn_point))
 
-            vehicle.set_autopilot(True, traffic_manager_port)
+        spawned = []
+        for result in self._client.apply_batch_sync(batch, True):
+            if result.error:
+                logger.warn(result.error)
+            else:
+                spawned.append(result.actor_id)
 
-            self._actor_dict["vehicle"].append(vehicle)
+        vehicles = carla_world.get_actors(spawned)
+        for vehicle in vehicles:
+            vehicle.set_autopilot(True)
 
-        logger.debug("spawned %d vehicles" % len(self._actor_dict["vehicle"]))
+        self._actor_dict["vehicle"] = vehicles
+        logger.debug("Spawned {} vehicles.", len(spawned))
 
     def _spawn_pedestrians(self, carla_world: carla.World, n_pedestrians: int) -> None:
         """
