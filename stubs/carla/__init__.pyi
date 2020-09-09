@@ -353,7 +353,7 @@ class ActorSnapshot:
     def get_transform(self) -> Transform:
         ...
 
-    def get_velocity(self) -> Velocity:
+    def get_velocity(self) -> Vector3D:
         ...
 
 
