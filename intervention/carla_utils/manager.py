@@ -283,7 +283,6 @@ class ManagedEpisode:
         self._spawn_vehicles(
             self._carla_world,
             carla_map,
-            traffic_manager_port,
             50,
             [start_pose.location],
         )
@@ -352,7 +351,6 @@ class ManagedEpisode:
         self,
         carla_world: carla.World,
         carla_map: carla.Map,
-        traffic_manager_port: int,
         n_vehicles: int,
         disallowed_spawn_points: List[carla.Location] = [],
     ) -> None:
