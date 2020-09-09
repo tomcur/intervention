@@ -20,6 +20,7 @@ STUCK_TICKS: int = 90 * 10
 class TickState:
     location: carla.Location
     rotation: carla.Rotation
+    distance_travelled: float
     rgb: np.ndarray
     lane_invasion: Optional[carla.LaneInvasionEvent]
     collision: Optional[carla.CollisionEvent]
@@ -125,16 +126,19 @@ class Episode:
     def __init__(
         self,
         carla_world: carla.World,
+        start_location: carla.Location,
         ego_vehicle: EgoVehicle,
         local_planner: LocalPlannerNew,
         renderer: Renderer,
     ):
         self._carla_world = carla_world
+        self._location = start_location
         self._ego_vehicle = ego_vehicle
         self._local_planner = local_planner
         self._renderer = renderer
         self._route_completed = False
         self._unmoved_ticks = 0
+        self._distance_travelled = 0.0
 
     def apply_control(self, control: carla.VehicleControl):
         """Apply control on the ego vehicle."""
@@ -167,6 +171,9 @@ class Episode:
         lane_invasion = self._ego_vehicle.latest_lane_invasion()
         collision = self._ego_vehicle.latest_collision()
 
+        self._distance_travelled += self._location.distance(location)
+        self._location = location
+
         if speed > 0.0001:
             self._unmoved_ticks = 0
         else:
@@ -175,6 +182,7 @@ class Episode:
         return TickState(
             location=location,
             rotation=rotation,
+            distance_travelled=self._distance_travelled,
             rgb=rgb,
             lane_invasion=lane_invasion,
             collision=collision,
@@ -293,7 +301,9 @@ class ManagedEpisode:
         )
         renderer.start()
 
-        return Episode(self._carla_world, ego_vehicle, local_planner, renderer)
+        return Episode(
+            self._carla_world, start_pose.location, ego_vehicle, local_planner, renderer
+        )
 
     def _clean_up(self) -> None:
         self._traffic_manager.set_synchronous_mode(False)
