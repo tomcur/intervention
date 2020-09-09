@@ -102,7 +102,7 @@ class EgoVehicle:
             lane_invasion_detector_bp, carla.Transform(), attach_to=self.vehicle,
         )
         assert isinstance(lane_invasion_detector, carla.Sensor)
-        lane_invasion_detector.listen(_lane_invasion)
+        lane_invasion_detector.listen(_lane_invasion)  # type: ignore
 
         return lane_invasion_detector
 
@@ -117,7 +117,7 @@ class EgoVehicle:
             collision_detector_bp, carla.Transform(), attach_to=self.vehicle,
         )
         assert isinstance(collision_detector, carla.Sensor)
-        collision_detector.listen(_collision)
+        collision_detector.listen(_collision)  # type: ignore
 
         return collision_detector
 
@@ -306,6 +306,9 @@ class ManagedEpisode:
         )
 
     def _clean_up(self) -> None:
+        assert self._carla_world is not None
+        assert self._traffic_manager is not None
+
         self._traffic_manager.set_synchronous_mode(False)
 
         settings = self._carla_world.get_settings()
