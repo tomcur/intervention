@@ -409,9 +409,10 @@ class ManagedEpisode:
 
         vehicles = carla_world.get_actors(spawned)
         for vehicle in vehicles:
+            assert isinstance(vehicle, carla.Vehicle)
             vehicle.set_autopilot(True)
 
-        self._actor_dict["vehicle"] = vehicles
+        self._actor_dict["vehicle"] = list(vehicles)
         logger.debug("Spawned {} vehicles.", len(spawned))
 
     def _spawn_pedestrians(self, carla_world: carla.World, n_pedestrians: int) -> None:
@@ -427,8 +428,8 @@ class ManagedEpisode:
             "controller.ai.walker"
         )
 
-        walkers = []
-        controllers = []
+        walkers: List[int] = []
+        controllers: List[int] = []
         spawn_collisions = 0
 
         while len(walkers) < n_pedestrians:
