@@ -310,7 +310,7 @@ class ManagedEpisode:
 
         settings = self._carla_world.get_settings()
         settings.synchronous_mode = False
-        settings.fixed_delta_seconds = None
+        settings.fixed_delta_seconds = 0.0
         self._carla_world.apply_settings(settings)
         self._carla_world.wait_for_tick()
 
