@@ -334,6 +334,42 @@ class Map:
 
 
 @dataclass
+class Timestamp:
+    frame: int
+    elapsed_seconds: float
+    delta_seconds: float
+    platform_timestamp: float
+
+
+class ActorSnapshot:
+    id: int
+
+    def get_acceleration(self) -> Vector3D:
+        ...
+
+    def get_angular_velocity(self) -> Vector3D:
+        ...
+
+    def get_transform(self) -> Transform:
+        ...
+
+    def get_velocity(self) -> Velocity:
+        ...
+
+
+class WorldSnapshot:
+    id: int
+    frame: int
+    timestamp: Timestamp
+
+    def find(self, actor_id: int) -> ActorSnapshot:
+        ...
+
+    def has_actor(self, actor_id: int) -> bool:
+        ...
+
+
+@dataclass
 class WorldSettings:
     synchronous_mode: bool = False
     no_rendering_mode: bool = False
@@ -366,6 +402,9 @@ class World:
         ...
 
     def tick(self) -> int:
+        ...
+
+    def wait_for_tick(self, seconds: float = 10.0) -> WorldSnapshot:
         ...
 
     def get_actor(self, actor_id: int) -> Optional[Actor]:
