@@ -427,6 +427,22 @@ def collect_example_episodes(num_episodes=1) -> None:
         episode_dir = Path(str(episode_id))
         episode_dir.mkdir(parents=True, exist_ok=False)
         try:
+
+def process_wrapper(target, *args, **kwargs):
+    queue = multiprocessing.Queue()
+
+    def _wrapper(target, queue, *args, **kwargs):
+        value = target(*args, **kwargs)
+        queue.put(value)
+
+    process = multiprocessing.Process(
+        target=_wrapper, args=(target, queue) + args, kwargs=kwargs
+    )
+    process.start()
+    process.join()
+    return queue.get()
+
+
             with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
                 with open(
                     episode_dir / "episode.csv", mode="w", newline=""
@@ -454,11 +470,7 @@ def collect_example_episodes(num_episodes=1) -> None:
                     csv_writer.writeheader()
                     store = ZipStore(zip_archive, csv_writer)
                     # Run in process to circumvent Carla bug
-                    process = multiprocessing.Process(
-                        target=run_example_episode, args=(store,)
-                    )
-                    process.start()
-                    process.join()
+                    process_wrapper(run_example_episode, store)
         except (exceptions.EpisodeStuck, exceptions.CollisionInEpisode) as exception:
             logger.info(f"Removing episode because of episode exception: {exception}.")
             (episode_dir / "images.zip").unlink()
