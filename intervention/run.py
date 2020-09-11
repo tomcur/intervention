@@ -1,5 +1,7 @@
 from typing import Any, Tuple, Dict, List
 
+import multiprocessing
+
 import abc
 import itertools
 import zipfile
@@ -451,7 +453,12 @@ def collect_example_episodes(num_episodes=1) -> None:
                     )
                     csv_writer.writeheader()
                     store = ZipStore(zip_archive, csv_writer)
-                    run_example_episode(store)
+                    # Run in process to circumvent Carla bug
+                    process = multiprocessing.Process(
+                        target=run_example_episode, args=(store,)
+                    )
+                    process.start()
+                    process.join()
         except (exceptions.EpisodeStuck, exceptions.CollisionInEpisode) as exception:
             logger.info(f"Removing episode because of episode exception: {exception}.")
             (episode_dir / "images.zip").unlink()
