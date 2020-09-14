@@ -1,5 +1,5 @@
 from typing import Any, Optional, Tuple, Dict, List, TextIO
-from dataclasses import dataclass
+import dataclasses
 
 import multiprocessing
 
@@ -8,6 +8,7 @@ import abc
 import itertools
 import zipfile
 from pathlib import Path
+from datetime import datetime
 import uuid
 import csv
 import numpy as np
@@ -405,15 +406,20 @@ def manual() -> None:
     run_manual()
 
 
-@dataclass
+@dataclasses.dataclass
 class EpisodeSummary:
     uuid: str = ""
+    collection_start_datetime: datetime = dataclasses.field(default_factory=datetime.now)
+    collection_end_datetime: datetime = dataclasses.field(default_factory=datetime.now)
     terminated: bool = False
     success: bool = False
     collisions: int = 0
     distance_travelled: float = 0.0
     interventions: int = 0
     ticks: int = 0
+
+    def set_end_datetime(self):
+        self.collection_end_datetime = datetime.now()
 
     def as_csv_writeable_dict(self):
         values = self.__dict__
@@ -477,6 +483,7 @@ def run_example_episode(store: Store) -> EpisodeSummary:
                 summary.success = True
                 break
 
+    summary.set_end_datetime()
     return summary
 
 
