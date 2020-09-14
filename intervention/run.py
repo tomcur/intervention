@@ -364,6 +364,9 @@ def run_manual() -> None:
                 break
 
 def run(store: Store) -> None:
+    """
+    param store: the store for the episode information.
+    """
     visualizer = visualization.Visualizer()
 
     managed_episode = connect()
@@ -488,6 +491,10 @@ def run_example_episode(store: Store) -> EpisodeSummary:
 
 
 def process_wrapper(target, *args, **kwargs):
+    """
+    Runs target (with *args and **kwargs) in a subprocess. Blocks until target is done.
+    Returns the return value of target.
+    """
     queue = multiprocessing.Queue()
 
     def _wrapper(target, queue, *args, **kwargs):
