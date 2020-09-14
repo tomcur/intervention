@@ -439,14 +439,19 @@ def run_example_episode(store: Store) -> EpisodeSummary:
             )
 
             if state.probably_stuck:
-                raise exceptions.EpisodeStuck()
-
-            if state.collision:
-                raise exceptions.CollisionInEpisode()
-
-            if state.route_completed:
+                summary.terminated = True
                 break
 
+            if state.collision:
+                summary.collisions += 1
+                summary.terminated = True
+                break
+
+            if state.route_completed:
+                summary.success = True
+                break
+
+    return summary
 
 
 def process_wrapper(target, *args, **kwargs):
@@ -509,12 +514,16 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
                     csv_writer.writeheader()
                     store = ZipStore(zip_archive, csv_writer)
                     # Run in process to circumvent Carla bug
-                    process_wrapper(run_example_episode, store)
-        except (exceptions.EpisodeStuck, exceptions.CollisionInEpisode) as exception:
-            logger.info(f"Removing episode because of episode exception: {exception}.")
-            (episode_dir / "images.zip").unlink()
-            (episode_dir / "episode.csv").unlink()
-            episode_dir.rmdir()
+                    episode_summary = process_wrapper(run_example_episode, store)
+                    episode_summary.uuid = episode_id
+                    episode_summaries_writer.writerow(
+                        episode_summary.as_csv_writeable_dict()
+                    )
+            # except (exceptions.EpisodeStuck, exceptions.CollisionInEpisode) as exception:
+            #     logger.info(f"Removing episode because of episode exception: {exception}.")
+            #     (episode_dir / "images.zip").unlink()
+            #     (episode_dir / "episode.csv").unlink()
+            #     episode_dir.rmdir()
 
 
 def collect() -> None:
