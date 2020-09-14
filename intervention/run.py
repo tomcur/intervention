@@ -1,4 +1,4 @@
-from typing import Any, Optional, Tuple, Dict, List
+from typing import Any, Optional, Tuple, Dict, List, TextIO
 from dataclasses import dataclass
 
 import multiprocessing
@@ -218,7 +218,7 @@ class BlackHoleStore(Store):
 class ZipStore(Store):
     """Episode store backed by zip-file."""
 
-    def __init__(self, archive: zipfile.ZipFile, csv: csv.DictWriter):
+    def __init__(self, archive: zipfile.ZipFile, csv_file: TextIO):
         self._archive = archive
         self._csv = csv
         self._recent_student_driving: List[
@@ -226,6 +226,32 @@ class ZipStore(Store):
         ] = []
         self._teacher_in_control = False
         self._intervention_step = 0
+
+        self._csv_file = csv_file
+        self._csv_writer = csv.DictWriter(
+            csv_file,
+            fieldnames=[
+                "tick",
+                "controller",
+                "rgb_filename",
+                "time_to_intervention",
+                "time_from_intervention",
+                "lane_invasion",
+                "collision",
+                "location_x",
+                "location_y",
+                "location_z",
+                "velocity_x",
+                "velocity_y",
+                "velocity_z",
+                "speed",
+                "orientation_x",
+                "orientation_y",
+                "orientation_z",
+            ],
+        )
+        self._csv_writer.writeheader()
+        self._csv_file.flush()
 
     def push_student_driving(
         self, step: int, control: carla.VehicleControl, state: TickState
@@ -246,7 +272,7 @@ class ZipStore(Store):
         rgb_filename = f"{step:05d}-rgb-teacher.bin"
         self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
         orientation = state.rotation.get_forward_vector()
-        self._csv.writerow(
+        self._csv_writer.writerow(
             {
                 "tick": step,
                 "controller": "teacher",
@@ -276,7 +302,7 @@ class ZipStore(Store):
             rgb_filename = f"{step:05d}-rgb-student.bin"
             self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
             orientation = state.rotation.get_forward_vector()
-            self._csv.writerow(
+            self._csv_writer.writerow(
                 {
                     "tick": step,
                     "controller": "student",
@@ -489,30 +515,8 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
                 with open(
                     episode_dir / "episode.csv", mode="w", newline=""
                 ) as csv_file:
-                    csv_writer = csv.DictWriter(
-                        csv_file,
-                        fieldnames=[
-                            "tick",
-                            "controller",
-                            "rgb_filename",
-                            "time_to_intervention",
-                            "time_from_intervention",
-                            "lane_invasion",
-                            "collision",
-                            "location_x",
-                            "location_y",
-                            "location_z",
-                            "velocity_x",
-                            "velocity_y",
-                            "velocity_z",
-                            "speed",
-                            "orientation_x",
-                            "orientation_y",
-                            "orientation_z",
-                        ],
-                    )
-                    csv_writer.writeheader()
-                    store = ZipStore(zip_archive, csv_writer)
+                    store = ZipStore(zip_archive, csv_file)
+
                     # Run in process to circumvent Carla bug
                     episode_summary = process_wrapper(run_example_episode, store)
                     episode_summary.uuid = episode_id
@@ -529,28 +533,5 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
 def collect() -> None:
     with zipfile.ZipFile("episode-x.zip", mode="w") as zip_archive:
         with open("episode.csv", mode="w", newline="") as csv_file:
-            csv_writer = csv.DictWriter(
-                csv_file,
-                fieldnames=[
-                    "tick",
-                    "controller",
-                    "rgb_filename",
-                    "time_to_intervention",
-                    "time_from_intervention",
-                    "lane_invasion",
-                    "collision",
-                    "location_x",
-                    "location_y",
-                    "location_z",
-                    "velocity_x",
-                    "velocity_y",
-                    "velocity_z",
-                    "speed",
-                    "orientation_x",
-                    "orientation_y",
-                    "orientation_z",
-                ],
-            )
-            csv_writer.writeheader()
-            store = ZipStore(zip_archive, csv_writer)
+            store = ZipStore(zip_archive, csv_file)
             run(store)
