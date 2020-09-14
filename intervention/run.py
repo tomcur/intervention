@@ -1,7 +1,9 @@
-from typing import Any, Tuple, Dict, List
+from typing import Any, Optional, Tuple, Dict, List
+from dataclasses import dataclass
 
 import multiprocessing
 
+import os
 import abc
 import itertools
 import zipfile
@@ -368,15 +370,35 @@ def run(store: Store) -> None:
 def demo() -> None:
     run(BlackHoleStore())
 
+
 def manual() -> None:
     run_manual()
 
 
-def run_example_episode(store: Store) -> None:
+@dataclass
+class EpisodeSummary:
+    uuid: str = ""
+    terminated: bool = False
+    success: bool = False
+    collisions: int = 0
+    distance_travelled: float = 0.0
+    interventions: int = 0
+    ticks: int = 0
+
+    def as_csv_writeable_dict(self):
+        values = self.__dict__
+        for (key, value) in values.items():
+            if isinstance(value, bool):
+                values[key] = int(value)
+        return values
+
+
+def run_example_episode(store: Store) -> EpisodeSummary:
     """
     param store: the store for the episode information.
     """
     visualizer = visualization.Visualizer()
+    summary = EpisodeSummary()
 
     managed_episode = connect()
     with managed_episode as episode:
@@ -385,6 +407,8 @@ def run_example_episode(store: Store) -> None:
 
         for step in itertools.count():
             state = episode.tick()
+            summary.distance_travelled = state.distance_travelled
+            summary.ticks += 1
 
             teacher_control, _ = teacher.run_step(
                 {
@@ -437,12 +461,21 @@ def process_wrapper(target, *args, **kwargs):
 
 
 def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
-    for episode in range(num_episodes):
-        logger.info(f"Collecting episode {episode+1}/{num_episodes}.")
-        episode_id = uuid.uuid4()
-        episode_dir = Path(str(episode_id))
-        episode_dir.mkdir(parents=True, exist_ok=False)
-        try:
+    episode_summaries_path = data_path / "episodes.csv"
+    file_exists = os.path.isfile(episode_summaries_path)
+    with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
+        episode_summaries_writer = csv.DictWriter(
+            episode_summaries, fieldnames=EpisodeSummary.__dataclass_fields__.keys()
+        )
+        if not file_exists:
+            episode_summaries_writer.writeheader()
+
+        for episode in range(num_episodes):
+            logger.info(f"Collecting episode {episode+1}/{num_episodes}.")
+            episode_id = uuid.uuid4()
+            episode_dir = data_path / str(episode_id)
+            episode_dir.mkdir(parents=True, exist_ok=False)
+            # try:
             with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
                 with open(
                     episode_dir / "episode.csv", mode="w", newline=""
