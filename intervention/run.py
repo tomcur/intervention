@@ -420,13 +420,6 @@ def run_example_episode(store: Store) -> None:
                 break
 
 
-def collect_example_episodes(num_episodes=1) -> None:
-    for episode in range(num_episodes):
-        logger.info(f"Collecting episode {episode+1}/{num_episodes}.")
-        episode_id = uuid.uuid4()
-        episode_dir = Path(str(episode_id))
-        episode_dir.mkdir(parents=True, exist_ok=False)
-        try:
 
 def process_wrapper(target, *args, **kwargs):
     queue = multiprocessing.Queue()
@@ -443,6 +436,13 @@ def process_wrapper(target, *args, **kwargs):
     return queue.get()
 
 
+def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
+    for episode in range(num_episodes):
+        logger.info(f"Collecting episode {episode+1}/{num_episodes}.")
+        episode_id = uuid.uuid4()
+        episode_dir = Path(str(episode_id))
+        episode_dir.mkdir(parents=True, exist_ok=False)
+        try:
             with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
                 with open(
                     episode_dir / "episode.csv", mode="w", newline=""

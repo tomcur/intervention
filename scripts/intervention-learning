@@ -2,6 +2,7 @@
 """Intervention learning entrypoints."""
 
 import click
+from pathlib import Path
 from loguru import logger
 import sys
 
@@ -33,11 +34,32 @@ def collect():
 
 
 @cli.command()
-@click.option("-n", "--num_episodes", required=True, type=int)
-def collect_teacher_examples(num_episodes: int):
+@click.option(
+    "-n",
+    "--num_episodes",
+    required=True,
+    type=int,
+)
+@click.option(
+    "-d",
+    "--directory",
+    default=".",
+    type=click.Path(
+        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
+    ),
+)
+def collect_teacher_examples(num_episodes: int, directory: str):
+    """
+    Collect examples of driving from a teacher agent.
+    """
     import intervention.run
 
-    intervention.run.collect_example_episodes(num_episodes=num_episodes)
+    data_path = Path(directory)
+    data_path.mkdir(parents=True, exist_ok=True)
+
+    intervention.run.collect_example_episodes(
+        data_path=data_path, num_episodes=num_episodes
+    )
 
 
 if __name__ == "__main__":
