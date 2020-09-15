@@ -1,6 +1,8 @@
 from typing import Any, Optional, Tuple, Dict, List, TextIO
 import dataclasses
 
+import dataclass_csv
+
 import multiprocessing
 
 import os
@@ -8,7 +10,7 @@ import abc
 import itertools
 import zipfile
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import csv
 import numpy as np
@@ -410,10 +412,15 @@ def manual() -> None:
 
 
 @dataclasses.dataclass
+@dataclass_csv.dateformat("%Y-%m-%dT%H:%M:%S.%f%z")
 class EpisodeSummary:
     uuid: str = ""
-    collection_start_datetime: datetime = dataclasses.field(default_factory=datetime.now)
-    collection_end_datetime: datetime = dataclasses.field(default_factory=datetime.now)
+    collection_start_datetime: datetime = dataclasses.field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    collection_end_datetime: datetime = dataclasses.field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     terminated: bool = False
     success: bool = False
     collisions: int = 0
@@ -422,13 +429,15 @@ class EpisodeSummary:
     ticks: int = 0
 
     def set_end_datetime(self):
-        self.collection_end_datetime = datetime.now()
+        self.collection_end_datetime = datetime.now(timezone.utc)
 
     def as_csv_writeable_dict(self):
         values = self.__dict__
         for (key, value) in values.items():
             if isinstance(value, bool):
                 values[key] = int(value)
+            elif isinstance(value, datetime):
+                values[key] = value.isoformat()
         return values
 
 
