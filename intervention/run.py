@@ -518,6 +518,13 @@ def process_wrapper(target, *args, **kwargs):
     return queue.get()
 
 
+def collect_example_episode(episode_dir: Path) -> EpisodeSummary:
+    with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
+        with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
+            store = ZipStore(zip_archive, csv_file)
+            return run_example_episode(store)
+
+
 def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
     episode_summaries_path = data_path / "episodes.csv"
     file_exists = os.path.isfile(episode_summaries_path)
@@ -529,23 +536,17 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
             episode_summaries_writer.writeheader()
 
         for episode in range(num_episodes):
-            logger.info(f"Collecting episode {episode+1}/{num_episodes}.")
             episode_id = uuid.uuid4()
+            logger.info(f"Collecting episode {episode+1}/{num_episodes}: {episode_id}.")
             episode_dir = data_path / str(episode_id)
             episode_dir.mkdir(parents=True, exist_ok=False)
-            # try:
-            with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
-                with open(
-                    episode_dir / "episode.csv", mode="w", newline=""
-                ) as csv_file:
-                    store = ZipStore(zip_archive, csv_file)
 
-                    # Run in process to circumvent Carla bug
-                    episode_summary = process_wrapper(run_example_episode, store)
-                    episode_summary.uuid = episode_id
-                    episode_summaries_writer.writerow(
-                        episode_summary.as_csv_writeable_dict()
-                    )
+            # Run in process to circumvent Carla bug
+            episode_summary = process_wrapper(collect_example_episode, episode_dir)
+            episode_summary.uuid = episode_id
+            episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
+
+            # try:
             # except (exceptions.EpisodeStuck, exceptions.CollisionInEpisode) as exception:
             #     logger.info(f"Removing episode because of episode exception: {exception}.")
             #     (episode_dir / "images.zip").unlink()
