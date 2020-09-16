@@ -23,3 +23,4 @@ opencv-python~=4.2.0
 # tqdm==4.45.0
 loguru~=0.4.1
 click~=7.0
+dataclass-csv~=0.1
