@@ -1,6 +1,6 @@
 import sys
 
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Any
 
 from pathlib import Path
 from zipfile import ZipFile
@@ -38,6 +38,35 @@ class DatapointMeta(TypedDict):
     current_location: Location
     next_locations: List[Location]
 
+    @staticmethod
+    def from_dictionaries(dictionaries: List[Any]) -> List["DatapointMeta"]:
+        datapoints = []
+        for (idx, dictionary) in enumerate(dictionaries[:-LOCATIONS_NUM_STEPS]):
+            meta = DatapointMeta(
+                current_orientation=Orientation(
+                    orientation_x=float(dictionary["orientation_x"]),
+                    orientation_y=float(dictionary["orientation_y"]),
+                    orientation_z=float(dictionary["orientation_z"]),
+                ),
+                current_location=Location(
+                    x=float(dictionary["location_x"]),
+                    y=float(dictionary["location_y"]),
+                    z=float(dictionary["location_z"]),
+                ),
+                next_locations=list(
+                    map(
+                        lambda loc: Location(
+                            x=float(dictionary["location_x"]),
+                            y=float(dictionary["location_y"]),
+                            z=float(dictionary["location_z"]),
+                        ),
+                        dictionaries[idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS],
+                    )
+                ),
+            )
+            datapoints.append(meta)
+        return datapoints
+
 
 class OffPolicyDataset(torch.utils.data.Dataset):
     def __init__(self, data_directory: Path, episodes: List[str]):
@@ -54,31 +83,10 @@ class OffPolicyDataset(torch.utils.data.Dataset):
             with open(data_directory / episode / "episode.csv") as csv_file:
                 csv_reader = DictReader(csv_file)
                 rows = list(csv_reader)
-                for (idx, row) in enumerate(rows[:-LOCATIONS_NUM_STEPS]):
-                    self._index_map.append((episode, idx))
-                    meta = DatapointMeta(
-                        current_orientation=Orientation(
-                            orientation_x=float(row["orientation_x"]),
-                            orientation_y=float(row["orientation_y"]),
-                            orientation_z=float(row["orientation_z"]),
-                        ),
-                        current_location=Location(
-                            x=float(row["location_x"]),
-                            y=float(row["location_y"]),
-                            z=float(row["location_z"]),
-                        ),
-                        next_locations=list(
-                            map(
-                                lambda row: Location(
-                                    x=float(row["location_x"]),
-                                    y=float(row["location_y"]),
-                                    z=float(row["location_z"]),
-                                ),
-                                rows[idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS],
-                            )
-                        ),
-                    )
-                    self._episodes[episode].append(meta)
+                self._episodes[episode] = DatapointMeta.from_dictionaries(rows)
+                self._index_map.extend(
+                    [(episode, idx) for idx in range(len(rows) - LOCATIONS_NUM_STEPS)]
+                )
 
     def __len__(self):
         return len(self._index_map)
