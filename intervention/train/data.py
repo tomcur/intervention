@@ -53,16 +53,16 @@ class DatapointMeta(TypedDict):
                     y=float(dictionary["location_y"]),
                     z=float(dictionary["location_z"]),
                 ),
-                next_locations=list(
-                    map(
-                        lambda loc: Location(
-                            x=float(dictionary["location_x"]),
-                            y=float(dictionary["location_y"]),
-                            z=float(dictionary["location_z"]),
-                        ),
-                        dictionaries[idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS],
+                next_locations=[
+                    Location(
+                        x=float(subsequent_dictionary["location_x"]),
+                        y=float(subsequent_dictionary["location_y"]),
+                        z=float(subsequent_dictionary["location_z"]),
                     )
-                ),
+                    for subsequent_dictionary in dictionaries[
+                        idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS
+                    ]
+                ],
             )
             datapoints.append(meta)
         return datapoints
