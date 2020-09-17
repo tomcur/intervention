@@ -501,7 +501,8 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
     file_exists = os.path.isfile(episode_summaries_path)
     with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
         episode_summaries_writer = csv.DictWriter(
-            episode_summaries, fieldnames=data.EpisodeSummary.__dataclass_fields__.keys()
+            episode_summaries,
+            fieldnames=data.EpisodeSummary.__dataclass_fields__.keys(),
         )
         if not file_exists:
             episode_summaries_writer.writeheader()
