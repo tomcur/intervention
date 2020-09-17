@@ -233,6 +233,7 @@ class ZipStore(Store):
             csv_file,
             fieldnames=[
                 "tick",
+                "command",
                 "controller",
                 "rgb_filename",
                 "time_to_intervention",
@@ -276,6 +277,7 @@ class ZipStore(Store):
         self._csv_writer.writerow(
             {
                 "tick": step,
+                "command": state.command,
                 "controller": "teacher",
                 "rgb_filename": rgb_filename,
                 "time_to_intervention": None,
@@ -306,6 +308,7 @@ class ZipStore(Store):
             self._csv_writer.writerow(
                 {
                     "tick": step,
+                    "command": state.command,
                     "controller": "student",
                     "rgb_filename": rgb_filename,
                     "time_to_intervention": self._intervention_step - step,
