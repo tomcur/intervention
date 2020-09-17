@@ -11,3 +11,10 @@ def carla_image_to_np(carla_img: carla.Image) -> np.ndarray:
     img = img[:, :, ::-1]
 
     return img
+
+
+def buffer_to_np(
+    buf: bytes, image_width: int = 384, image_height: int = 160,
+) -> np.ndarray:
+    img = np.frombuffer(buf, dtype=np.dtype(np.uint8))
+    img = np.reshape(img, (image_height, image_width, 3))
