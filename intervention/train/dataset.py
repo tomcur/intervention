@@ -11,8 +11,10 @@ from loguru import logger
 from dataclass_csv import DataclassReader
 import numpy as np
 import torch
+import torchvision
 
 from ..data import EpisodeSummary
+from ..utils import image
 from .. import coordinates
 
 if sys.version_info >= (3, 8):
@@ -103,6 +105,15 @@ class OffPolicyDataset(torch.utils.data.Dataset):
         self._episodes: Dict[str, List[DatapointMeta]] = {}
         self._zip_files: Dict[str, ZipFile] = {}
 
+        self._transforms = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+
         for episode in episodes:
             self._episodes[episode] = []
             self._zip_files[episode] = ZipFile(
@@ -122,7 +133,10 @@ class OffPolicyDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         episode, episode_idx = self._index_map[idx]
-        return self._episodes[episode][episode_idx]
+        episode_meta = self._episodes[episode][episode_idx]
+        episode_img_bytes = self._zip_files[episode].read(episode_meta["rgb_filename"])
+        episode_img = image.buffer_to_np(episode_img_bytes)
+        return self._transforms(episode_img), episode_meta
 
     def __del__(self):
         for zip_file in self._zip_files.values():
