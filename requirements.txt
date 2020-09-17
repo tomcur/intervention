@@ -8,6 +8,7 @@ torchvision~=0.6.1
 pid_controller~=0.2.0
 
 git+https://github.com/numpy/numpy-stubs.git@c49d2d6875971a669a166ea93ef998911af283a1#egg=numpy-stubs
+typing-extensions~=3.7
 scipy~=1.4
 scikit-image~=0.15
 numpy~=1.19
