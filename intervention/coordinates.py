@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 import cv2
 
@@ -69,7 +71,7 @@ def world_coordinate_to_image_coordinate(
     image_width: int = 384,
     image_height: int = 160,
     forward_offset: float = 4.8,
-):
+) -> Tuple[float, float]:
     """
     Get the egocentric (forward-viewing) coordinate of a world location relative to the a
     current location and orientation.
