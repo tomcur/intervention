@@ -13,6 +13,7 @@ import numpy as np
 import torch
 
 from ..data import EpisodeSummary
+from .. import coordinates
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -35,9 +36,13 @@ class Orientation(TypedDict):
 
 
 class DatapointMeta(TypedDict):
+    rgb_filename: str
+    command: int
+    speed: float
     current_orientation: Orientation
     current_location: Location
     next_locations: List[Location]
+    next_locations_image_coordinates: List[Any]
 
 
 def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointMeta]:
@@ -67,10 +72,26 @@ def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointM
             ]
         ]
 
+        next_locations_image_coordinates = [
+            coordinates.world_coordinate_to_image_coordinate(
+                location_x=location["x"],
+                location_y=location["y"],
+                current_location_x=current_location["x"],
+                current_location_y=current_location["y"],
+                current_forward_x=current_orientation["x"],
+                current_forward_y=current_orientation["y"],
+            )
+            for location in next_locations
+        ]
+
         meta = DatapointMeta(
+            rgb_filename=dictionary["rgb_filename"],
+            command=int(dictionary["command"])
+            speed=float(dictionary["speed"]),
             current_orientation=current_orientation,
             current_location=current_location,
             next_locations=next_locations,
+            next_locations_image_coordinates=np.array(next_locations_image_coordinates),
         )
         datapoints.append(meta)
     return datapoints
