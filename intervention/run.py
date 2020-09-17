@@ -1,7 +1,4 @@
 from typing import Any, Optional, Tuple, Dict, List, TextIO
-import dataclasses
-
-import dataclass_csv
 
 import multiprocessing
 
@@ -20,6 +17,7 @@ import carla
 
 from .carla_utils import connect, TickState
 from . import visualization, exceptions
+from . import data
 
 from .learning_by_cheating import image
 from .learning_by_cheating import birdview
@@ -411,42 +409,12 @@ def manual() -> None:
     run_manual()
 
 
-@dataclasses.dataclass
-@dataclass_csv.dateformat("%Y-%m-%dT%H:%M:%S.%f%z")
-class EpisodeSummary:
-    uuid: str = ""
-    collection_start_datetime: datetime = dataclasses.field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    collection_end_datetime: datetime = dataclasses.field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    terminated: bool = False
-    success: bool = False
-    collisions: int = 0
-    distance_travelled: float = 0.0
-    interventions: int = 0
-    ticks: int = 0
-
-    def set_end_datetime(self):
-        self.collection_end_datetime = datetime.now(timezone.utc)
-
-    def as_csv_writeable_dict(self):
-        values = self.__dict__
-        for (key, value) in values.items():
-            if isinstance(value, bool):
-                values[key] = int(value)
-            elif isinstance(value, datetime):
-                values[key] = value.isoformat()
-        return values
-
-
-def run_example_episode(store: Store) -> EpisodeSummary:
+def run_example_episode(store: Store) -> data.EpisodeSummary:
     """
     param store: the store for the episode information.
     """
     visualizer = visualization.Visualizer()
-    summary = EpisodeSummary()
+    summary = data.EpisodeSummary()
 
     managed_episode = connect()
     with managed_episode as episode:
@@ -518,7 +486,7 @@ def process_wrapper(target, *args, **kwargs):
     return queue.get()
 
 
-def collect_example_episode(episode_dir: Path) -> EpisodeSummary:
+def collect_example_episode(episode_dir: Path) -> data.EpisodeSummary:
     with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
@@ -530,7 +498,7 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
     file_exists = os.path.isfile(episode_summaries_path)
     with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
         episode_summaries_writer = csv.DictWriter(
-            episode_summaries, fieldnames=EpisodeSummary.__dataclass_fields__.keys()
+            episode_summaries, fieldnames=data.EpisodeSummary.__dataclass_fields__.keys()
         )
         if not file_exists:
             episode_summaries_writer.writeheader()

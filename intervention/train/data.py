@@ -11,7 +11,7 @@ from dataclass_csv import DataclassReader
 import numpy as np
 import torch
 
-from ..run import EpisodeSummary
+from .. import data
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -103,7 +103,7 @@ class OffPolicyDataset(torch.utils.data.Dataset):
 def off_policy_data(data_directory) -> OffPolicyDataset:
     with open(data_directory / "episodes.csv") as episode_summaries_file:
         episode_summaries_reader = DataclassReader(
-            episode_summaries_file, EpisodeSummary
+            episode_summaries_file, data.EpisodeSummary
         )
         episode_summaries = list(episode_summaries_reader)
 
