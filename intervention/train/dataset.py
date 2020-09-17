@@ -29,9 +29,9 @@ class Location(TypedDict):
 
 
 class Orientation(TypedDict):
-    orientation_x: float
-    orientation_y: float
-    orientation_z: float
+    x: float
+    y: float
+    z: float
 
 
 class DatapointMeta(TypedDict):
@@ -43,27 +43,34 @@ class DatapointMeta(TypedDict):
 def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointMeta]:
     datapoints = []
     for (idx, dictionary) in enumerate(dictionaries[:-LOCATIONS_NUM_STEPS]):
+
+        current_orientation = Orientation(
+            x=float(dictionary["orientation_x"]),
+            y=float(dictionary["orientation_y"]),
+            z=float(dictionary["orientation_z"]),
+        )
+
+        current_location = Location(
+            x=float(dictionary["location_x"]),
+            y=float(dictionary["location_y"]),
+            z=float(dictionary["location_z"]),
+        )
+
+        next_locations = [
+            Location(
+                x=float(subsequent_dictionary["location_x"]),
+                y=float(subsequent_dictionary["location_y"]),
+                z=float(subsequent_dictionary["location_z"]),
+            )
+            for subsequent_dictionary in dictionaries[
+                idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS
+            ]
+        ]
+
         meta = DatapointMeta(
-            current_orientation=Orientation(
-                orientation_x=float(dictionary["orientation_x"]),
-                orientation_y=float(dictionary["orientation_y"]),
-                orientation_z=float(dictionary["orientation_z"]),
-            ),
-            current_location=Location(
-                x=float(dictionary["location_x"]),
-                y=float(dictionary["location_y"]),
-                z=float(dictionary["location_z"]),
-            ),
-            next_locations=[
-                Location(
-                    x=float(subsequent_dictionary["location_x"]),
-                    y=float(subsequent_dictionary["location_y"]),
-                    z=float(subsequent_dictionary["location_z"]),
-                )
-                for subsequent_dictionary in dictionaries[
-                    idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS
-                ]
-            ],
+            current_orientation=current_orientation,
+            current_location=current_location,
+            next_locations=next_locations,
         )
         datapoints.append(meta)
     return datapoints
