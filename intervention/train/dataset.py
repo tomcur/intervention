@@ -5,13 +5,14 @@ from typing import Tuple, List, Dict, Any
 from pathlib import Path
 from zipfile import ZipFile
 from csv import DictReader
-from loguru import logger
-from dataclass_csv import DataclassReader
 
+from loguru import logger
+
+from dataclass_csv import DataclassReader
 import numpy as np
 import torch
 
-from .. import data
+from ..data import EpisodeSummary
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -38,34 +39,34 @@ class DatapointMeta(TypedDict):
     current_location: Location
     next_locations: List[Location]
 
-    @staticmethod
-    def from_dictionaries(dictionaries: List[Any]) -> List["DatapointMeta"]:
-        datapoints = []
-        for (idx, dictionary) in enumerate(dictionaries[:-LOCATIONS_NUM_STEPS]):
-            meta = DatapointMeta(
-                current_orientation=Orientation(
-                    orientation_x=float(dictionary["orientation_x"]),
-                    orientation_y=float(dictionary["orientation_y"]),
-                    orientation_z=float(dictionary["orientation_z"]),
-                ),
-                current_location=Location(
-                    x=float(dictionary["location_x"]),
-                    y=float(dictionary["location_y"]),
-                    z=float(dictionary["location_z"]),
-                ),
-                next_locations=[
-                    Location(
-                        x=float(subsequent_dictionary["location_x"]),
-                        y=float(subsequent_dictionary["location_y"]),
-                        z=float(subsequent_dictionary["location_z"]),
-                    )
-                    for subsequent_dictionary in dictionaries[
-                        idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS
-                    ]
-                ],
-            )
-            datapoints.append(meta)
-        return datapoints
+
+def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointMeta]:
+    datapoints = []
+    for (idx, dictionary) in enumerate(dictionaries[:-LOCATIONS_NUM_STEPS]):
+        meta = DatapointMeta(
+            current_orientation=Orientation(
+                orientation_x=float(dictionary["orientation_x"]),
+                orientation_y=float(dictionary["orientation_y"]),
+                orientation_z=float(dictionary["orientation_z"]),
+            ),
+            current_location=Location(
+                x=float(dictionary["location_x"]),
+                y=float(dictionary["location_y"]),
+                z=float(dictionary["location_z"]),
+            ),
+            next_locations=[
+                Location(
+                    x=float(subsequent_dictionary["location_x"]),
+                    y=float(subsequent_dictionary["location_y"]),
+                    z=float(subsequent_dictionary["location_z"]),
+                )
+                for subsequent_dictionary in dictionaries[
+                    idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS
+                ]
+            ],
+        )
+        datapoints.append(meta)
+    return datapoints
 
 
 class OffPolicyDataset(torch.utils.data.Dataset):
@@ -83,7 +84,7 @@ class OffPolicyDataset(torch.utils.data.Dataset):
             with open(data_directory / episode / "episode.csv") as csv_file:
                 csv_reader = DictReader(csv_file)
                 rows = list(csv_reader)
-                self._episodes[episode] = DatapointMeta.from_dictionaries(rows)
+                self._episodes[episode] = datapoint_meta_from_dictionaries(rows)
                 self._index_map.extend(
                     [(episode, idx) for idx in range(len(rows) - LOCATIONS_NUM_STEPS)]
                 )
@@ -103,7 +104,7 @@ class OffPolicyDataset(torch.utils.data.Dataset):
 def off_policy_data(data_directory) -> OffPolicyDataset:
     with open(data_directory / "episodes.csv") as episode_summaries_file:
         episode_summaries_reader = DataclassReader(
-            episode_summaries_file, data.EpisodeSummary
+            episode_summaries_file, EpisodeSummary
         )
         episode_summaries = list(episode_summaries_reader)
 
