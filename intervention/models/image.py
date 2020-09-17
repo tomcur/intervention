@@ -3,6 +3,7 @@ from torch import nn
 
 from .spatial_softargmax import SpatialSoftargmax
 
+
 class TaillessResnet34(nn.Module):
     """
     Resnet from torchvision without the average pooling, flattening, and
@@ -81,7 +82,7 @@ class Image(nn.Module):
     def forward(self, image, speed):
         resnet_out = self.resnet(image)
 
-        speed = speed.repeat((1, Image.SPEED_FEATURE_MAPS, 5, 12))
+        speed = speed[:, None, None, None].repeat((1, Image.SPEED_FEATURE_MAPS, 5, 12))
         higher_in = torch.cat((resnet_out, speed), dim=1)
 
         higher_out = self.higher(higher_in)
