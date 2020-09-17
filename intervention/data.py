@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import dataclass_csv
 
+
 @dataclasses.dataclass
 @dataclass_csv.dateformat("%Y-%m-%dT%H:%M:%S.%f%z")
 class EpisodeSummary:
