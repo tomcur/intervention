@@ -62,6 +62,37 @@ def collect_teacher_examples(num_episodes: int, directory: str):
     )
 
 
+@cli.command()
+@click.option(
+    "device_name",
+    "--device",
+    default="cuda:0",
+    type=str,
+    help=(
+        "The device to run on. "
+        "See torch's documentation on torch.device for more information."
+    ),
+)
+@click.option(
+    "-o",
+    "--output-directory",
+    default=".",
+    type=click.Path(
+        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
+    ),
+    help=("The directory to write the output checkpoints to."),
+)
+def train_test(device_name: str, output_directory: str):
+    import torch
+    import intervention.train.train
+
+    output_path = Path(output_directory)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    device = torch.device(device_name)
+    intervention.train.train.test(device, output_path)
+
+
 if __name__ == "__main__":
     logger.remove(handler_id=0)  # Remove default handler.
     logger.add(
