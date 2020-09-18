@@ -20,7 +20,11 @@ def select_branch(branches, commands):
     # shape = branches.size()
 
 
-def test(device: torch.device, batch_size=30):
+def test(
+    device: torch.device,
+    checkpoint_path: Path,
+    batch_size=30,
+):
     training_dataset = dataset.off_policy_data(Path("./test-data"))
     training_generator = torch.utils.data.DataLoader(
         training_dataset, batch_size=batch_size, shuffle=True
@@ -61,3 +65,12 @@ def test(device: torch.device, batch_size=30):
 
             logger.trace(f"Batch {batch_number+1} mean loss: {loss_mean}")
             del loss_mean
+
+        torch.save(
+            {
+                "epoch": epoch,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+            },
+            checkpoint_path / f"{epoch}.pth",
+        )
