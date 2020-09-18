@@ -88,7 +88,7 @@ def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointM
 
         meta = DatapointMeta(
             rgb_filename=dictionary["rgb_filename"],
-            command=int(dictionary["command"])
+            command=int(dictionary["command"]),
             speed=float(dictionary["speed"]),
             current_orientation=current_orientation,
             current_location=current_location,
