@@ -39,8 +39,9 @@ def collect():
 @click.option(
     "-n",
     "--num_episodes",
-    required=True,
+    default=1,
     type=int,
+    help="The number of episodes to collect. Terminated episodes also count.",
 )
 @click.option(
     "-d",
@@ -48,6 +49,11 @@ def collect():
     default=".",
     type=click.Path(
         exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
+    ),
+    help=(
+        "The directory to write the episodes to. This directory will contain a "
+        "top-level file to which summary information is written. If the file exists, "
+        "will be appended to. Per-episode data is written to their own subdirectories."
     ),
 )
 def collect_teacher_examples(num_episodes: int, directory: str):
