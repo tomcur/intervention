@@ -40,18 +40,24 @@ def test(device: torch.device):
             speed = datapoint_meta["speed"].float().to(device)
 
             all_branch_predictions = model.forward(rgb_image, speed)
+            del rgb_image, speed
 
             pred_locations = select_branch(
                 all_branch_predictions, datapoint_meta["command"]
             )
+            del all_branch_predictions
 
             locations = datapoint_meta["next_locations_image_coordinates"].to(device)
             locations = locations / (0.5 * img_size) - 1
             loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
+            del pred_locations, locations
+
             loss_mean = loss.mean()
+            del loss
 
             optimizer.zero_grad()
             loss_mean.backward()
             optimizer.step()
 
             logger.trace(f"Batch {batch_number+1} mean loss: {loss_mean}")
+            del loss_mean
