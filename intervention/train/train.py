@@ -12,7 +12,7 @@ TRAIN_EPOCHS: int = 5
 
 def select_branch(branches, commands):
     size = branches[0].size()
-    result = torch.zeros(size[0], size[1], size[2])
+    result = torch.zeros(*size, device=branches[0].device)
     for (idx, command) in enumerate(commands):
         # commands are 1-based (valid values 1, 2, 3, 4)
         result[idx, :] += branches[command - 1][idx, :]
