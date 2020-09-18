@@ -52,7 +52,9 @@ def test(
     for epoch in range(initial_epoch, initial_epoch + TRAIN_EPOCHS):
         out_path = output_checkpoint_path / f"{epoch}.pth"
         if out_path.exists():
-            raise Exception(f"Output checkpoint for Epoch {epoch} already exists.")
+            raise Exception(
+                f"Output checkpoint for Epoch {epoch} already exists: {out_path}."
+            )
 
         num_batches = len(training_generator)
         logger.info(
@@ -85,8 +87,8 @@ def test(
             optimizer.step()
 
             logger.trace(
-                f"Finished Batch {batch_number} ({batch_number}/{num_batches}). "
-                f"Mean loss: {loss_mean}"
+                f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
+                f"Mean loss: {loss_mean}."
             )
             del loss_mean
 
@@ -98,4 +100,4 @@ def test(
             },
             out_path,
         )
-        logger.info("Saved Epoch {epoch} checkpoint to {out_path}.")
+        logger.info(f"Saved Epoch {epoch} checkpoint to {out_path}.")
