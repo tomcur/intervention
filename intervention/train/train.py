@@ -28,7 +28,7 @@ def test():
 
     model = Image()
 
-    img_size = torch.FloatTensor([384, 160])
+    img_size = torch.tensor([384, 160])
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     for epoch in range(TRAIN_EPOCHS):
