@@ -20,10 +20,10 @@ def select_branch(branches, commands):
     # shape = branches.size()
 
 
-def test(device: torch.device):
+def test(device: torch.device, batch_size=30):
     training_dataset = dataset.off_policy_data(Path("./test-data"))
     training_generator = torch.utils.data.DataLoader(
-        training_dataset, batch_size=50, shuffle=True
+        training_dataset, batch_size=batch_size, shuffle=True
     )
 
     model = Image().to(device)
