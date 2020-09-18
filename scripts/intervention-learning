@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Intervention learning entrypoints."""
 
+from typing import Optional
+
 import click
 from pathlib import Path
 from loguru import logger
@@ -82,15 +84,28 @@ def collect_teacher_examples(num_episodes: int, directory: str):
     ),
     help=("The directory to write the output checkpoints to."),
 )
-def train_test(device_name: str, output_directory: str):
+@click.option(
+    "-i",
+    "--initial-checkpoint",
+    required=False,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+    help=("The checkpoint to resume training from."),
+)
+def train_test(
+    device_name: str, output_directory: str, initial_checkpoint: Optional[str]
+):
     import torch
     import intervention.train.train
 
     output_path = Path(output_directory)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    initial_checkpoint_path = Path(initial_checkpoint) if initial_checkpoint else None
+
     device = torch.device(device_name)
-    intervention.train.train.test(device, output_path)
+    intervention.train.train.test(
+        device, output_path, initial_checkpoint_path=initial_checkpoint_path
+    )
 
 
 if __name__ == "__main__":
