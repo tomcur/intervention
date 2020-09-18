@@ -56,7 +56,9 @@ def test(
             raise Exception(f"Output checkpoint for Epoch {epoch} already exists.")
 
         num_batches = len(training_generator)
-        logger.info(f"Performing Epoch {epoch} ({epoch+1}/{TRAIN_EPOCHS}).")
+        logger.info(
+            f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{TRAIN_EPOCHS})."
+        )
         for (batch_number, (rgb_image, datapoint_meta)) in enumerate(
             training_generator
         ):
