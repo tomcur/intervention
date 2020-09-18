@@ -19,7 +19,6 @@ def select_branch(branches, commands):
         # commands are 1-based (valid values 1, 2, 3, 4)
         result[idx, :] += branches[command - 1][idx, :]
     return result
-    # shape = branches.size()
 
 
 def test(
