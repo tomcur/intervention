@@ -1,7 +1,10 @@
 import torch
 from torch import nn
+import torchvision
+import numpy as np
 
 from .spatial_softargmax import SpatialSoftargmax
+from .. import coordinates
 
 
 class TaillessResnet34(nn.Module):
@@ -93,3 +96,41 @@ class Image(nn.Module):
         ]
 
         return location_predictions
+
+
+class Agent:
+    def __init__(self, model: nn.Module):
+        self._transforms = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+        self._model = model
+
+        self._img_size = torch.tensor([384, 160])
+
+    def step(self, state) -> np.ndarray:
+        """
+        Send the state through the underlying model, and return its output
+        as predicted world coordinate waypoints.
+        """
+        image = torch.unsqueeze(self._transforms(state.rgb.copy()), 0)
+        speed = torch.tensor([state.speed]).float()
+        with torch.no_grad():
+            out = self._model.forward(image, speed)
+
+        command_out = out[state.command - 1][0, ...]
+        locations = (command_out + 1) * 0.5 * self._img_size
+
+        targets = np.zeros((5, 2))
+
+        for idx, [image_x, image_y] in enumerate(locations.tolist()):
+            ego_x, ego_y = coordinates.image_coordinate_to_ego_coordinate(
+                image_x, image_y
+            )
+            targets[idx] = [ego_x, ego_y]
+
+        return targets
