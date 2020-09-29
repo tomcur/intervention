@@ -111,7 +111,7 @@ class PidController:
 
 
 class VehicleController:
-    def __init__(self, waypoint_step_gap: int = 1, unit_time_per_step: float = 0.1):
+    def __init__(self, waypoint_step_gap: int = 5, unit_time_per_step: float = 0.1):
         self._waypoint_step_gap = waypoint_step_gap
         self._dt = unit_time_per_step
 
