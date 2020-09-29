@@ -23,6 +23,7 @@ else:
     from typing_extensions import TypedDict
 
 LOCATIONS_NUM_STEPS: int = 5
+LOCATIONS_STEP_INTERVAL: int = 5
 
 
 class Location(TypedDict):
@@ -49,7 +50,9 @@ class DatapointMeta(TypedDict):
 
 def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointMeta]:
     datapoints = []
-    for (idx, dictionary) in enumerate(dictionaries[:-LOCATIONS_NUM_STEPS]):
+    for (idx, dictionary) in enumerate(
+        dictionaries[: -LOCATIONS_NUM_STEPS * LOCATIONS_STEP_INTERVAL]
+    ):
 
         current_orientation = Orientation(
             x=float(dictionary["orientation_x"]),
@@ -70,9 +73,12 @@ def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointM
                 z=float(subsequent_dictionary["location_z"]),
             )
             for subsequent_dictionary in dictionaries[
-                idx + 1 : idx + 1 + LOCATIONS_NUM_STEPS
+                (idx + LOCATIONS_STEP_INTERVAL) : (
+                    idx + LOCATIONS_NUM_STEPS * LOCATIONS_STEP_INTERVAL + 1
+                ) : LOCATIONS_STEP_INTERVAL
             ]
         ]
+        assert len(next_locations) == LOCATIONS_NUM_STEPS
 
         next_locations_image_coordinates = [
             coordinates.world_coordinate_to_image_coordinate(
