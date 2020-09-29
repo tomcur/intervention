@@ -73,7 +73,7 @@ def world_coordinate_to_image_coordinate(
     forward_offset: float = 4.8,
 ) -> Tuple[float, float]:
     """
-    Get the egocentric (forward-viewing) coordinate of a world location relative to the a
+    Get the egocentric (forward-viewing) coordinate of a world location relative to the
     current location and orientation.
 
     :param location_x: The x-component of a world location.
@@ -90,6 +90,9 @@ def world_coordinate_to_image_coordinate(
     :param forward_offset: Relative locations close to 0 are projected outside the
     camera field of view. This constant offset places such locations close to the bottom
     of the frame.
+    :return: A tuple of the egocentric image X and Y coordinates (points are the 2D
+    projected points where rays shot from the point camera intersect with the ground
+    plane).
     """
     dx = location_x - current_location_x
     dy = location_y - current_location_y
@@ -141,6 +144,8 @@ def image_coordinate_to_ego_coordinate(
     :param image_height: The image height in pixels.
     :param forward_offset: The constant offset used when projecting using
     `world_coordinate_to_image_coordinate`.
+    :return: A tuple of the egocentric world X and Y coordinates (X is lateral, Y is
+    longitudinal).
     """
     central_x = image_width / 2.0
     central_y = image_height / 2.0
