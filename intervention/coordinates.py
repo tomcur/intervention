@@ -70,7 +70,7 @@ def world_coordinate_to_image_coordinate(
     fov: float = 90.0,
     image_width: int = 384,
     image_height: int = 160,
-    forward_offset: float = 4.8,
+    forward_offset: float = 5.4,
 ) -> Tuple[float, float]:
     """
     Get the egocentric (forward-viewing) coordinate of a world location relative to the
@@ -98,7 +98,12 @@ def world_coordinate_to_image_coordinate(
     dy = location_y - current_location_y
 
     x = -current_forward_y * dx + current_forward_x * dy
-    y = current_forward_y * dy + current_forward_x * dx + 4.8
+    y = (
+        current_forward_y * dy
+        + current_forward_x * dx
+        + forward_offset
+        - CAMERA_FORWARD_OFFSET
+    )
 
     xyz = np.array([x, CAMERA_Z_OFFSET, y])
 
@@ -130,7 +135,7 @@ def image_coordinate_to_ego_coordinate(
     fov: float = 90.0,
     image_width: int = 384,
     image_height: int = 160,
-    forward_offset: float = 4.8,
+    forward_offset: float = 5.4,
 ):
     """
     Project from image coordinates to world coordinates. This projection assumes the
@@ -159,4 +164,4 @@ def image_coordinate_to_ego_coordinate(
     world_y = CAMERA_Z_OFFSET / y
     world_x = world_y * x
 
-    return world_x, world_y - forward_offset
+    return world_x, world_y - forward_offset + CAMERA_FORWARD_OFFSET
