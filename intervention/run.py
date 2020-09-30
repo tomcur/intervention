@@ -219,6 +219,8 @@ class BlackHoleStore(Store):
 class ZipStore(Store):
     """Episode store backed by zip-file."""
 
+    STORE_NUM_TICKS_BEFORE_INTERVENTION = (5 * 5) + 15
+
     def __init__(self, archive: zipfile.ZipFile, csv_file: TextIO):
         self._archive = archive
         self._csv = csv
@@ -260,7 +262,7 @@ class ZipStore(Store):
     ) -> None:
         self._teacher_in_control = False
         self._recent_student_driving.append((step, control, state))
-        if len(self._recent_student_driving) > 20:
+        if len(self._recent_student_driving) > self.STORE_NUM_TICKS_BEFORE_INTERVENTION:
             self._recent_student_driving.pop(0)
 
     def push_teacher_driving(
