@@ -22,15 +22,16 @@ def select_branch(branches, commands):
 
 
 def test(
-    device: torch.device,
+    dataset_path: Path,
     output_checkpoint_path: Path,
+    device: torch.device,
     batch_size=30,
     initial_checkpoint_path: Optional[Path] = None,
 ):
-    training_dataset = dataset.off_policy_data(Path("./test-data"))
-    training_generator = torch.utils.data.DataLoader(
-        training_dataset, batch_size=batch_size, shuffle=True
-    )
+    training_dataset = dataset.off_policy_data(dataset_path)
+    training_generator = torch.utils.data.DataLoader(training_dataset,
+                                                     batch_size=batch_size,
+                                                     shuffle=True)
 
     model = Image().to(device)
     model.train()

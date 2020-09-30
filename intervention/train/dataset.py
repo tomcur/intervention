@@ -131,10 +131,7 @@ class OffPolicyDataset(torch.utils.data.Dataset):
                 rows = list(csv_reader)
                 self._episodes[episode] = datapoint_meta_from_dictionaries(rows)
                 self._index_map.extend(
-                    [
-                        (episode, idx)
-                        for idx in range(len(self._episodes[episode]))
-                    ]
+                    [(episode, idx) for idx in range(len(self._episodes[episode]))]
                 )
 
     def __len__(self):

@@ -72,14 +72,12 @@ def collect_teacher_examples(num_episodes: int, directory: str):
 
 @cli.command()
 @click.option(
-    "device_name",
-    "--device",
-    default="cuda:0",
-    type=str,
-    help=(
-        "The device to run on. "
-        "See torch's documentation on torch.device for more information."
+    "-d",
+    "--dataset-directory",
+    type=click.Path(
+        exists=True, file_okay=False, dir_okay=True, writable=False, readable=True
     ),
+    help="The directory of the dataset to train on.",
 )
 @click.option(
     "-o",
@@ -97,11 +95,26 @@ def collect_teacher_examples(num_episodes: int, directory: str):
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
     help=("The checkpoint to resume training from."),
 )
+@click.option(
+    "device_name",
+    "--device",
+    default="cuda:0",
+    type=str,
+    help=(
+        "The device to run on. "
+        "See torch's documentation on torch.device for more information."
+    ),
+)
 def train_test(
-    device_name: str, output_directory: str, initial_checkpoint: Optional[str]
+    dataset_directory: str,
+    output_directory: str,
+    initial_checkpoint: Optional[str],
+    device_name: str,
 ):
     import torch
     import intervention.train.train
+
+    dataset_path = Path(dataset_directory)
 
     output_path = Path(output_directory)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -110,7 +123,10 @@ def train_test(
 
     device = torch.device(device_name)
     intervention.train.train.test(
-        device, output_path, initial_checkpoint_path=initial_checkpoint_path
+        dataset_path,
+        output_path,
+        device,
+        initial_checkpoint_path=initial_checkpoint_path,
     )
 
 
