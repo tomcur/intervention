@@ -29,9 +29,9 @@ def test(
     initial_checkpoint_path: Optional[Path] = None,
 ):
     training_dataset = dataset.off_policy_data(dataset_path)
-    training_generator = torch.utils.data.DataLoader(training_dataset,
-                                                     batch_size=batch_size,
-                                                     shuffle=True)
+    training_generator = torch.utils.data.DataLoader(
+        training_dataset, batch_size=batch_size, shuffle=True
+    )
 
     model = Image().to(device)
     model.train()
@@ -76,7 +76,13 @@ def test(
             del all_branch_predictions
 
             locations = datapoint_meta["next_locations_image_coordinates"].to(device)
-            locations = locations / (0.5 * img_size) - 1
+            # Transform X and Y differently; we can never have a waypoint above the
+            # horizon (i.e. above the vertical middle of the camera frame).
+            locations[..., 0] = locations[..., 0] / (0.5 * img_size[0]) - 1
+            locations[..., 1] = (locations[..., 1] - img_size[1] / 2) / (
+                0.25 * img_size[1]
+            ) - 1
+
             loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
             del pred_locations, locations
 

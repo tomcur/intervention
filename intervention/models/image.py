@@ -123,7 +123,11 @@ class Agent:
             out = self._model.forward(image, speed)
 
         command_out = out[state.command - 1][0, ...]
-        locations = (command_out + 1) * 0.5 * self._img_size
+        locations = command_out + 1
+        locations[..., 0] = locations[..., 0] * 0.5 * self._img_size[0]
+        locations[..., 1] = (
+            locations[..., 1] * 0.25 * self._img_size[1]
+        ) + self._img_size[1] / 2.0
 
         targets = np.zeros((5, 2))
 
