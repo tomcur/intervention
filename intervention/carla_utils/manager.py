@@ -10,7 +10,7 @@ import carla
 
 from .agents.navigation.local_planner import LocalPlannerNew
 from .map_utils import Renderer
-from ..utils.image import carla_image_to_np
+from ..utils.carla_image import carla_image_to_np
 
 #: The number of ticks without movement after which we consider the vehicle to be stuck
 STUCK_TICKS: int = 90 * 10
