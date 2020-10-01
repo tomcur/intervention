@@ -39,7 +39,7 @@ def _least_square_circle_fit(points: np.ndarray) -> Tuple[np.ndarray, float]:
     cx += np.mean(xs)
     cy += np.mean(ys)
 
-    return np.array([cx, cy]), r
+    return np.array([cx, cy]), float(r)
 
 
 def _project_point_on_circle(
