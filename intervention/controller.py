@@ -156,8 +156,13 @@ class VehicleController:
 
         acceleration = target_speed - state.speed
 
-        throttle = self._speed_control.step(acceleration)
-        brake = self._brake_control.step(-acceleration)
+        # Hacky heuristic to allow agent to more easily come to a full stop
+        if target_speed * 60.0 * 60.0 / 1000.0 < 1.0:
+            throttle = 0.0
+            brake = self._brake_control.step(-acceleration)
+        else:
+            throttle = self._speed_control.step(acceleration)
+            brake = self._brake_control.step(-acceleration)
 
         # Calculate steering
         circle_origin, circle_radius = _least_square_circle_fit(waypoints)
