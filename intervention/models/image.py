@@ -90,12 +90,14 @@ class Image(nn.Module):
 
         higher_out = self.higher(higher_in)
 
-        location_predictions = [
-            location_prediction(higher_out)
-            for location_prediction in self.location_prediction
-        ]
+        [location_predictions, location_heatmaps] = zip(
+            *[
+                location_prediction(higher_out)
+                for location_prediction in self.location_prediction
+            ]
+        )
 
-        return location_predictions
+        return location_predictions, location_heatmaps
 
 
 class Agent:
@@ -120,9 +122,9 @@ class Agent:
         image = torch.unsqueeze(self._transforms(state.rgb.copy()), 0)
         speed = torch.tensor([state.speed]).float()
         with torch.no_grad():
-            out = self._model.forward(image, speed)
+            predictions, heatmaps = self._model.forward(image, speed)
 
-        command_out = out[state.command - 1][0, ...]
+        command_out = predictions[state.command - 1][0, ...]
         locations = command_out + 1
         locations[..., 0] = locations[..., 0] * 0.5 * self._img_size[0]
         locations[..., 1] = (

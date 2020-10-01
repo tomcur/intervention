@@ -67,7 +67,7 @@ def test(
             rgb_image = rgb_image.float().to(device)
             speed = datapoint_meta["speed"].float().to(device)
 
-            all_branch_predictions = model.forward(rgb_image, speed)
+            all_branch_predictions, *_ = model.forward(rgb_image, speed)
             del rgb_image, speed
 
             pred_locations = select_branch(
