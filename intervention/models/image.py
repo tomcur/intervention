@@ -1,9 +1,12 @@
+from typing import List, Tuple
+
 import torch
 from torch import nn
 import torchvision
 import numpy as np
 
 from .spatial_softargmax import SpatialSoftargmax
+from ..carla_utils.manager import TickState
 from .. import coordinates
 
 
@@ -82,7 +85,9 @@ class Image(nn.Module):
             ]
         )
 
-    def forward(self, image, speed):
+    def forward(
+        self, image: torch.Tensor, speed: torch.Tensor
+    ) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         resnet_out = self.resnet(image)
 
         speed = speed[:, None, None, None].repeat((1, Image.SPEED_FEATURE_MAPS, 5, 12))
@@ -114,7 +119,7 @@ class Agent:
 
         self._img_size = torch.tensor([384, 160])
 
-    def step(self, state) -> np.ndarray:
+    def step(self, state: TickState) -> np.ndarray:
         """
         Send the state through the underlying model, and return its output
         as predicted world coordinate waypoints.

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import torch
 from pathlib import Path
@@ -12,7 +12,7 @@ from . import dataset
 TRAIN_EPOCHS: int = 5
 
 
-def select_branch(branches, commands):
+def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Tensor:
     size = branches[0].size()
     result = torch.zeros(*size, device=branches[0].device)
     for (idx, command) in enumerate(commands):
@@ -25,9 +25,9 @@ def test(
     dataset_path: Path,
     output_checkpoint_path: Path,
     device: torch.device,
-    batch_size=30,
+    batch_size: int = 30,
     initial_checkpoint_path: Optional[Path] = None,
-):
+) -> None:
     training_dataset = dataset.off_policy_data(dataset_path)
     training_generator = torch.utils.data.DataLoader(
         training_dataset, batch_size=batch_size, shuffle=True
@@ -71,7 +71,7 @@ def test(
             del rgb_image, speed
 
             pred_locations = select_branch(
-                all_branch_predictions, datapoint_meta["command"]
+                all_branch_predictions, list(map(int, datapoint_meta["command"]))
             )
             del all_branch_predictions
 
