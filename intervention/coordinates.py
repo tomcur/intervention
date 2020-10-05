@@ -72,6 +72,33 @@ def world_coordinate_to_ego_coordinate(
     Get the egocentric top-down coordinate of a world location relative to the current
     location and orientation.
 
+    Carla uses Unreal Engine's left-handed coordinate system:
+
+    (up)
+    Z
+    ^
+    |
+    |
+    |
+    |-------> X (forward)
+     \
+      \
+       \
+        >
+         Y (right)
+
+    This function transforms coordinates to an egocentric, right-handed, top-down
+    coordinate system:
+
+    (forward)
+    Y
+    ^
+    |
+    |
+    |
+    |
+    |----------> X (right)
+
     :param location_x: The x-component of a world location.
     :param location_y: The y-component of a world location.
     :param current_location_x: The x-component of the current world location.
