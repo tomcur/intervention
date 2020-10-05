@@ -2,6 +2,8 @@ from enum import Enum
 import pygame
 import numpy as np
 
+from .coordinates import ego_coordinate_to_image_coordinate
+
 
 class Action(Enum):
     SWITCH_CONTROL = 1
@@ -71,7 +73,14 @@ class Visualizer:
         return surf
 
     def render(
-        self, rgb, controller, control_difference, student_control, teacher_control, s
+        self,
+        rgb,
+        controller,
+        control_difference,
+        student_control,
+        teacher_control,
+        s,
+        target_waypoints,
     ):
         """Render state of a tick.
 
@@ -91,6 +100,18 @@ class Visualizer:
         rgb = np.swapaxes(rgb, 0, 1)
         # print(rgb.shape)
         rgb_surf = pygame.pixelcopy.make_surface(rgb)
+
+        for [location_x, location_y] in target_waypoints:
+            im_location_x, im_location_y = ego_coordinate_to_image_coordinate(
+                location_x, location_y, forward_offset=0.0
+            )
+            pygame.draw.circle(
+                rgb_surf, (150, 0, 0), (int(im_location_x), int(im_location_y)), 5
+            )
+            pygame.draw.circle(
+                rgb_surf, (255, 255, 255), (int(im_location_x), int(im_location_y)), 3
+            )
+
         self._screen.blit(rgb_surf, (0, 0))
 
         controller_surf = self._font.render(
