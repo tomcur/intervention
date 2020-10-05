@@ -536,7 +536,9 @@ def collect_example_episode(episode_dir: Path) -> data.EpisodeSummary:
     with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
-            return run_example_episode(store)
+            summary = run_example_episode(store)
+            store.stop()
+            return summary
 
 
 def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
