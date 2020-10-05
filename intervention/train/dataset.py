@@ -144,7 +144,7 @@ class OffPolicyDataset(torch.utils.data.Dataset):
         episode_meta = self._episodes[episode][episode_idx]
         episode_img_bytes = self._zip_files[episode].read(episode_meta["rgb_filename"])
         episode_img = image.buffer_to_np(episode_img_bytes)
-        return self._transforms(episode_img), episode_meta
+        return self._transforms(episode_img), episode_img, episode_meta
 
     def __del__(self):
         for zip_file in self._zip_files.values():

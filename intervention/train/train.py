@@ -61,7 +61,7 @@ def test(
         logger.info(
             f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{TRAIN_EPOCHS})."
         )
-        for (batch_number, (rgb_image, datapoint_meta)) in enumerate(
+        for (batch_number, (rgb_image, _, datapoint_meta)) in enumerate(
             training_generator
         ):
             rgb_image = rgb_image.float().to(device)
