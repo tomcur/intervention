@@ -414,6 +414,47 @@ def manual() -> None:
     run_manual()
 
 
+def explore_off_policy_dataset(episode_path: Path) -> None:
+    from .train import dataset
+    from . import coordinates
+
+    visualizer = visualization.Visualizer()
+    data = dataset.off_policy_data(episode_path)
+
+    idx = 0
+    while True:
+
+        # visualizer
+        _transformed_image, image, meta = data[idx]
+
+        print(meta["current_location"])
+        print(meta["current_orientation"])
+        print(meta["next_locations"])
+        print(meta["next_locations_image_coordinates"])
+
+        next_waypoints = []
+        for [image_x, image_y] in meta["next_locations_image_coordinates"]:
+            next_waypoints.append(
+                coordinates.image_coordinate_to_ego_coordinate(image_x, image_y)
+            )
+
+        actions = visualizer.render(
+            image,
+            "teacher",
+            0,
+            carla.VehicleControl(),
+            carla.VehicleControl(),
+            None,
+            next_waypoints,
+            None,
+        )
+
+        if visualization.Action.NEXT in actions:
+            idx += 1
+        elif visualization.Action.PREVIOUS in actions:
+            idx -= 1
+
+
 def run_example_episode(store: Store) -> data.EpisodeSummary:
     """
     param store: the store for the episode information.
