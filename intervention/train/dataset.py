@@ -81,13 +81,15 @@ def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointM
         assert len(next_locations) == LOCATIONS_NUM_STEPS
 
         next_locations_image_coordinates = [
-            coordinates.world_coordinate_to_image_coordinate(
-                location_x=location["x"],
-                location_y=location["y"],
-                current_location_x=current_location["x"],
-                current_location_y=current_location["y"],
-                current_forward_x=current_orientation["x"],
-                current_forward_y=current_orientation["y"],
+            coordinates.ego_coordinate_to_image_coordinate(
+                *coordinates.world_coordinate_to_ego_coordinate(
+                    location_x=location["x"],
+                    location_y=location["y"],
+                    current_location_x=current_location["x"],
+                    current_location_y=current_location["y"],
+                    current_forward_x=current_orientation["x"],
+                    current_forward_y=current_orientation["y"],
+                )
             )
             for location in next_locations
         ]

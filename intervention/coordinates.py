@@ -60,21 +60,17 @@ def world_coordinate_to_birdview_coordinate(
     return birdview_x, birdview_y
 
 
-def world_coordinate_to_image_coordinate(
+def world_coordinate_to_ego_coordinate(
     location_x: float,
     location_y: float,
     current_location_x: float,
     current_location_y: float,
     current_forward_x: float,
     current_forward_y: float,
-    fov: float = 90.0,
-    image_width: int = 384,
-    image_height: int = 160,
-    forward_offset: float = 5.4,
 ) -> Tuple[float, float]:
     """
-    Get the egocentric (forward-viewing) coordinate of a world location relative to the
-    current location and orientation.
+    Get the egocentric top-down coordinate of a world location relative to the current
+    location and orientation.
 
     :param location_x: The x-component of a world location.
     :param location_y: The y-component of a world location.
@@ -84,6 +80,31 @@ def world_coordinate_to_image_coordinate(
     to the current orientation.
     :param current_forward_y: The y-component of the vector pointing forwards according
     to the current orientation.
+    :return: A tuple of the egocentric top-down X and Y coordinates.
+    """
+    dx = location_x - current_location_x
+    dy = location_y - current_location_y
+
+    x = current_forward_y * dx - current_forward_x * dy
+    y = current_forward_y * dy + current_forward_x * dx
+
+    return -x, y
+
+
+def ego_coordinate_to_image_coordinate(
+    egocentric_x: float,
+    egocentric_y: float,
+    fov: float = 90.0,
+    image_width: int = 384,
+    image_height: int = 160,
+    forward_offset: float = 5.4,
+) -> Tuple[float, float]:
+    """
+    Get the egocentric image (forward-viewing) coordinate of an egocentric top-down
+    coordinate.
+
+    :param egocentric_x: The x-component of an egocentric coordinate.
+    :param egocentric_y: The y-component of an egocentric coordinate.
     :param fov: The camera field-of-view.
     :param image_width: The image width in pixels.
     :param image_height: The image height in pixels.
@@ -94,18 +115,9 @@ def world_coordinate_to_image_coordinate(
     projected points where rays shot from the point camera intersect with the ground
     plane).
     """
-    dx = location_x - current_location_x
-    dy = location_y - current_location_y
+    egocentric_y += forward_offset - CAMERA_FORWARD_OFFSET
 
-    x = -current_forward_y * dx + current_forward_x * dy
-    y = (
-        current_forward_y * dy
-        + current_forward_x * dx
-        + forward_offset
-        - CAMERA_FORWARD_OFFSET
-    )
-
-    xyz = np.array([x, CAMERA_Z_OFFSET, y])
+    xyz = np.array([egocentric_x, CAMERA_Z_OFFSET, egocentric_y])
 
     rotation_vector = np.array([0.0, 0.0, 0.0])
     translation_vector = np.array([0.0, 0.0, 0.0])
@@ -124,6 +136,7 @@ def world_coordinate_to_image_coordinate(
         xyz, rotation_vector, translation_vector, camera_matrix, None,
     )
     image_xy = projected[0][0][0]
+
     return image_xy[0], image_xy[1]
 
 
@@ -148,7 +161,7 @@ def image_coordinate_to_ego_coordinate(
     :param image_width: The image width in pixels.
     :param image_height: The image height in pixels.
     :param forward_offset: The constant offset used when projecting using
-    `world_coordinate_to_image_coordinate`.
+    `ego_coordinate_to_image_coordinate`.
     :return: A tuple of the egocentric world X and Y coordinates (X is lateral, Y is
     longitudinal).
     """
