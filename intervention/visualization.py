@@ -1,6 +1,7 @@
 from enum import Enum
-import pygame
+
 import numpy as np
+import pygame
 
 from .coordinates import ego_coordinate_to_image_coordinate
 
@@ -11,6 +12,8 @@ class Action(Enum):
     BRAKE = 3
     LEFT = 4
     RIGHT = 5
+    PREVIOUS = 6
+    NEXT = 7
 
 
 class Visualizer:
@@ -157,6 +160,18 @@ class Visualizer:
             actions.append(Action.LEFT)
         if pressed[pygame.K_d]:
             actions.append(Action.RIGHT)
+
+        modifier = pygame.key.get_mods()
+
+        if pygame.K_LEFT in events:
+            actions.append(Action.PREVIOUS)
+        elif pressed[pygame.K_LEFT] and not modifier & pygame.KMOD_SHIFT:
+            actions.append(Action.PREVIOUS)
+
+        if pygame.K_RIGHT in events:
+            actions.append(Action.NEXT)
+        elif pressed[pygame.K_RIGHT] and not modifier & pygame.KMOD_SHIFT:
+            actions.append(Action.NEXT)
 
         return actions
 
