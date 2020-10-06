@@ -93,9 +93,17 @@ class PidController:
         self._previous_error = None
         self._error_integral = 0.0
 
-    def step(self, error):
-        self._error_integral *= 1.0 - self._integral_discounting
-        self._error_integral += error * self._dt
+    def step(self, error, update=True):
+        """
+        :param error: The input error
+        :param update: When False, calculates control output without affecting
+        controller state
+        :return: The control output
+        """
+        error_integral = self._error_integral
+
+        error_integral *= 1.0 - self._integral_discounting
+        error_integral += error * self._dt
 
         if self._previous_error is not None:
             derivative = (error - self._previous_error) / self._dt
@@ -106,6 +114,10 @@ class PidController:
         control += self._coef_proportional * error
         control += self._coef_integral * self._error_integral
         control += self._coef_derivative * derivative
+
+        if update:
+            self._previous_error = error
+            self._error_integral = error_integral
 
         return control
 
