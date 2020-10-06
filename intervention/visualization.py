@@ -105,7 +105,11 @@ class FramePainter:
         rgb_surf = pygame.pixelcopy.make_surface(rgb)
         self._surface.blit(rgb_surf, (FramePainter.IMAGE_X, FramePainter.IMAGE_Y))
 
-    def add_waypoints(self, waypoints: Iterable[Tuple[float, float]]) -> None:
+    def add_waypoints(
+        self,
+        waypoints: Iterable[Tuple[float, float]],
+        color: Tuple[int, int, int] = (240, 240, 240),
+    ) -> None:
         for [location_x, location_y] in waypoints:
             im_location_x, im_location_y = ego_coordinate_to_image_coordinate(
                 location_x, location_y, forward_offset=0.0
@@ -114,7 +118,7 @@ class FramePainter:
             draw_y = int(im_location_y) + FramePainter.IMAGE_Y
             pygame.draw.circle(self._surface, (150, 0, 0), (draw_x, draw_y), 5)
             pygame.draw.circle(
-                self._surface, (255, 255, 255), (draw_x, draw_y), 3,
+                self._surface, color, (draw_x, draw_y), 3,
             )
 
     def add_control(self, name: str, control: carla.VehicleControl) -> None:
