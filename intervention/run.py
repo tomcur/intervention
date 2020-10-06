@@ -384,13 +384,7 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
     idx = 0
     while True:
 
-        # visualizer
         _transformed_image, image, meta = data[idx]
-
-        print(meta["current_location"])
-        print(meta["current_orientation"])
-        print(meta["next_locations"])
-        print(meta["next_locations_image_coordinates"])
 
         next_waypoints = []
         for [image_x, image_y] in meta["next_locations_image_coordinates"]:
