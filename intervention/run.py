@@ -365,60 +365,6 @@ def run_manual() -> None:
                 break
 
 
-def run_lbc(store: Store) -> None:
-    """
-    param store: the store for the episode information.
-    """
-    visualizer = visualization.Visualizer()
-
-    managed_episode = connect()
-    with managed_episode as episode:
-        logger.debug("Creating agents.")
-        student = _prepare_student_agent()
-        teacher = _prepare_teacher_agent()
-        comparer = Comparer(student, teacher)
-
-        for step in itertools.count():
-            state = episode.tick()
-            logger.trace("command {}", state.command)
-            comparer.evaluate_and_compare(state)
-
-            if comparer.student_in_control:
-                store.push_student_driving(step, comparer.student_control, state)
-                episode.apply_control(comparer.student_control)
-            else:
-                store.push_teacher_driving(step, comparer.teacher_control, state)
-                episode.apply_control(comparer.teacher_control)
-
-            birdview_render = episode.render_birdview()
-            with visualizer as painter:
-                painter.add_rgb(state.rgb)
-                painter.add_control("student", comparer.student_control)
-                painter.add_control("teacher", comparer.teacher_control)
-                painter.add_control_difference(
-                    comparer.difference_integral, threshold=comparer.threshold
-                )
-                painter.add_birdview(birdview_render)
-
-            actions = visualizer.get_actions()
-            if visualization.Action.SWITCH_CONTROL in actions:
-                comparer.switch_control()
-
-            if state.probably_stuck:
-                raise exceptions.EpisodeStuck()
-
-            if state.collision:
-                raise exceptions.CollisionInEpisode()
-
-            if state.route_completed:
-                break
-
-
-
-def demo_lbc() -> None:
-    run_lbc(BlackHoleStore())
-
-
 def run_image_agent(store: Store) -> None:
     """
     param store: the store for the episode information.
