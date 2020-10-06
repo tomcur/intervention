@@ -1,7 +1,12 @@
+from typing import Iterable, List, Tuple, Optional
+
 from enum import Enum
+from collections import deque
 
 import numpy as np
 import pygame
+import pygame.locals as pglocals
+import carla
 
 from .coordinates import ego_coordinate_to_image_coordinate
 
@@ -16,173 +21,119 @@ class Action(Enum):
     NEXT = 7
 
 
-class Visualizer:
-    def __init__(self):
-        pygame.init()
-        size = (round(640 * 16 / 9), 640)
-        # self._screen = pygame.display.set_mode(size, 0, 32)
-        self._screen = pygame.display.set_mode(size, 0, 32)
-        self._surface = pygame.Surface(size)
+def _render_control(control: carla.VehicleControl, font: pygame.font.Font):
+    BAR_WIDTH = 100
+    BAR_HEIGHT = 20
 
-        pygame.font.init()
-        self._font = pygame.font.SysFont("monospace", 16)
+    surf = pygame.Surface((200, 80))
+    text_surf = pygame.Surface((100, 80))
+    t = font.render("throttle:", True, (220, 220, 220))
+    text_surf.blit(t, (0, 2))
+    t = font.render("brake:", True, (220, 220, 220))
+    text_surf.blit(t, (0, 32))
+    t = font.render("steering:", True, (220, 220, 220))
+    text_surf.blit(t, (0, 62))
 
-    def _render_control(self, control):
-        from pygame import Rect, draw
+    bar_surf = pygame.Surface((100, 80))
 
-        BAR_WIDTH = 100
-        BAR_HEIGHT = 20
+    # Throttle
+    r = pygame.Rect((0, 0), (BAR_WIDTH, BAR_HEIGHT))
+    pygame.draw.rect(bar_surf, (220, 220, 220), r, 2)
 
-        surf = pygame.Surface((200, 80))
-        text_surf = pygame.Surface((100, 80))
-        t = self._font.render("throttle:", True, (220, 220, 220))
-        text_surf.blit(t, (0, 2))
-        t = self._font.render("brake:", True, (220, 220, 220))
-        text_surf.blit(t, (0, 32))
-        t = self._font.render("steering:", True, (220, 220, 220))
-        text_surf.blit(t, (0, 62))
+    r = pygame.Rect((0, 0), (round(control.throttle * BAR_WIDTH), BAR_HEIGHT))
+    pygame.draw.rect(bar_surf, (220, 220, 220), r)
 
-        bar_surf = pygame.Surface((100, 80))
+    # Brake
+    r = pygame.Rect((0, 30), (BAR_WIDTH, BAR_HEIGHT))
+    pygame.draw.rect(bar_surf, (220, 220, 220), r, 2)
 
-        # Throttle
-        r = Rect((0, 0), (BAR_WIDTH, BAR_HEIGHT))
-        draw.rect(bar_surf, (220, 220, 220), r, 2)
+    r = pygame.Rect((0, 30), (round(control.brake * BAR_WIDTH), BAR_HEIGHT))
+    pygame.draw.rect(bar_surf, (220, 220, 220), r)
 
-        r = Rect((0, 0), (round(control.throttle * BAR_WIDTH), BAR_HEIGHT))
-        draw.rect(bar_surf, (220, 220, 220), r)
+    # Steering
+    r = pygame.Rect((0, 60), (BAR_WIDTH, BAR_HEIGHT))
+    pygame.draw.rect(bar_surf, (220, 220, 220), r, 2)
 
-        # Brake
-        r = Rect((0, 30), (BAR_WIDTH, BAR_HEIGHT))
-        draw.rect(bar_surf, (220, 220, 220), r, 2)
+    scaled = round(abs(control.steer) * BAR_WIDTH)
+    if control.steer < 0:
+        r = pygame.Rect((BAR_WIDTH / 2 - scaled, 60), (scaled, BAR_HEIGHT))
+        pygame.draw.rect(bar_surf, (220, 220, 220), r)
+    else:
+        r = pygame.Rect((BAR_WIDTH / 2, 60), (scaled, BAR_HEIGHT))
+        pygame.draw.rect(bar_surf, (220, 220, 220), r)
 
-        r = Rect((0, 30), (round(control.brake * BAR_WIDTH), BAR_HEIGHT))
-        draw.rect(bar_surf, (220, 220, 220), r)
+    surf.blit(text_surf, (0, 0))
+    surf.blit(bar_surf, (100, 0))
 
-        # Steering
-        r = Rect((0, 60), (BAR_WIDTH, BAR_HEIGHT))
-        draw.rect(bar_surf, (220, 220, 220), r, 2)
+    return surf
 
-        scaled = round(abs(control.steer) * BAR_WIDTH)
-        if control.steer < 0:
-            r = Rect((BAR_WIDTH / 2 - scaled, 60), (scaled, BAR_HEIGHT))
-            draw.rect(bar_surf, (220, 220, 220), r)
-        else:
-            r = Rect((BAR_WIDTH / 2, 60), (scaled, BAR_HEIGHT))
-            draw.rect(bar_surf, (220, 220, 220), r)
 
-        surf.blit(text_surf, (0, 0))
-        surf.blit(bar_surf, (100, 0))
+class FramePainter:
+    """
+    A very bare-bones, but stateful, painter of PyGame frames.
+    """
 
-        return surf
+    IMAGE_PANEL_X = 0
+    IMAGE_PANEL_WIDTH = 450
+    IMAGE_X = 25
+    IMAGE_Y = 25
+    CONTROL_X = IMAGE_PANEL_X + IMAGE_PANEL_WIDTH
+    CONTROL_WIDTH = 200
+    CONTROL_GROUP_HEIGHT = 150
+    BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH
 
-    def render(
-        self,
-        rgb,
-        controller,
-        control_difference,
-        student_control,
-        teacher_control,
-        s,
-        target_waypoints,
+    def __init__(
+        self, size: Tuple[int, int], font: pygame.font.Font, control_difference: deque
     ):
-        """Render state of a tick.
+        self._surface = pygame.Surface(size)
+        self._font = font
 
-        Parameters:
-        rgb: The camera image.
-        controller: The current controller (student or teacher).
-        control_difference: The current (discounted) integral of control difference.
-        student_control: The current student control input.
-        teacher_control: The current teacher control input.
+        self._next_control_y = 0
 
-        Returns:
-        [Action]: a list of user-input actions
+    def add_rgb(self, rgb: np.ndarray) -> None:
         """
-
-        self._screen.fill((0, 0, 0))
-
+        Add an RGB image. You should only add it once per frame.
+        """
         rgb = np.swapaxes(rgb, 0, 1)
-        # print(rgb.shape)
         rgb_surf = pygame.pixelcopy.make_surface(rgb)
+        self._surface.blit(rgb_surf, (FramePainter.IMAGE_X, FramePainter.IMAGE_Y))
 
-        for [location_x, location_y] in target_waypoints:
+    def add_waypoints(self, waypoints: Iterable[Tuple[float, float]]) -> None:
+        for [location_x, location_y] in waypoints:
             im_location_x, im_location_y = ego_coordinate_to_image_coordinate(
                 location_x, location_y, forward_offset=0.0
             )
+            draw_x = int(im_location_x) + FramePainter.IMAGE_X
+            draw_y = int(im_location_y) + FramePainter.IMAGE_Y
+            pygame.draw.circle(self._surface, (150, 0, 0), (draw_x, draw_y), 5)
             pygame.draw.circle(
-                rgb_surf, (150, 0, 0), (int(im_location_x), int(im_location_y)), 5
-            )
-            pygame.draw.circle(
-                rgb_surf, (255, 255, 255), (int(im_location_x), int(im_location_y)), 3
+                self._surface, (255, 255, 255), (draw_x, draw_y), 3,
             )
 
-        self._screen.blit(rgb_surf, (0, 0))
-
-        controller_surf = self._font.render(
-            "controller:               %s" % controller, True, (240, 240, 240)
+    def add_control(self, name: str, control: carla.VehicleControl) -> None:
+        self._surface.blit(
+            self._font.render(name, True, (240, 240, 240)),
+            (FramePainter.CONTROL_X, self._next_control_y,),
         )
-        self._screen.blit(controller_surf, (0, 200))
-
-        control_difference_surf = self._font.render(
-            "discounted control error: %.2f" % control_difference, True, (240, 240, 240)
+        control_surf = _render_control(control, self._font)
+        self._surface.blit(
+            control_surf, (FramePainter.CONTROL_X, self._next_control_y + 25,),
         )
-        self._screen.blit(control_difference_surf, (0, 220))
 
-        self._screen.blit(
-            self._font.render("student control", True, (240, 240, 240)), (400, 0)
-        )
-        student_control_surf = self._render_control(student_control)
-        self._screen.blit(student_control_surf, (400, 20))
+        self._next_control_y += FramePainter.CONTROL_GROUP_HEIGHT
 
-        self._screen.blit(
-            self._font.render("teacher control", True, (240, 240, 240)), (400, 150)
-        )
-        teacher_control_surf = self._render_control(teacher_control)
-        self._screen.blit(teacher_control_surf, (400, 170))
+    def add_birdview(self, birdview) -> None:
+        self._surface.blit(birdview, (FramePainter.BIRDVIEW_X, 0))
 
-        # print(s)
-        # print(s.shape)
-        self._screen.blit(s, (300, 300))
-
-        pygame.display.flip()
-
-        actions = []
-        events = pygame.event.get()
-        events = [event.key for event in events if event.type == pygame.KEYDOWN]
-        if pygame.K_TAB in events:
-            actions.append(Action.SWITCH_CONTROL)
-
-        pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_w]:
-            actions.append(Action.THROTTLE)
-        if pressed[pygame.K_s]:
-            actions.append(Action.BRAKE)
-        if pressed[pygame.K_a]:
-            actions.append(Action.LEFT)
-        if pressed[pygame.K_d]:
-            actions.append(Action.RIGHT)
-
-        modifier = pygame.key.get_mods()
-
-        if pygame.K_LEFT in events:
-            actions.append(Action.PREVIOUS)
-        elif pressed[pygame.K_LEFT] and not modifier & pygame.KMOD_SHIFT:
-            actions.append(Action.PREVIOUS)
-
-        if pygame.K_RIGHT in events:
-            actions.append(Action.NEXT)
-        elif pressed[pygame.K_RIGHT] and not modifier & pygame.KMOD_SHIFT:
-            actions.append(Action.NEXT)
-
-        return actions
-
-    def render_heatmap(self, heatmaps):
-        for idx in range(5):
-            heatmap = heatmaps[0][idx].cpu().numpy()
-            scaled = ((heatmap - heatmap.min()) * (255 / heatmap.max())).astype("uint8")
-            rgb = np.stack((scaled,) * 3, axis=-1)
-            rgb = np.swapaxes(rgb, 0, 1)
-            rgb_surf = pygame.pixelcopy.make_surface(rgb)
-            self._screen.blit(rgb_surf, (0, 50 * idx))
+    def add_heatmap(self) -> None:
+        pass
+        # for idx in range(5):
+        #     heatmap = heatmaps[0][idx].cpu().numpy()
+        #     scaled = ((heatmap - heatmap.min()) * (255 / heatmap.max())).astype("uint8")
+        #     rgb = np.stack((scaled,) * 3, axis=-1)
+        #     rgb = np.swapaxes(rgb, 0, 1)
+        #     rgb_surf = pygame.pixelcopy.make_surface(rgb)
+        #     self._screen.blit(rgb_surf, (0, 50 * idx))
 
         # print(heatmap.size())
         # # import pdb
@@ -197,12 +148,76 @@ class Visualizer:
         # print(rgb)
         # rgb_surf = pygame.pixelcopy.make_surface(rgb)
         # self._screen.blit(rgb_surf, (0, 0))
+
+
+class Visualizer:
+    SIZE = (round(640 * 16 / 9), 640)
+
+    def __init__(self):
+        pygame.init()
+        self._screen = pygame.display.set_mode(
+            Visualizer.SIZE,
+            pglocals.HWSURFACE | pglocals.DOUBLEBUF | pglocals.RESIZABLE,
+            32,
+        )
+
+        self._painter: Optional[FramePainter] = None
+        self._actions: deque = deque(maxlen=50)
+
+        pygame.font.init()
+        self._font = pygame.font.SysFont("monospace", 16)
+
+    def __enter__(self) -> FramePainter:
+        self._painter = FramePainter(
+            Visualizer.SIZE, self._font, self._control_difference
+        )
+        return self._painter
+
+    def __exit__(self, exc_type, _exc_val, _exc_tb) -> None:
+        if exc_type:
+            return
+        assert self._painter is not None
+
+        self._process_events()
+
+        surf = self._painter._surface
+        self._screen.fill((0, 0, 0))
+        self._screen.blit(pygame.transform.scale(surf, self._screen.get_size()), (0, 0))
         pygame.display.flip()
 
-        actions = []
-        events = pygame.event.get()
-        events = [event.key for event in events if event.type == pygame.KEYDOWN]
-        if pygame.K_TAB in events:
-            actions.append(Action.SWITCH_CONTROL)
+        self._painter = None
 
+    def _process_events(self) -> None:
+        pygame.event.pump()
+
+        events = pygame.event.get()
+        keydown_events = [event.key for event in events if event.type == pygame.KEYDOWN]
+        if pygame.K_TAB in keydown_events:
+            self._actions.append(Action.SWITCH_CONTROL)
+
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_w]:
+            self._actions.append(Action.THROTTLE)
+        if pressed[pygame.K_s]:
+            self._actions.append(Action.BRAKE)
+        if pressed[pygame.K_a]:
+            self._actions.append(Action.LEFT)
+        if pressed[pygame.K_d]:
+            self._actions.append(Action.RIGHT)
+
+        modifier = pygame.key.get_mods()
+        if pygame.K_LEFT in events:
+            self._actions.append(Action.PREVIOUS)
+        elif pressed[pygame.K_LEFT] and not modifier & pygame.KMOD_SHIFT:
+            self._actions.append(Action.PREVIOUS)
+
+        if pygame.K_RIGHT in events:
+            self._actions.append(Action.NEXT)
+        elif pressed[pygame.K_RIGHT] and not modifier & pygame.KMOD_SHIFT:
+            self._actions.append(Action.NEXT)
+
+    def get_actions(self) -> List[Action]:
+        actions = list(self._actions)
+        self._actions.clear()
         return actions
+

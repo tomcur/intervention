@@ -356,14 +356,10 @@ def run_manual() -> None:
             episode.apply_control(control)
 
             birdview_render = episode.render_birdview()
-            actions = visualizer.render(
-                state.rgb,
-                "manual",
-                0.0,
-                control,
-                control,
-                birdview_render,
-            )
+            with visualizer as painter:
+                painter.add_rgb(state.rgb)
+                painter.add_control("manual", control)
+                painter.add_birdview(birdview_render)
 
             if state.route_completed:
                 break
@@ -395,16 +391,16 @@ def run_lbc(store: Store) -> None:
                 episode.apply_control(comparer.teacher_control)
 
             birdview_render = episode.render_birdview()
-            actions = visualizer.render(
-                state.rgb,
-                "student" if comparer.student_in_control else "teacher",
-                comparer.difference_integral,
-                comparer.student_control,
-                comparer.teacher_control,
-                birdview_render,
-                [],
-                [],
-            )
+            with visualizer as painter:
+                painter.add_rgb(state.rgb)
+                painter.add_control("student", comparer.student_control)
+                painter.add_control("teacher", comparer.teacher_control)
+                painter.add_control_difference(
+                    comparer.difference_integral, threshold=comparer.threshold
+                )
+                painter.add_birdview(birdview_render)
+
+            actions = visualizer.get_actions()
             if visualization.Action.SWITCH_CONTROL in actions:
                 comparer.switch_control()
 
@@ -449,17 +445,11 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
                 coordinates.image_coordinate_to_ego_coordinate(image_x, image_y)
             )
 
-        actions = visualizer.render(
-            image,
-            "teacher",
-            0,
-            carla.VehicleControl(),
-            carla.VehicleControl(),
-            None,
-            next_waypoints,
-            None,
-        )
+        with visualizer as painter:
+            painter.add_rgb(image)
+            painter.add_waypoints(next_waypoints)
 
+        actions = visualizer.get_actions()
         if visualization.Action.NEXT in actions:
             idx += 1
         elif visualization.Action.PREVIOUS in actions:
@@ -498,13 +488,13 @@ def run_example_episode(store: Store) -> data.EpisodeSummary:
             episode.apply_control(teacher_control)
 
             birdview_render = episode.render_birdview()
-            visualizer.render(
-                state.rgb,
-                "teacher",
-                0,
-                teacher_control,
-                teacher_control,
-                birdview_render,
+            with visualizer as painter:
+                painter.add_rgb(state.rgb)
+                painter.add_control("teacher", teacher_control)
+                painter.add_birdview(birdview_render)
+
+    summary.set_end_datetime()
+    return summary
             )
 
             if state.probably_stuck:
