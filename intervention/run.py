@@ -440,9 +440,85 @@ def run_example_episode(store: Store) -> data.EpisodeSummary:
                 painter.add_control("teacher", teacher_control)
                 painter.add_birdview(birdview_render)
 
+            if state.probably_stuck:
+                summary.terminated = True
+                break
+
+            if state.collision:
+                summary.collisions += 1
+                summary.terminated = True
+                break
+
+            if state.route_completed:
+                summary.success = True
+                break
+
     summary.set_end_datetime()
     return summary
+
+
+def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
+    """
+    param store: the store for the episode information.
+    """
+    from .models.image import Image, Agent
+
+    visualizer = visualization.Visualizer()
+    summary = data.EpisodeSummary()
+    comparer = Comparer()
+
+    managed_episode = connect()
+    with managed_episode as episode:
+        vehicle_controller = controller.VehicleController()
+
+        logger.debug("Creating student agent.")
+        student_model = Image()
+        student_agent = Agent(student_model)
+        student_checkpoint = torch.load("../checkpoints-intervention/2020-10-03/24.pth")
+        student_model.load_state_dict(student_checkpoint["model_state_dict"])
+
+        logger.debug("Creating teacher agent.")
+        teacher = _prepare_teacher_agent()
+
+        for step in itertools.count():
+            state = episode.tick()
+            summary.distance_travelled = state.distance_travelled
+            summary.ticks += 1
+
+            teacher_control, _ = teacher.run_step(
+                {
+                    "birdview": state.birdview,
+                    "velocity": np.float32(
+                        [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
+                    ),
+                    "command": state.command,
+                },
+                teaching=True,
             )
+            student_target_waypoints, _student_target_heatmap = student_agent.step(
+                state
+            )
+            student_control = vehicle_controller.step(state, student_target_waypoints)
+            comparer.evaluate_and_compare(state, teacher_control, student_control)
+
+            if comparer.student_in_control:
+                store.push_student_driving(step, student_control, state)
+                episode.apply_control(student_control)
+            else:
+                store.push_teacher_driving(step, teacher_control, state)
+                episode.apply_control(teacher_control)
+
+            with visualizer as painter:
+                painter.add_rgb(state.rgb)
+                painter.add_waypoints(student_target_waypoints)
+                painter.add_control("student", student_control)
+                painter.add_control("teacher", teacher_control)
+                painter.add_control_difference(
+                    comparer.difference_integral, threshold=comparer.threshold
+                )
+
+                birdview_render = episode.render_birdview()
+                painter.add_birdview(birdview_render)
 
             if state.probably_stuck:
                 summary.terminated = True
@@ -519,8 +595,33 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
             #     episode_dir.rmdir()
 
 
-def collect() -> None:
-    with zipfile.ZipFile("episode-x.zip", mode="w") as zip_archive:
-        with open("episode.csv", mode="w", newline="") as csv_file:
+def collect_on_policy_episode(episode_dir: Path) -> data.EpisodeSummary:
+    with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
+        with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
-            run(store)
+            summary = run_on_policy_episode(store)
+            store.stop()
+            return summary
+
+
+def collect_on_policy_episodes(data_path: Path, num_episodes: int) -> None:
+    episode_summaries_path = data_path / "episodes.csv"
+    file_exists = os.path.isfile(episode_summaries_path)
+    with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
+        episode_summaries_writer = csv.DictWriter(
+            episode_summaries,
+            fieldnames=data.EpisodeSummary.__dataclass_fields__.keys(),
+        )
+        if not file_exists:
+            episode_summaries_writer.writeheader()
+
+        for episode in range(num_episodes):
+            episode_id = uuid.uuid4()
+            logger.info(f"Collecting episode {episode+1}/{num_episodes}: {episode_id}.")
+            episode_dir = data_path / str(episode_id)
+            episode_dir.mkdir(parents=True, exist_ok=False)
+
+            # Run in process to circumvent Carla bug
+            episode_summary = process_wrapper(collect_on_policy_episode, episode_dir)
+            episode_summary.uuid = episode_id
+            episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
