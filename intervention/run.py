@@ -368,7 +368,8 @@ def run_manual() -> None:
             if state.route_completed:
                 break
 
-def run(store: Store) -> None:
+
+def run_lbc(store: Store) -> None:
     """
     param store: the store for the episode information.
     """
@@ -401,10 +402,20 @@ def run(store: Store) -> None:
                 comparer.student_control,
                 comparer.teacher_control,
                 birdview_render,
+                [],
+                [],
             )
             if visualization.Action.SWITCH_CONTROL in actions:
                 comparer.switch_control()
 
+            if state.probably_stuck:
+                raise exceptions.EpisodeStuck()
+
+            if state.collision:
+                raise exceptions.CollisionInEpisode()
+
+            if state.route_completed:
+                break
 
 def demo() -> None:
     run(BlackHoleStore())
