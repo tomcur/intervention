@@ -124,32 +124,6 @@ class Comparer:
         self.student_in_control = not self.student_in_control
 
 
-def _prepare_student_agent():
-    image_model = image.ImagePolicyModelSS(backbone="resnet34")
-    # image_model.load_state_dict(torch.load("../LearningByCheating/ckpts/image/model-10.th"))
-    image_model.load_state_dict(torch.load("./model-64.th"))
-    image_model.eval()
-    student_agent_args = {
-        "camera_args": {
-            "fixed_offset": 4.0,
-            "fov": 90,
-            "h": 160,
-            "w": 384,
-            "world_y": 1.4,
-        },
-        "pid": {
-            "1": {"Kp": 0.5, "Ki": 0.20, "Kd": 0.0},
-            "2": {"Kp": 0.7, "Ki": 0.10, "Kd": 0.0},
-            "3": {"Kp": 1.0, "Ki": 0.10, "Kd": 0.0},
-            "4": {"Kp": 1.0, "Ki": 0.50, "Kd": 0.0},
-        },
-        "steer_points": {"1": 4, "2": 3, "3": 2, "4": 2},
-        "model": image_model,
-    }
-    student_agent = image.ImageAgent(**student_agent_args)
-    return student_agent
-
-
 def _prepare_teacher_agent():
     teacher_model = birdview.BirdViewPolicyModelSS(backbone="resnet18")
     teacher_model.load_state_dict(
