@@ -87,52 +87,30 @@ def control_stable(control) -> bool:
 
 
 class Comparer:
-    def __init__(self, student, teacher):
+    def __init__(self, threshold: float = 5.0):
+        self.threshold = threshold
         self.difference_integral = 0.0
+
         self._stable_frames = 0
         self.student_in_control = False
-        self.student = student
-        self.teacher = teacher
-        self.student_control = None
-        self.teacher_control = None
 
-    def evaluate_and_compare(self, state: TickState) -> None:
-        self.student_control = self.student.run_step(
-            {
-                "rgb": state.rgb,
-                "velocity": np.float32(
-                    [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
-                ),
-                # "command": int(command),
-                "command": state.command,
-            }
-        )
-
-        self.teacher_control, _ = self.teacher.run_step(
-            {
-                "birdview": state.birdview,
-                "velocity": np.float32(
-                    [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
-                ),
-                "command": state.command,
-            },
-            teaching=True,
-        )
-
-        logger.trace(self.student_control)
-        logger.trace(self.teacher_control)
-
+    def evaluate_and_compare(
+        self,
+        state: TickState,
+        teacher_control: carla.VehicleControl,
+        student_control: carla.VehicleControl,
+    ) -> None:
         if self.student_in_control:
             self.difference_integral *= 0.9
             self.difference_integral += controls_difference(
-                state, self.teacher_control, self.student_control
+                state, teacher_control, student_control
             )
-            if self.difference_integral >= 5.0:
+            if self.difference_integral >= self.threshold:
                 logger.trace("switching to teacher control")
                 self.student_in_control = False
                 self.difference_integral = 0
         else:
-            if control_stable(self.teacher_control):
+            if control_stable(teacher_control):
                 self._stable_frames += 1
                 if self._stable_frames >= 20:
                     logger.trace("switching to student control")
