@@ -15,24 +15,10 @@ def cli():
 
 
 @cli.command()
-def demo():
-    import intervention.run
-
-    intervention.run.demo()
-
-
-@cli.command()
 def manual():
     import intervention.run
 
     intervention.run.manual()
-
-
-@cli.command()
-def collect():
-    import intervention.run
-
-    intervention.run.collect()
 
 
 @cli.command()
@@ -68,6 +54,48 @@ def collect_teacher_examples(num_episodes: int, directory: str):
     intervention.run.collect_example_episodes(
         data_path=data_path, num_episodes=num_episodes
     )
+
+
+@cli.command()
+@click.option(
+    "-n",
+    "--num_episodes",
+    default=1,
+    type=int,
+    help="The number of episodes to collect. Terminated episodes also count.",
+)
+@click.option(
+    "-d",
+    "--directory",
+    default=".",
+    type=click.Path(
+        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
+    ),
+    help=(
+        "The directory to write the episodes to. This directory will contain a "
+        "top-level file to which summary information is written. If the file exists, "
+        "will be appended to. Per-episode data is written to their own subdirectories."
+    ),
+)
+def collect_on_policy(num_episodes: int, directory: str):
+    """
+    Collect student on-policy driving with interventions from a teacher.
+    """
+    import intervention.run
+
+    data_path = Path(directory)
+    data_path.mkdir(parents=True, exist_ok=True)
+
+    intervention.run.collect_on_policy_episodes(
+        data_path=data_path, num_episodes=num_episodes
+    )
+
+
+@cli.command()
+def demo_image_agent():
+    import intervention.run
+
+    intervention.run.demo_image_agent()
 
 
 @cli.command()
