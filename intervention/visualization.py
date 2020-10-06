@@ -73,11 +73,12 @@ class FramePainter:
     A very bare-bones, but stateful, painter of PyGame frames.
     """
 
+    PADDING = 5
     IMAGE_PANEL_X = 0
     IMAGE_PANEL_WIDTH = 450
     IMAGE_X = 25
     IMAGE_Y = 25
-    CONTROL_X = IMAGE_PANEL_X + IMAGE_PANEL_WIDTH
+    CONTROL_X = IMAGE_PANEL_X + IMAGE_PANEL_WIDTH + PADDING
     CONTROL_WIDTH = 200
     CONTROL_GROUP_HEIGHT = 150
     CONTROL_FIGURE_HEIGHT = 100
@@ -85,7 +86,7 @@ class FramePainter:
     CONTROL_FIGURE_GRAPH_Y = 16 / 2
     CONTROL_FIGURE_GRAPH_HEIGHT = 100 - 16
     CONTROL_FIGURE_GRAPH_WIDTH = CONTROL_WIDTH - CONTROL_FIGURE_GRAPH_X
-    BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH
+    BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH + PADDING
 
     def __init__(
         self, size: Tuple[int, int], font: pygame.font.Font, control_difference: deque
@@ -126,7 +127,7 @@ class FramePainter:
             control_surf, (FramePainter.CONTROL_X, self._next_control_y + 25,),
         )
 
-        self._next_control_y += FramePainter.CONTROL_GROUP_HEIGHT
+        self._next_control_y += FramePainter.CONTROL_GROUP_HEIGHT + FramePainter.PADDING
 
     def add_control_difference(
         self,
@@ -218,7 +219,10 @@ class FramePainter:
             (FramePainter.CONTROL_FIGURE_GRAPH_X, FramePainter.CONTROL_FIGURE_GRAPH_Y),
         )
         self._surface.blit(surf, (FramePainter.CONTROL_X, self._next_control_y))
-        self._next_control_y += FramePainter.CONTROL_FIGURE_HEIGHT
+
+        self._next_control_y += (
+            FramePainter.CONTROL_FIGURE_HEIGHT + FramePainter.PADDING
+        )
 
     def add_birdview(self, birdview) -> None:
         self._surface.blit(birdview, (FramePainter.BIRDVIEW_X, 0))
