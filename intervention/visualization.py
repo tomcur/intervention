@@ -291,6 +291,13 @@ class Visualizer:
         pygame.event.pump()
 
         events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.VIDEORESIZE:
+                self._screen = pygame.display.set_mode(
+                    event.dict["size"],
+                    pglocals.HWSURFACE | pglocals.DOUBLEBUF | pglocals.RESIZABLE,
+                )
+
         keydown_events = [event.key for event in events if event.type == pygame.KEYDOWN]
         if pygame.K_TAB in keydown_events:
             self._actions.append(Action.SWITCH_CONTROL)
@@ -320,4 +327,3 @@ class Visualizer:
         actions = list(self._actions)
         self._actions.clear()
         return actions
-
