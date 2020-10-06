@@ -148,7 +148,9 @@ class VehicleController:
             4: 3,  # Lane follow
         }
 
-    def step(self, state: TickState, waypoints: np.ndarray) -> carla.VehicleControl:
+    def step(
+        self, state: TickState, waypoints: np.ndarray, update_pids=True
+    ) -> carla.VehicleControl:
         # Swap Y and X coordinates, and add our current position (at origin)
         # In the Learning by Cheating codebase, the following is used instead.
         # targets = [(0, 0)]
@@ -171,10 +173,10 @@ class VehicleController:
         # Hacky heuristic to allow agent to more easily come to a full stop
         if target_speed * 60.0 * 60.0 / 1000.0 < 1.0:
             throttle = 0.0
-            brake = self._brake_control.step(-acceleration)
+            brake = self._brake_control.step(-acceleration, update=update_pids)
         else:
-            throttle = self._speed_control.step(acceleration)
-            brake = self._brake_control.step(-acceleration)
+            throttle = self._speed_control.step(acceleration, update=update_pids)
+            brake = self._brake_control.step(-acceleration, update=update_pids)
 
         # Calculate steering
         circle_origin, circle_radius = _least_square_circle_fit(waypoints)
@@ -186,7 +188,7 @@ class VehicleController:
         if point[1] < 0:
             angle = -angle
 
-        steering = self._turn_control.step(angle)
+        steering = self._turn_control.step(angle, update=update_pids)
 
         throttle = np.clip(throttle, 0.0, 1.0)
         brake = np.clip(brake, 0.0, 1.0)
