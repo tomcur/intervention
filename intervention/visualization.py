@@ -80,6 +80,11 @@ class FramePainter:
     CONTROL_X = IMAGE_PANEL_X + IMAGE_PANEL_WIDTH
     CONTROL_WIDTH = 200
     CONTROL_GROUP_HEIGHT = 150
+    CONTROL_FIGURE_HEIGHT = 100
+    CONTROL_FIGURE_GRAPH_X = 16 * 4
+    CONTROL_FIGURE_GRAPH_Y = 16 / 2
+    CONTROL_FIGURE_GRAPH_HEIGHT = 100 - 16
+    CONTROL_FIGURE_GRAPH_WIDTH = CONTROL_WIDTH - CONTROL_FIGURE_GRAPH_X
     BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH
 
     def __init__(
@@ -87,6 +92,7 @@ class FramePainter:
     ):
         self._surface = pygame.Surface(size)
         self._font = font
+        self._control_difference = control_difference
 
         self._next_control_y = 0
 
@@ -121,6 +127,98 @@ class FramePainter:
         )
 
         self._next_control_y += FramePainter.CONTROL_GROUP_HEIGHT
+
+    def add_control_difference(
+        self,
+        control_difference: float,
+        max_difference: float = 10.0,
+        threshold: Optional[float] = None,
+    ) -> None:
+        """
+        Add the current control difference integral. The history of this integral is
+        kept track of over multiple frames to draw a graph.
+        """
+        self._control_difference.append(control_difference)
+
+        surf = pygame.Surface(
+            (FramePainter.CONTROL_WIDTH, FramePainter.CONTROL_FIGURE_HEIGHT)
+        )
+
+        graph_surf = pygame.Surface(
+            (
+                FramePainter.CONTROL_FIGURE_GRAPH_WIDTH,
+                FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT,
+            )
+        )
+
+        # Draw graph labels
+        for idx in range(0, 6):
+            y_label_y = idx / 5.0
+            label = self._font.render(
+                f"{y_label_y*max_difference:4.1f}", True, (220, 220, 220)
+            )
+            surf.blit(
+                label, (0, (1 - y_label_y) * (FramePainter.CONTROL_FIGURE_HEIGHT - 16))
+            )
+
+        # Draw graph outline
+        pygame.draw.lines(
+            graph_surf,
+            (240, 240, 240),
+            False,
+            [
+                (0, 0),
+                (0, FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT - 1),
+                (
+                    FramePainter.CONTROL_FIGURE_GRAPH_WIDTH - 1,
+                    FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT - 1,
+                ),
+            ],
+        )
+
+        # Draw graph raster
+        for idx in range(1, 5):
+            horizontal_raster_y = idx / 5 * FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT
+            pygame.draw.line(
+                graph_surf,
+                (160, 160, 160),
+                (0, horizontal_raster_y),
+                (FramePainter.CONTROL_FIGURE_GRAPH_WIDTH - 1, horizontal_raster_y),
+            )
+
+        if threshold is not None:
+            threshold_y = (
+                1.0 - threshold / max_difference
+            ) * FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT
+            pygame.draw.line(
+                graph_surf,
+                (200, 200, 80),
+                (0, threshold_y),
+                (FramePainter.CONTROL_FIGURE_GRAPH_WIDTH - 1, threshold_y),
+            )
+
+        # Calculate graph points
+        num = len(self._control_difference)
+        points = []
+        for (idx, diff) in enumerate(self._control_difference):
+            points.append(
+                (
+                    (idx / num * FramePainter.CONTROL_FIGURE_GRAPH_WIDTH),
+                    (1 - diff / max_difference)
+                    * FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT
+                    - 1,
+                )
+            )
+
+        if len(points) >= 2:
+            pygame.draw.lines(graph_surf, (240, 240, 240), False, points)
+
+        surf.blit(
+            graph_surf,
+            (FramePainter.CONTROL_FIGURE_GRAPH_X, FramePainter.CONTROL_FIGURE_GRAPH_Y),
+        )
+        self._surface.blit(surf, (FramePainter.CONTROL_X, self._next_control_y))
+        self._next_control_y += FramePainter.CONTROL_FIGURE_HEIGHT
 
     def add_birdview(self, birdview) -> None:
         self._surface.blit(birdview, (FramePainter.BIRDVIEW_X, 0))
@@ -163,6 +261,8 @@ class Visualizer:
 
         self._painter: Optional[FramePainter] = None
         self._actions: deque = deque(maxlen=50)
+
+        self._control_difference = deque(maxlen=100)
 
         pygame.font.init()
         self._font = pygame.font.SysFont("monospace", 16)
