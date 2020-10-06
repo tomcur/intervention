@@ -16,7 +16,7 @@ from loguru import logger
 import carla
 
 from .carla_utils import connect, TickState
-from . import visualization, exceptions
+from . import visualization, exceptions, controller
 from . import data
 
 from .learning_by_cheating import image
@@ -413,8 +413,63 @@ def run_lbc(store: Store) -> None:
             if state.route_completed:
                 break
 
-def demo() -> None:
-    run(BlackHoleStore())
+
+
+def demo_lbc() -> None:
+    run_lbc(BlackHoleStore())
+
+
+def run_image_agent(store: Store) -> None:
+    """
+    param store: the store for the episode information.
+    """
+    from .models.image import Image, Agent
+
+    visualizer = visualization.Visualizer()
+
+    managed_episode = connect()
+    with managed_episode as episode:
+        logger.debug("Creating agent.")
+        model = Image()
+        agent = Agent(model)
+        vehicle_controller = controller.VehicleController()
+        checkpoint = torch.load("../checkpoints-intervention/2020-10-03/24.pth")
+        model.load_state_dict(checkpoint["model_state_dict"])
+
+        for step in itertools.count():
+            state = episode.tick()
+
+            logger.trace("command {}", state.command)
+            logger.trace("distance travelled {}", state.distance_travelled)
+
+            target_waypoints, target_heatmap = agent.step(state)
+            control = vehicle_controller.step(state, target_waypoints)
+
+            print(control)
+            episode.apply_control(control)
+
+            birdview_render = episode.render_birdview()
+
+            with visualizer as painter:
+                painter.add_rgb(state.rgb)
+                painter.add_waypoints(target_waypoints)
+                painter.add_control("student", control)
+                painter.add_birdview(birdview_render)
+
+            if state.probably_stuck:
+                raise exceptions.EpisodeStuck()
+
+            if state.collision:
+                raise exceptions.CollisionInEpisode()
+
+            if state.route_completed:
+                break
+
+            # prev_state = state
+
+
+def demo_image_agent() -> None:
+    run_image_agent(BlackHoleStore())
 
 
 def manual() -> None:
