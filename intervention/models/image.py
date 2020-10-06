@@ -122,7 +122,7 @@ class Agent:
     def step(self, state: TickState) -> np.ndarray:
         """
         Send the state through the underlying model, and return its output
-        as predicted world coordinate waypoints.
+        as predicted ego coordinate waypoints.
         """
         image = torch.unsqueeze(self._transforms(state.rgb.copy()), 0)
         speed = torch.tensor([state.speed]).float()
