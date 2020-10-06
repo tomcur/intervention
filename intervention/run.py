@@ -343,7 +343,6 @@ def run_image_agent(store: Store) -> None:
             target_waypoints, target_heatmap = agent.step(state)
             control = vehicle_controller.step(state, target_waypoints)
 
-            print(control)
             episode.apply_control(control)
 
             birdview_render = episode.render_birdview()
