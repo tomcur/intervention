@@ -409,6 +409,7 @@ def run_example_episode(store: Store) -> data.EpisodeSummary:
     """
     visualizer = visualization.Visualizer()
     summary = data.EpisodeSummary()
+    vehicle_controller = controller.VehicleController()
 
     managed_episode = connect()
     with managed_episode as episode:
@@ -420,7 +421,7 @@ def run_example_episode(store: Store) -> data.EpisodeSummary:
             summary.distance_travelled = state.distance_travelled
             summary.ticks += 1
 
-            teacher_control, _ = teacher.run_step(
+            teacher_target_waypoints = teacher.run_step(
                 {
                     "birdview": state.birdview,
                     "velocity": np.float32(
@@ -430,6 +431,7 @@ def run_example_episode(store: Store) -> data.EpisodeSummary:
                 },
                 teaching=True,
             )
+            teacher_control = vehicle_controller.step(state, teacher_target_waypoints,)
 
             store.push_teacher_driving(step, teacher_control, state)
             episode.apply_control(teacher_control)
@@ -438,6 +440,7 @@ def run_example_episode(store: Store) -> data.EpisodeSummary:
             with visualizer as painter:
                 painter.add_rgb(state.rgb)
                 painter.add_control("teacher", teacher_control)
+                painter.add_waypoints(teacher_target_waypoints)
                 painter.add_birdview(birdview_render)
 
             if state.probably_stuck:
