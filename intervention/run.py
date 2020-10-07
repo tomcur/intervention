@@ -484,7 +484,7 @@ def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
             summary.distance_travelled = state.distance_travelled
             summary.ticks += 1
 
-            teacher_control, _ = teacher.run_step(
+            teacher_target_waypoints = teacher.run_step(
                 {
                     "birdview": state.birdview,
                     "velocity": np.float32(
@@ -494,24 +494,39 @@ def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
                 },
                 teaching=True,
             )
+            teacher_control = vehicle_controller.step(
+                state,
+                teacher_target_waypoints,
+                update_pids=not comparer.student_in_control,
+            )
+            if not comparer.student_in_control:
+                episode.apply_control(teacher_control)
+                store.push_teacher_driving(step, teacher_control, state)
+
             student_target_waypoints, _student_target_heatmap = student_agent.step(
                 state
             )
-            student_control = vehicle_controller.step(state, student_target_waypoints)
-            comparer.evaluate_and_compare(state, teacher_control, student_control)
-
+            student_control = vehicle_controller.step(
+                state,
+                student_target_waypoints,
+                update_pids=comparer.student_in_control,
+            )
             if comparer.student_in_control:
-                store.push_student_driving(step, student_control, state)
                 episode.apply_control(student_control)
-            else:
-                store.push_teacher_driving(step, teacher_control, state)
-                episode.apply_control(teacher_control)
+                store.push_student_driving(step, student_control, state)
+
+            comparer.evaluate_and_compare(state, teacher_control, student_control)
 
             with visualizer as painter:
                 painter.add_rgb(state.rgb)
+                painter.add_waypoints(teacher_target_waypoints)
                 painter.add_waypoints(student_target_waypoints)
-                painter.add_control("student", student_control)
-                painter.add_control("teacher", teacher_control)
+                painter.add_control(
+                    "student", student_control,
+                )
+                painter.add_control(
+                    "teacher", teacher_control,
+                )
                 painter.add_control_difference(
                     comparer.difference_integral, threshold=comparer.threshold
                 )

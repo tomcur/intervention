@@ -133,44 +133,7 @@ class BirdViewAgent(Agent):
             angle = np.arctan2(pixel_dx, pixel_dy)
             dist = np.linalg.norm([pixel_dx, pixel_dy]) / PIXELS_PER_METER
 
-            targets.append([dist * np.cos(angle), dist * np.sin(angle)])
+            # targets.append([dist * np.cos(angle), dist * np.sin(angle)])
+            targets.append([dist * np.sin(angle), dist * np.cos(angle)])
 
-        target_speed = 0.0
-
-        for i in range(1, SPEED_STEPS):
-            pixel_dx, pixel_dy = _locations[i]
-            prev_dx, prev_dy = _locations[i-1]
-
-            dx = pixel_dx - prev_dx
-            dy = pixel_dy - prev_dy
-            delta = np.linalg.norm([dx, dy])
-
-            target_speed += delta / (PIXELS_PER_METER * self.gap * DT) / (SPEED_STEPS-1)
-
-        _cmd = int(observations['command'])
-        n = self.steer_points.get(str(_cmd), 1)
-        targets = np.concatenate([[[0, 0]], targets], 0)
-        c, r = ls_circle(targets)
-        closest = common.project_point_to_circle(targets[n], c, r)
-
-        v = [1.0, 0.0, 0.0]
-        w = [closest[0], closest[1], 0.0]
-        alpha = common.signed_angle(v, w)
-        steer = self.turn_control.run_step(alpha, _cmd)
-        throttle = self.speed_control.step(target_speed - speed)
-        brake = 0.0
-
-        if target_speed < 1.0:
-            steer = 0.0
-            throttle = 0.0
-            brake = 1.0
-
-        self.debug['locations_birdview'] = _locations[:,::-1].astype(int)
-        self.debug['target'] = closest
-        self.debug['target_speed'] = target_speed
-
-        control = self.postprocess(steer, throttle, brake)
-        if teaching:
-            return control, _map_locations
-        else:
-            return control
+        return np.array(targets)
