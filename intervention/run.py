@@ -519,8 +519,8 @@ def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
 
             with visualizer as painter:
                 painter.add_rgb(state.rgb)
-                painter.add_waypoints(teacher_target_waypoints)
-                painter.add_waypoints(student_target_waypoints)
+                painter.add_waypoints(teacher_target_waypoints, color=(0, 145, 255))
+                painter.add_waypoints(student_target_waypoints, color=(255, 145, 0))
                 painter.add_control(
                     "student", student_control,
                 )
