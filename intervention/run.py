@@ -522,10 +522,10 @@ def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
                 painter.add_waypoints(teacher_target_waypoints, color=(0, 145, 255))
                 painter.add_waypoints(student_target_waypoints, color=(255, 145, 0))
                 painter.add_control(
-                    "student", student_control,
+                    "student", student_control, grayout=not comparer.student_in_control
                 )
                 painter.add_control(
-                    "teacher", teacher_control,
+                    "teacher", teacher_control, grayout=comparer.student_in_control
                 )
                 painter.add_control_difference(
                     comparer.difference_integral, threshold=comparer.threshold
