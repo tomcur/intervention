@@ -340,12 +340,12 @@ class Visualizer:
             self._actions.append(Action.RIGHT)
 
         modifier = pygame.key.get_mods()
-        if pygame.K_LEFT in events:
+        if pygame.K_LEFT in keydown_events:
             self._actions.append(Action.PREVIOUS)
         elif pressed[pygame.K_LEFT] and not modifier & pygame.KMOD_SHIFT:
             self._actions.append(Action.PREVIOUS)
 
-        if pygame.K_RIGHT in events:
+        if pygame.K_RIGHT in keydown_events:
             self._actions.append(Action.NEXT)
         elif pressed[pygame.K_RIGHT] and not modifier & pygame.KMOD_SHIFT:
             self._actions.append(Action.NEXT)
