@@ -143,8 +143,8 @@ class FramePainter:
                 (control_surf.get_width(), control_surf.get_height()),
                 flags=pygame.SRCALPHA,
             )
-            dark.fill((85, 85, 85, 0))
-            control_surf.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+            dark.fill((75, 75, 75, 0))
+            control_surf.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
         self._surface.blit(
             control_surf, (FramePainter.CONTROL_X, self._next_control_y + 25,),
