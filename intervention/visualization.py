@@ -309,7 +309,18 @@ class Visualizer:
 
         surf = self._painter._surface
         self._screen.fill((0, 0, 0))
-        self._screen.blit(pygame.transform.scale(surf, self._screen.get_size()), (0, 0))
+
+        (surface_width, surface_height) = surf.get_size()
+        (screen_width, screen_height) = self._screen.get_size()
+        scale_factor = min(screen_width / surface_width, screen_height / surface_height)
+
+        self._screen.blit(
+            pygame.transform.scale(
+                surf,
+                (int(scale_factor * surface_width), int(scale_factor * surface_height)),
+            ),
+            (0, 0),
+        )
         pygame.display.flip()
 
         self._painter = None
