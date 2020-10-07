@@ -121,12 +121,23 @@ class FramePainter:
                 self._surface, color, (draw_x, draw_y), 3,
             )
 
-    def add_control(self, name: str, control: carla.VehicleControl) -> None:
+    def add_control(
+        self, name: str, control: carla.VehicleControl, grayout=False
+    ) -> None:
         self._surface.blit(
             self._font.render(name, True, (240, 240, 240)),
             (FramePainter.CONTROL_X, self._next_control_y,),
         )
         control_surf = _render_control(control, self._font)
+
+        if grayout:
+            dark = pygame.Surface(
+                (control_surf.get_width(), control_surf.get_height()),
+                flags=pygame.SRCALPHA,
+            )
+            dark.fill((85, 85, 85, 0))
+            control_surf.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+
         self._surface.blit(
             control_surf, (FramePainter.CONTROL_X, self._next_control_y + 25,),
         )
