@@ -10,11 +10,12 @@
 
 from enum import Enum
 from collections import deque
-import random
 
 import carla
 from .controller import VehiclePIDController
 from ..tools.misc import distance_vehicle, draw_waypoints
+
+from .... import process
 
 import numpy as np
 
@@ -161,7 +162,7 @@ class LocalPlanner(object):
             else:
                 # random choice between the possible options
                 road_options_list = _retrieve_options(next_waypoints, last_waypoint)
-                road_option = random.choice(road_options_list)
+                road_option = process.rng.choice(road_options_list)
                 next_waypoint = next_waypoints[road_options_list.index(road_option)]
 
             self._waypoints_queue.append((next_waypoint, road_option))

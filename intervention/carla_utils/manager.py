@@ -2,7 +2,6 @@ from typing import Optional, Tuple, Dict, List, cast
 
 import collections
 from dataclasses import dataclass
-import random
 import queue
 import numpy as np
 from loguru import logger
@@ -11,6 +10,7 @@ import carla
 from .agents.navigation.local_planner import LocalPlannerNew
 from .map_utils import Renderer
 from ..utils.carla_image import carla_image_to_np
+from .. import process
 
 #: The number of ticks without movement after which we consider the vehicle to be stuck
 STUCK_TICKS: int = 90 * 10
@@ -247,8 +247,8 @@ class ManagedEpisode:
         spawn_points = carla_map.get_spawn_points()
 
         while True:
-            start_pose = np.random.choice(spawn_points)
-            end_pose = np.random.choice(spawn_points)
+            start_pose = process.rng.choice(spawn_points)
+            end_pose = process.rng.choice(spawn_points)
 
             # FIXME
             local_planner = LocalPlannerNew(carla_map, 2.5, 9.0, 1.5)
@@ -295,7 +295,8 @@ class ManagedEpisode:
             controller.go_to_location(
                 self._carla_world.get_random_location_from_navigation()
             )
-            controller.set_max_speed(1 + random.random())
+            # Set walking speed between 2 and 5 km/h
+            controller.set_max_speed(process.rng.uniform(2.0, 5.0) * 1000 / 60 / 60)
 
         renderer = Renderer(
             "placeholder",
@@ -370,7 +371,7 @@ class ManagedEpisode:
             if spawn_point not in disallowed_spawn_points
         ]
 
-        random.shuffle(spawn_points)
+        process.rng.shuffle(spawn_points)
 
         if n_vehicles > len(spawn_points):
             logger.warning(
@@ -383,19 +384,19 @@ class ManagedEpisode:
         spawn_points = spawn_points[:n_vehicles]
         batch = []
         for spawn_point in spawn_points[:n_vehicles]:
-            blueprint = np.random.choice(blueprints)
+            blueprint = process.rng.choice(blueprints)
             blueprint.set_attribute("role_name", "autopilot")
 
             if blueprint.has_attribute("color"):
                 color_attribute = blueprint.get_attribute("color")
                 assert color_attribute is not None
-                color = np.random.choice(color_attribute.recommended_values)
+                color = process.rng.choice(color_attribute.recommended_values)
                 blueprint.set_attribute("color", color)
 
             if blueprint.has_attribute("driver_id"):
                 driver_id_attribute = blueprint.get_attribute("driver_id")
                 assert driver_id_attribute is not None
-                driver_id = np.random.choice(driver_id_attribute.recommended_values)
+                driver_id = process.rng.choice(driver_id_attribute.recommended_values)
                 blueprint.set_attribute("driver_id", driver_id)
 
             batch.append(carla.command.SpawnActor(blueprint, spawn_point))
@@ -437,7 +438,7 @@ class ManagedEpisode:
             for _ in range(n_pedestrians - len(walkers)):
                 location = carla_world.get_random_location_from_navigation()
                 spawn_point = carla.Transform(location=location)
-                walker_bp = random.choice(walker_blueprints)
+                walker_bp = process.rng.choice(walker_blueprints)
                 if walker_bp.has_attribute("is_invincible"):
                     walker_bp.set_attribute("is_invincible", "false")
                 walker_batch.append(carla.command.SpawnActor(walker_bp, spawn_point))
@@ -480,16 +481,16 @@ class ManagedEpisode:
         start_pose: carla.Transform,
     ) -> EgoVehicle:
         blueprints = carla_world.get_blueprint_library()
-        blueprint = np.random.choice(blueprints.filter(self.vehicle_name))
+        blueprint = process.rng.choice(blueprints.filter(self.vehicle_name))
         blueprint.set_attribute("role_name", "hero")
 
         if blueprint.has_attribute("color"):
-            color = np.random.choice(
+            color = process.rng.choice(
                 blueprint.get_attribute("color").recommended_values
             )
             blueprint.set_attribute("color", color)
         if blueprint.has_attribute("driver_id"):
-            driver_id = np.random.choice(
+            driver_id = process.rng.choice(
                 blueprint.get_attribute("driver_id").recommended_values
             )
             blueprint.set_attribute("driver_id", driver_id)
