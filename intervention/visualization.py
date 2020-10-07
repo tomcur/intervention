@@ -6,6 +6,7 @@ from collections import deque
 import numpy as np
 import pygame
 import pygame.locals as pglocals
+from pygame import gfxdraw
 import carla
 
 from .coordinates import ego_coordinate_to_image_coordinate
@@ -116,10 +117,17 @@ class FramePainter:
             )
             draw_x = int(im_location_x) + FramePainter.IMAGE_X
             draw_y = int(im_location_y) + FramePainter.IMAGE_Y
-            pygame.draw.circle(self._surface, (150, 0, 0), (draw_x, draw_y), 5)
-            pygame.draw.circle(
-                self._surface, color, (draw_x, draw_y), 3,
-            )
+            if not (0 <= draw_x < self._surface.get_width()) or not (
+                0 <= draw_y < self._surface.get_height()
+            ):
+                continue
+
+            gfxdraw.aacircle(self._surface, draw_x, draw_y, 5, (255, 255, 255))
+            gfxdraw.filled_circle(self._surface, draw_x, draw_y, 5, (255, 255, 255))
+            gfxdraw.aacircle(self._surface, draw_x, draw_y, 4, (0, 0, 0))
+            gfxdraw.filled_circle(self._surface, draw_x, draw_y, 4, (0, 0, 0))
+            gfxdraw.aacircle(self._surface, draw_x, draw_y, 3, color)
+            gfxdraw.filled_circle(self._surface, draw_x, draw_y, 3, color)
 
     def add_control(
         self, name: str, control: carla.VehicleControl, grayout=False
