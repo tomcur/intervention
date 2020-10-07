@@ -623,7 +623,11 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
             #     episode_dir.rmdir()
 
 
-def collect_on_policy_episode(episode_dir: Path) -> data.EpisodeSummary:
+def collect_on_policy_episode(
+    episode_dir: Path, seed_sequence: np.random.SeedSequence
+) -> data.EpisodeSummary:
+    process.rng = np.random.default_rng(seed_sequence)
+
     with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
@@ -633,6 +637,8 @@ def collect_on_policy_episode(episode_dir: Path) -> data.EpisodeSummary:
 
 
 def collect_on_policy_episodes(data_path: Path, num_episodes: int) -> None:
+    parent_seed_sequence = np.random.SeedSequence()
+
     episode_summaries_path = data_path / "episodes.csv"
     file_exists = os.path.isfile(episode_summaries_path)
     with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
@@ -644,12 +650,16 @@ def collect_on_policy_episodes(data_path: Path, num_episodes: int) -> None:
             episode_summaries_writer.writeheader()
 
         for episode in range(num_episodes):
+            [seed_sequence] = parent_seed_sequence.spawn(1)
+
             episode_id = uuid.uuid4()
             logger.info(f"Collecting episode {episode+1}/{num_episodes}: {episode_id}.")
             episode_dir = data_path / str(episode_id)
             episode_dir.mkdir(parents=True, exist_ok=False)
 
             # Run in process to circumvent Carla bug
-            episode_summary = process_wrapper(collect_on_policy_episode, episode_dir)
+            episode_summary = process_wrapper(
+                collect_on_policy_episode, episode_dir, seed_sequence
+            )
             episode_summary.uuid = episode_id
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
