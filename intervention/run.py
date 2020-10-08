@@ -405,12 +405,16 @@ def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeS
     """
     param store: the store for the episode information.
     """
+    town = process.rng.choice(["Town01", "Town02", "Town07"])
+
     visualizer = visualization.Visualizer()
-    summary = data.EpisodeSummary()
+    summary = data.EpisodeSummary(town=town)
     vehicle_controller = controller.VehicleController()
 
     managed_episode = connect()
     with managed_episode as episode:
+        managed_episode.town = town
+
         logger.debug("Creating teacher agent.")
         teacher = _prepare_teacher_agent(teacher_checkpoint)
 
