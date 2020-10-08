@@ -125,11 +125,9 @@ class Comparer:
         self.student_in_control = not self.student_in_control
 
 
-def _prepare_teacher_agent():
+def _prepare_teacher_agent(teacher_checkpoint: Path):
     teacher_model = birdview.BirdViewPolicyModelSS(backbone="resnet18")
-    teacher_model.load_state_dict(
-        torch.load("../LearningByCheating/ckpts/privileged/model-128.th")
-    )
+    teacher_model.load_state_dict(torch.load(teacher_checkpoint))
     teacher_model.eval()
 
     teacher_agent_args = {
@@ -403,7 +401,7 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
             idx -= 1
 
 
-def run_example_episode(store: Store) -> data.EpisodeSummary:
+def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeSummary:
     """
     param store: the store for the episode information.
     """
@@ -414,7 +412,7 @@ def run_example_episode(store: Store) -> data.EpisodeSummary:
     managed_episode = connect()
     with managed_episode as episode:
         logger.debug("Creating teacher agent.")
-        teacher = _prepare_teacher_agent()
+        teacher = _prepare_teacher_agent(teacher_checkpoint)
 
         for step in itertools.count():
             state = episode.tick()
@@ -575,19 +573,21 @@ def process_wrapper(target, *args, **kwargs):
 
 
 def collect_example_episode(
-    episode_dir: Path, seed_sequence: np.random.SeedSequence
+    teacher_checkpoint: Path, episode_dir: Path, seed_sequence: np.random.SeedSequence
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
 
     with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
-            summary = run_example_episode(store)
+            summary = run_example_episode(store, teacher_checkpoint)
             store.stop()
             return summary
 
 
-def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
+def collect_example_episodes(
+    teacher_checkpoint: Path, data_path: Path, num_episodes: int
+) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
     episode_summaries_path = data_path / "episodes.csv"
@@ -610,7 +610,7 @@ def collect_example_episodes(data_path: Path, num_episodes: int) -> None:
 
             # Run in process to circumvent Carla bug
             episode_summary = process_wrapper(
-                collect_example_episode, episode_dir, seed_sequence
+                collect_example_episode, teacher_checkpoint, episode_dir, seed_sequence
             )
             episode_summary.uuid = episode_id
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
