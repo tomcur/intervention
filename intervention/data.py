@@ -14,6 +14,7 @@ class EpisodeSummary:
     collection_end_datetime: datetime = dataclasses.field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+    town: str = ""
     terminated: bool = False
     success: bool = False
     collisions: int = 0
