@@ -21,9 +21,16 @@ class EpisodeSummary:
     distance_travelled: float = 0.0
     interventions: int = 0
     ticks: int = 0
+    ticks_per_second: float = 0.0
 
-    def set_end_datetime(self):
+    def end(self):
         self.collection_end_datetime = datetime.now(timezone.utc)
+        self.ticks_per_second = (
+            self.ticks
+            / (
+                self.collection_end_datetime - self.collection_start_datetime
+            ).total_seconds()
+        )
 
     def as_csv_writeable_dict(self):
         values = self.__dict__

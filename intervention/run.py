@@ -458,7 +458,7 @@ def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeS
                 summary.success = True
                 break
 
-    summary.set_end_datetime()
+    summary.end()
     return summary
 
 
@@ -553,7 +553,7 @@ def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
                 summary.success = True
                 break
 
-    summary.set_end_datetime()
+    summary.end()
     return summary
 
 
