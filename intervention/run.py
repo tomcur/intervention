@@ -127,7 +127,9 @@ class Comparer:
 
 def _prepare_teacher_agent(teacher_checkpoint: Path):
     teacher_model = birdview.BirdViewPolicyModelSS(backbone="resnet18")
-    teacher_model.load_state_dict(torch.load(teacher_checkpoint))
+    teacher_model.load_state_dict(
+        torch.load(teacher_checkpoint, map_location=process.torch_device)
+    )
     teacher_model.eval()
 
     teacher_agent_args = {

@@ -8,6 +8,7 @@ from pathlib import Path
 from loguru import logger
 import sys
 
+import intervention.process
 
 @click.group()
 def cli():
@@ -49,18 +50,34 @@ def manual():
         "will be appended to. Per-episode data is written to their own subdirectories."
     ),
 )
+@click.option(
+    "device_name",
+    "--device",
+    default="cuda",
+    type=str,
+    help=(
+        "The device to run on. "
+        "See torch's documentation on torch.device for more information."
+    ),
+)
 def collect_teacher_examples(
-    teacher_checkpoint: str, num_episodes: int, directory: str,
+    teacher_checkpoint: str, num_episodes: int, directory: str, device_name: str,
 ):
     """
     Collect examples of driving from a teacher agent.
     """
+    import torch
+
     import intervention.run
 
     data_path = Path(directory)
     data_path.mkdir(parents=True, exist_ok=True)
 
     teacher_checkpoint_path = Path(teacher_checkpoint)
+
+    device = torch.device(device_name)
+
+    intervention.process.torch_device = device
 
     intervention.run.collect_example_episodes(
         teacher_checkpoint, data_path=data_path, num_episodes=num_episodes,
