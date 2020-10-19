@@ -75,9 +75,7 @@ def collect_teacher_examples(
 
     teacher_checkpoint_path = Path(teacher_checkpoint)
 
-    device = torch.device(device_name)
-
-    intervention.process.torch_device = device
+    intervention.process.torch_device = torch.device(device_name)
 
     intervention.run.collect_example_episodes(
         teacher_checkpoint, data_path=data_path, num_episodes=num_episodes,
@@ -177,11 +175,11 @@ def train_test(
 
     initial_checkpoint_path = Path(initial_checkpoint) if initial_checkpoint else None
 
-    device = torch.device(device_name)
+    intervention.process.torch_device = torch.device(device_name)
+
     intervention.train.train.test(
         dataset_path,
         output_path,
-        device,
         initial_checkpoint_path=initial_checkpoint_path,
     )
 

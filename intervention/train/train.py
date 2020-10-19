@@ -7,6 +7,7 @@ from loguru import logger
 import numpy as np
 
 from ..models.image import Image
+from .. import process
 from . import dataset
 
 TRAIN_EPOCHS: int = 5
@@ -24,7 +25,6 @@ def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Te
 def test(
     dataset_path: Path,
     output_checkpoint_path: Path,
-    device: torch.device,
     batch_size: int = 30,
     initial_checkpoint_path: Optional[Path] = None,
 ) -> None:
@@ -33,10 +33,10 @@ def test(
         training_dataset, batch_size=batch_size, shuffle=True
     )
 
-    model = Image().to(device)
+    model = Image().to(process.torch_device)
     model.train()
 
-    img_size = torch.tensor([384, 160], device=device)
+    img_size = torch.tensor([384, 160], device=process.torch_device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     initial_epoch = 0
@@ -64,8 +64,8 @@ def test(
         for (batch_number, (rgb_image, _, datapoint_meta)) in enumerate(
             training_generator
         ):
-            rgb_image = rgb_image.float().to(device)
-            speed = datapoint_meta["speed"].float().to(device)
+            rgb_image = rgb_image.float().to(process.torch_device)
+            speed = datapoint_meta["speed"].float().to(process.torch_device)
 
             all_branch_predictions, *_ = model.forward(rgb_image, speed)
             del rgb_image, speed
@@ -75,7 +75,7 @@ def test(
             )
             del all_branch_predictions
 
-            locations = datapoint_meta["next_locations_image_coordinates"].to(device)
+            locations = datapoint_meta["next_locations_image_coordinates"].to(process.torch_device)
             # Transform X and Y differently; we can never have a waypoint above the
             # horizon (i.e. above the vertical middle of the camera frame).
             locations[..., 0] = locations[..., 0] / (0.5 * img_size[0]) - 1
