@@ -78,7 +78,7 @@ def collect_teacher_examples(
     intervention.process.torch_device = torch.device(device_name)
 
     intervention.run.collect_example_episodes(
-        teacher_checkpoint, data_path=data_path, num_episodes=num_episodes,
+        teacher_checkpoint_path, data_path=data_path, num_episodes=num_episodes,
     )
 
 
