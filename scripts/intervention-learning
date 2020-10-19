@@ -10,6 +10,7 @@ import sys
 
 import intervention.process
 
+
 @click.group()
 def cli():
     pass
@@ -72,7 +73,6 @@ def collect_teacher_examples(
 
     data_path = Path(directory)
     data_path.mkdir(parents=True, exist_ok=True)
-
     teacher_checkpoint_path = Path(teacher_checkpoint)
 
     intervention.process.torch_device = torch.device(device_name)
@@ -166,6 +166,7 @@ def train_test(
     device_name: str,
 ):
     import torch
+
     import intervention.train.train
 
     dataset_path = Path(dataset_directory)
@@ -178,9 +179,7 @@ def train_test(
     intervention.process.torch_device = torch.device(device_name)
 
     intervention.train.train.test(
-        dataset_path,
-        output_path,
-        initial_checkpoint_path=initial_checkpoint_path,
+        dataset_path, output_path, initial_checkpoint_path=initial_checkpoint_path,
     )
 
 
