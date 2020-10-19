@@ -131,6 +131,7 @@ def _prepare_teacher_agent(teacher_checkpoint: Path):
         torch.load(teacher_checkpoint, map_location=process.torch_device)
     )
     teacher_model.eval()
+    teacher_model.to(process.torch_device)
 
     teacher_agent_args = {
         # "steer_points": {"1": 4, "2": 3, "3": 2, "4": 2},
