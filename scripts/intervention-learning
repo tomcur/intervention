@@ -154,7 +154,7 @@ def demo_image_agent():
 @click.option(
     "device_name",
     "--device",
-    default="cuda:0",
+    default="cuda",
     type=str,
     help=(
         "The device to run on. "
