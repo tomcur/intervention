@@ -580,7 +580,7 @@ def process_wrapper(target, *args, **kwargs):
 
 
 def collect_example_episode(
-    teacher_checkpoint: Path, episode_dir: Path, seed_sequence: np.random.SeedSequence
+    teacher_checkpoint: Path, episode_dir: Path, seed_sequence: np.random.SeedSequence,
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
 
@@ -593,7 +593,7 @@ def collect_example_episode(
 
 
 def collect_example_episodes(
-    teacher_checkpoint: Path, data_path: Path, num_episodes: int
+    teacher_checkpoint: Path, data_path: Path, num_episodes: int,
 ) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
@@ -617,7 +617,7 @@ def collect_example_episodes(
 
             # Run in process to circumvent Carla bug
             episode_summary = process_wrapper(
-                collect_example_episode, teacher_checkpoint, episode_dir, seed_sequence
+                collect_example_episode, teacher_checkpoint, episode_dir, seed_sequence,
             )
             episode_summary.uuid = episode_id
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
