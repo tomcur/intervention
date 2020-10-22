@@ -292,7 +292,9 @@ class ZipStore(Store):
 def run_manual() -> None:
     visualizer = visualization.Visualizer()
 
-    managed_episode = connect()
+    managed_episode = connect(
+        carla_host=process.carla_host, carla_world_port=process.carla_world_port
+    )
     actions = []
     with managed_episode as episode:
         for step in itertools.count():
@@ -327,7 +329,9 @@ def run_image_agent(store: Store) -> None:
 
     visualizer = visualization.Visualizer()
 
-    managed_episode = connect()
+    managed_episode = connect(
+        carla_host=process.carla_host, carla_world_port=process.carla_world_port
+    )
     with managed_episode as episode:
         logger.debug("Creating agent.")
         model = Image()
@@ -414,7 +418,9 @@ def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeS
     summary = data.EpisodeSummary(town=town)
     vehicle_controller = controller.VehicleController()
 
-    managed_episode = connect()
+    managed_episode = connect(
+        carla_host=process.carla_host, carla_world_port=process.carla_world_port
+    )
     with managed_episode as episode:
         managed_episode.town = town
 
@@ -475,7 +481,9 @@ def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
     summary = data.EpisodeSummary()
     comparer = Comparer()
 
-    managed_episode = connect()
+    managed_episode = connect(
+        carla_host=process.carla_host, carla_world_port=process.carla_world_port
+    )
     with managed_episode as episode:
         vehicle_controller = controller.VehicleController()
 

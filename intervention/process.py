@@ -8,3 +8,5 @@ import torch
 
 rng = np.random.default_rng()
 torch_device = torch.device("cpu")
+carla_host = "localhost"
+carla_world_port = 2000

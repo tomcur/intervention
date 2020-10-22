@@ -12,8 +12,29 @@ import intervention.process
 
 
 @click.group()
-def cli():
-    pass
+@click.option(
+    "carla_host",
+    "--carla-host",
+    envvar="CARLA_HOST",
+    show_envvar=True,
+    default="localhost",
+    type=str,
+    help="The Carla simulator hostname to connect to.",
+)
+@click.option(
+    "carla_world_port",
+    "--carla-world-port",
+    envvar="CARLA_WORLD_PORT",
+    show_envvar=True,
+    default=2000,
+    type=int,
+    help="The Carla simulator port to connect to.",
+)
+def cli(
+    carla_host: str, carla_world_port: int,
+):
+    intervention.process.carla_host = carla_host
+    intervention.process.carla_world_port = carla_world_port
 
 
 @cli.command()
