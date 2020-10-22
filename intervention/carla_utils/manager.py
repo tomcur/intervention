@@ -516,9 +516,11 @@ class ManagedEpisode:
         return ego_vehicle
 
 
-def connect(carla_host: str = "localhost", carla_port: int = 2000) -> ManagedEpisode:
-    logger.trace(f"Connecting to Carla simulator at {carla_host}:{carla_port}.")
-    client = carla.Client(carla_host, carla_port)
+def connect(
+    carla_host: str = "localhost", carla_world_port: int = 2000
+) -> ManagedEpisode:
+    logger.trace(f"Connecting to Carla simulator at {carla_host}:{carla_world_port}.")
+    client = carla.Client(carla_host, carla_world_port)
     client.set_timeout(30.0)
     client_version = client.get_client_version()
     server_version = client.get_server_version()
