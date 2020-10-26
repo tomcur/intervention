@@ -10,8 +10,6 @@ from ..models.image import Image
 from .. import process
 from . import dataset
 
-TRAIN_EPOCHS: int = 5
-
 
 def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Tensor:
     size = branches[0].size()
@@ -27,6 +25,7 @@ def imitation(
     output_checkpoint_path: Path,
     batch_size: int = 30,
     initial_checkpoint_path: Optional[Path] = None,
+    epochs: int = 5,
 ) -> None:
     training_dataset = dataset.off_policy_data(dataset_path)
     training_generator = torch.utils.data.DataLoader(
@@ -50,7 +49,7 @@ def imitation(
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
-    for epoch in range(initial_epoch, initial_epoch + TRAIN_EPOCHS):
+    for epoch in range(initial_epoch, initial_epoch + epochs):
         out_path = output_checkpoint_path / f"{epoch}.pth"
         if out_path.exists():
             raise Exception(
@@ -59,7 +58,7 @@ def imitation(
 
         num_batches = len(training_generator)
         logger.info(
-            f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{TRAIN_EPOCHS})."
+            f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{epochs})."
         )
         for (batch_number, (rgb_image, _, datapoint_meta)) in enumerate(
             training_generator

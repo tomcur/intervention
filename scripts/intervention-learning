@@ -171,6 +171,14 @@ def demo_image_agent():
     help=("The checkpoint to resume training from."),
 )
 @click.option(
+    "-n",
+    "--num-epochs",
+    default=5,
+    type=int,
+    required=False,
+    help=("The number of training epochs"),
+)
+@click.option(
     "device_name",
     "--device",
     default="cuda",
@@ -185,6 +193,7 @@ def train_imitation(
     output_directory: str,
     initial_checkpoint: Optional[str],
     device_name: str,
+    num_epochs: int,
 ):
     import torch
 
@@ -200,7 +209,10 @@ def train_imitation(
     intervention.process.torch_device = torch.device(device_name)
 
     intervention.train.train.imitation(
-        dataset_path, output_path, initial_checkpoint_path=initial_checkpoint_path,
+        dataset_path,
+        output_path,
+        initial_checkpoint_path=initial_checkpoint_path,
+        epochs=num_epochs,
     )
 
 
