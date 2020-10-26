@@ -22,7 +22,7 @@ def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Te
     return result
 
 
-def test(
+def imitation(
     dataset_path: Path,
     output_checkpoint_path: Path,
     batch_size: int = 30,

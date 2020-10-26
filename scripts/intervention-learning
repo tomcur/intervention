@@ -180,7 +180,7 @@ def demo_image_agent():
         "See torch's documentation on torch.device for more information."
     ),
 )
-def train_test(
+def train_imitation(
     dataset_directory: str,
     output_directory: str,
     initial_checkpoint: Optional[str],
@@ -199,7 +199,7 @@ def train_test(
 
     intervention.process.torch_device = torch.device(device_name)
 
-    intervention.train.train.test(
+    intervention.train.train.imitation(
         dataset_path, output_path, initial_checkpoint_path=initial_checkpoint_path,
     )
 
