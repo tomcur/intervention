@@ -39,9 +39,15 @@ class TaillessResnet34(nn.Module):
 
 class Image(nn.Module):
     """
-    This network produces a number of X and Y coordinate pairs (dimensionality of
-    `[N, Image.OUTPUTS, 2]` with `N` the number of examples in the batch) which are
-    the soft argmax of ego (camera perspective) heatmaps of predicted next locations.
+    This network produces a 2-tuple of outputs.
+
+    The first output are the location predictions: a number of X and Y coordinate pairs
+    (dimensionality of `[N, Image.OUTPUTS, 2]` with `N` the number of examples in the
+    batch) which are the soft argmax of ego (camera perspective) heatmaps of predicted
+    next locations.
+
+    The second output are the heatmaps themselves (dimensionality
+    `[N, Image.HEATMAP_HEIGHT, Image.HEATMAP_WIDTH]`).
 
     The X and Y coordinate pairs are in range of `[-1, 1]`. The resolution is configured
     through `Image.HEATMAP_WIDTH` and `Image.HEATMAP_HEIGHT`.
@@ -102,7 +108,7 @@ class Image(nn.Module):
             ]
         )
 
-        return location_predictions, location_heatmaps
+        return list(location_predictions), list(location_heatmaps)
 
 
 class Agent:
@@ -119,7 +125,7 @@ class Agent:
 
         self._img_size = torch.tensor([384, 160])
 
-    def step(self, state: TickState) -> np.ndarray:
+    def step(self, state) -> Tuple[np.ndarray, np.ndarray]:
         """
         Send the state through the underlying model, and return its output
         as predicted ego coordinate waypoints.
@@ -129,6 +135,7 @@ class Agent:
         with torch.no_grad():
             predictions, heatmaps = self._model.forward(image, speed)
 
+        heatmap_out = heatmaps[state.command - 1][0, ...].cpu().detach().numpy()
         command_out = predictions[state.command - 1][0, ...]
         locations = command_out + 1
         locations[..., 0] = locations[..., 0] * 0.5 * self._img_size[0]
@@ -144,4 +151,4 @@ class Agent:
             )
             targets[idx] = [ego_x, ego_y]
 
-        return targets
+        return targets, heatmap_out
