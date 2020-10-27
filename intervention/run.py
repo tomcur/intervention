@@ -471,7 +471,9 @@ def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeS
     return summary
 
 
-def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
+def run_on_policy_episode(
+    store: Store, student_checkpoint: Path, teacher_checkpoint: Path
+) -> data.EpisodeSummary:
     """
     param store: the store for the episode information.
     """
@@ -490,11 +492,11 @@ def run_on_policy_episode(store: Store) -> data.EpisodeSummary:
         logger.debug("Creating student agent.")
         student_model = Image()
         student_agent = Agent(student_model)
-        student_checkpoint = torch.load("../checkpoints-intervention/2020-10-03/24.pth")
+        student_checkpoint = torch.load(student_checkpoint)
         student_model.load_state_dict(student_checkpoint["model_state_dict"])
 
         logger.debug("Creating teacher agent.")
-        teacher = _prepare_teacher_agent()
+        teacher = _prepare_teacher_agent(teacher_checkpoint)
 
         for step in itertools.count():
             state = episode.tick()
@@ -639,19 +641,29 @@ def collect_example_episodes(
 
 
 def collect_on_policy_episode(
-    episode_dir: Path, seed_sequence: np.random.SeedSequence
+    student_checkpoint: Path,
+    teacher_checkpoint: Path,
+    episode_dir: Path,
+    seed_sequence: np.random.SeedSequence,
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
 
     with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
-            summary = run_on_policy_episode(store)
+            summary = run_on_policy_episode(
+                store, student_checkpoint, teacher_checkpoint
+            )
             store.stop()
             return summary
 
 
-def collect_on_policy_episodes(data_path: Path, num_episodes: int) -> None:
+def collect_on_policy_episodes(
+    student_checkpoint: Path,
+    teacher_checkpoint: Path,
+    data_path: Path,
+    num_episodes: int,
+) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
     episode_summaries_path = data_path / "episodes.csv"
@@ -674,7 +686,11 @@ def collect_on_policy_episodes(data_path: Path, num_episodes: int) -> None:
 
             # Run in process to circumvent Carla bug
             episode_summary = process_wrapper(
-                collect_on_policy_episode, episode_dir, seed_sequence
+                collect_on_policy_episode,
+                student_checkpoint,
+                teacher_checkpoint,
+                episode_dir,
+                seed_sequence,
             )
             episode_summary.uuid = episode_id
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())

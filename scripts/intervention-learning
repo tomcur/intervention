@@ -105,6 +105,20 @@ def collect_teacher_examples(
 
 @cli.command()
 @click.option(
+    "-s",
+    "--student-checkpoint",
+    required=True,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+    help=("The checkpoint to use for the student."),
+)
+@click.option(
+    "-t",
+    "--teacher-checkpoint",
+    required=True,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+    help=("The checkpoint to use for the teacher."),
+)
+@click.option(
     "-n",
     "--num_episodes",
     default=1,
@@ -124,17 +138,43 @@ def collect_teacher_examples(
         "will be appended to. Per-episode data is written to their own subdirectories."
     ),
 )
-def collect_on_policy(num_episodes: int, directory: str):
+@click.option(
+    "device_name",
+    "--device",
+    default="cuda",
+    type=str,
+    help=(
+        "The device to run on. "
+        "See torch's documentation on torch.device for more information."
+    ),
+)
+def collect_on_policy(
+    student_checkpoint: str,
+    teacher_checkpoint: str,
+    num_episodes: int,
+    directory: str,
+    device_name: str,
+):
     """
     Collect student on-policy driving with interventions from a teacher.
     """
+    import torch
+
     import intervention.run
 
     data_path = Path(directory)
     data_path.mkdir(parents=True, exist_ok=True)
 
+    student_checkpoint_path = Path(student_checkpoint)
+    teacher_checkpoint_path = Path(teacher_checkpoint)
+
+    intervention.process.torch_device = torch.device(device_name)
+
     intervention.run.collect_on_policy_episodes(
-        data_path=data_path, num_episodes=num_episodes
+        student_checkpoint_path,
+        teacher_checkpoint_path,
+        data_path=data_path,
+        num_episodes=num_episodes,
     )
 
 
