@@ -125,7 +125,7 @@ class Agent:
 
         self._img_size = torch.tensor([384, 160])
 
-    def step(self, state) -> Tuple[np.ndarray, np.ndarray]:
+    def step(self, state) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Send the state through the underlying model, and return its output
         as predicted ego coordinate waypoints.
@@ -151,4 +151,4 @@ class Agent:
             )
             targets[idx] = [ego_x, ego_y]
 
-        return targets, heatmap_out
+        return targets, command_out.cpu().detach().numpy(), heatmap_out

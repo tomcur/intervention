@@ -346,7 +346,7 @@ def run_image_agent(store: Store) -> None:
             logger.trace("command {}", state.command)
             logger.trace("distance travelled {}", state.distance_travelled)
 
-            target_waypoints, target_heatmap = agent.step(state)
+            target_waypoints, _network_output, target_heatmap = agent.step(state)
             control = vehicle_controller.step(state, target_waypoints)
 
             episode.apply_control(control)
@@ -522,9 +522,11 @@ def run_on_policy_episode(
                 episode.apply_control(teacher_control)
                 store.push_teacher_driving(step, teacher_control, state)
 
-            student_target_waypoints, _student_target_heatmap = student_agent.step(
-                state
-            )
+            (
+                student_target_waypoints,
+                network_output,
+                _student_target_heatmap,
+            ) = student_agent.step(state)
             student_control = vehicle_controller.step(
                 state,
                 student_target_waypoints,
