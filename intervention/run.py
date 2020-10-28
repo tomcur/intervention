@@ -6,6 +6,7 @@ import os
 import abc
 import itertools
 import zipfile
+from io import BytesIO
 from pathlib import Path
 from datetime import datetime, timezone
 import uuid
@@ -146,7 +147,9 @@ class Store:
     """Episode store."""
 
     @abc.abstractmethod
-    def push_student_driving(self, step: int, control: Any, rgb: Any) -> None:
+    def push_student_driving(
+        self, step: int, model_output: np.ndarray, control: Any, rgb: Any
+    ) -> None:
         """Add one example of student driving to the store."""
         raise NotImplementedError
 
@@ -160,7 +163,11 @@ class BlackHoleStore(Store):
     """Episode store backed by a black hole."""
 
     def push_student_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
+        self,
+        step: int,
+        model_output: np.ndarray,
+        control: carla.VehicleControl,
+        state: TickState,
     ) -> None:
         pass
 
@@ -179,7 +186,7 @@ class ZipStore(Store):
         self._archive = archive
         self._csv = csv
         self._recent_student_driving: List[
-            Tuple[int, carla.VehicleControl, TickState]
+            Tuple[int, np.ndarray, carla.VehicleControl, TickState]
         ] = []
         self._teacher_in_control = False
         self._intervention_step = 0
@@ -192,6 +199,7 @@ class ZipStore(Store):
                 "command",
                 "controller",
                 "rgb_filename",
+                "student_output_filename",
                 "time_to_intervention",
                 "time_from_intervention",
                 "lane_invasion",
@@ -212,10 +220,14 @@ class ZipStore(Store):
         self._csv_file.flush()
 
     def push_student_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
+        self,
+        step: int,
+        model_output: np.ndarray,
+        control: carla.VehicleControl,
+        state: TickState,
     ) -> None:
         self._teacher_in_control = False
-        self._recent_student_driving.append((step, control, state))
+        self._recent_student_driving.append((step, model_output, control, state))
         if len(self._recent_student_driving) > self.STORE_NUM_TICKS_BEFORE_INTERVENTION:
             self._recent_student_driving.pop(0)
 
@@ -257,9 +269,17 @@ class ZipStore(Store):
         self._archive.writestr(filename, data)
 
     def _store_student_driving(self) -> None:
-        for (step, _control, state) in reversed(self._recent_student_driving):
+        for (step, model_output, _control, state) in reversed(
+            self._recent_student_driving
+        ):
             rgb_filename = f"{step:05d}-rgb-student.bin"
             self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+
+            model_output_filename = f"{step:05d}-output-student.npy"
+            buffer = BytesIO()
+            np.save(buffer, model_output)
+            self._add_file(model_output_filename, buffer.getvalue())
+
             orientation = state.rotation.get_forward_vector()
             self._csv_writer.writerow(
                 {
@@ -267,6 +287,7 @@ class ZipStore(Store):
                     "command": state.command,
                     "controller": "student",
                     "rgb_filename": rgb_filename,
+                    "student_output_filename": model_output_filename,
                     "time_to_intervention": self._intervention_step - step,
                     "time_from_intervention": None,
                     "lane_invasion": int(state.lane_invasion is not None),
@@ -524,7 +545,7 @@ def run_on_policy_episode(
 
             (
                 student_target_waypoints,
-                network_output,
+                model_output,
                 _student_target_heatmap,
             ) = student_agent.step(state)
             student_control = vehicle_controller.step(
@@ -534,7 +555,7 @@ def run_on_policy_episode(
             )
             if comparer.student_in_control:
                 episode.apply_control(student_control)
-                store.push_student_driving(step, student_control, state)
+                store.push_student_driving(step, model_output, student_control, state)
 
             comparer.evaluate_and_compare(state, teacher_control, student_control)
 
@@ -596,7 +617,7 @@ def collect_example_episode(
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
 
-    with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
+    with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
             summary = run_example_episode(store, teacher_checkpoint)
@@ -650,7 +671,7 @@ def collect_on_policy_episode(
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
 
-    with zipfile.ZipFile(episode_dir / "images.zip", mode="w") as zip_archive:
+    with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = ZipStore(zip_archive, csv_file)
             summary = run_on_policy_episode(
