@@ -125,7 +125,7 @@ class OffPolicyDataset(torch.utils.data.Dataset):
         for episode in episodes:
             self._episodes[episode] = []
             self._zip_files[episode] = ZipFile(
-                data_directory / episode / "images.zip", mode="r"
+                data_directory / episode / "data.zip", mode="r"
             )
 
             with open(data_directory / episode / "episode.csv") as csv_file:
