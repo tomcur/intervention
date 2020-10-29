@@ -322,11 +322,11 @@ def run_manual() -> None:
     managed_episode = connect(
         carla_host=process.carla_host, carla_world_port=process.carla_world_port
     )
-    actions = []
     with managed_episode as episode:
         for step in itertools.count():
             state = episode.tick()
 
+            actions = visualizer.get_actions()
             control = carla.VehicleControl()
             if visualization.Action.THROTTLE in actions:
                 control.throttle = 100.0
