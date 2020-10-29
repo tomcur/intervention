@@ -148,13 +148,19 @@ class Store:
 
     @abc.abstractmethod
     def push_student_driving(
-        self, step: int, model_output: np.ndarray, control: Any, rgb: Any
+        self,
+        step: int,
+        model_output: np.ndarray,
+        control: carla.VehicleControl,
+        state: TickState,
     ) -> None:
         """Add one example of student driving to the store."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def push_teacher_driving(self, step: int, control: Any, rgb: Any) -> None:
+    def push_teacher_driving(
+        self, step: int, control: carla.VehicleControl, state: TickState
+    ) -> None:
         """Add one example of teacher driving to the store."""
         raise NotImplementedError
 
