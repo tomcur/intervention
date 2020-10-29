@@ -499,7 +499,7 @@ def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeS
 
 
 def run_on_policy_episode(
-    store: Store, student_checkpoint: Path, teacher_checkpoint: Path
+    store: Store, student_checkpoint_path: Path, teacher_checkpoint_path: Path
 ) -> data.EpisodeSummary:
     """
     param store: the store for the episode information.
@@ -519,11 +519,11 @@ def run_on_policy_episode(
         logger.debug("Creating student agent.")
         student_model = Image()
         student_agent = Agent(student_model)
-        student_checkpoint = torch.load(student_checkpoint)
+        student_checkpoint = torch.load(student_checkpoint_path)
         student_model.load_state_dict(student_checkpoint["model_state_dict"])
 
         logger.debug("Creating teacher agent.")
-        teacher = _prepare_teacher_agent(teacher_checkpoint)
+        teacher = _prepare_teacher_agent(teacher_checkpoint_path)
 
         for step in itertools.count():
             state = episode.tick()
