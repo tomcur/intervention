@@ -6,7 +6,6 @@ import os
 import abc
 import itertools
 import zipfile
-from io import BytesIO
 from pathlib import Path
 from datetime import datetime, timezone
 import uuid
@@ -143,179 +142,6 @@ def _prepare_teacher_agent(teacher_checkpoint: Path):
     return teacher_agent
 
 
-class Store:
-    """Episode store."""
-
-    @abc.abstractmethod
-    def push_student_driving(
-        self,
-        step: int,
-        model_output: np.ndarray,
-        control: carla.VehicleControl,
-        state: TickState,
-    ) -> None:
-        """Add one example of student driving to the store."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def push_teacher_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
-    ) -> None:
-        """Add one example of teacher driving to the store."""
-        raise NotImplementedError
-
-
-class BlackHoleStore(Store):
-    """Episode store backed by a black hole."""
-
-    def push_student_driving(
-        self,
-        step: int,
-        model_output: np.ndarray,
-        control: carla.VehicleControl,
-        state: TickState,
-    ) -> None:
-        pass
-
-    def push_teacher_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
-    ) -> None:
-        pass
-
-
-class ZipStore(Store):
-    """Episode store backed by zip-file."""
-
-    STORE_NUM_TICKS_BEFORE_INTERVENTION = (5 * 5) + 15
-
-    def __init__(self, archive: zipfile.ZipFile, csv_file: TextIO):
-        self._archive = archive
-        self._csv = csv
-        self._recent_student_driving: List[
-            Tuple[int, np.ndarray, carla.VehicleControl, TickState]
-        ] = []
-        self._teacher_in_control = False
-        self._intervention_step = 0
-
-        self._csv_file = csv_file
-        self._csv_writer = csv.DictWriter(
-            csv_file,
-            fieldnames=[
-                "tick",
-                "command",
-                "controller",
-                "rgb_filename",
-                "student_output_filename",
-                "time_to_intervention",
-                "time_from_intervention",
-                "lane_invasion",
-                "collision",
-                "location_x",
-                "location_y",
-                "location_z",
-                "velocity_x",
-                "velocity_y",
-                "velocity_z",
-                "speed",
-                "orientation_x",
-                "orientation_y",
-                "orientation_z",
-            ],
-        )
-        self._csv_writer.writeheader()
-        self._csv_file.flush()
-
-    def push_student_driving(
-        self,
-        step: int,
-        model_output: np.ndarray,
-        control: carla.VehicleControl,
-        state: TickState,
-    ) -> None:
-        self._teacher_in_control = False
-        self._recent_student_driving.append((step, model_output, control, state))
-        if len(self._recent_student_driving) > self.STORE_NUM_TICKS_BEFORE_INTERVENTION:
-            self._recent_student_driving.pop(0)
-
-    def push_teacher_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
-    ) -> None:
-        if not self._teacher_in_control:
-            self._intervention_step = step
-            self._teacher_in_control = True
-            self._store_student_driving()
-
-        rgb_filename = f"{step:05d}-rgb-teacher.bin"
-        self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
-        orientation = state.rotation.get_forward_vector()
-        self._csv_writer.writerow(
-            {
-                "tick": step,
-                "command": state.command,
-                "controller": "teacher",
-                "rgb_filename": rgb_filename,
-                "time_to_intervention": None,
-                "time_from_intervention": step - self._intervention_step,
-                "lane_invasion": int(state.lane_invasion is not None),
-                "collision": int(state.collision is not None),
-                "location_x": state.location.x,
-                "location_y": state.location.y,
-                "location_z": state.location.z,
-                "velocity_x": state.velocity.x,
-                "velocity_y": state.velocity.y,
-                "velocity_z": state.velocity.z,
-                "speed": state.speed,
-                "orientation_x": orientation.x,
-                "orientation_y": orientation.y,
-                "orientation_z": orientation.z,
-            }
-        )
-
-    def _add_file(self, filename: str, data: bytes) -> None:
-        self._archive.writestr(filename, data)
-
-    def _store_student_driving(self) -> None:
-        for (step, model_output, _control, state) in reversed(
-            self._recent_student_driving
-        ):
-            rgb_filename = f"{step:05d}-rgb-student.bin"
-            self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
-
-            model_output_filename = f"{step:05d}-output-student.npy"
-            buffer = BytesIO()
-            np.save(buffer, model_output)
-            self._add_file(model_output_filename, buffer.getvalue())
-
-            orientation = state.rotation.get_forward_vector()
-            self._csv_writer.writerow(
-                {
-                    "tick": step,
-                    "command": state.command,
-                    "controller": "student",
-                    "rgb_filename": rgb_filename,
-                    "student_output_filename": model_output_filename,
-                    "time_to_intervention": self._intervention_step - step,
-                    "time_from_intervention": None,
-                    "lane_invasion": int(state.lane_invasion is not None),
-                    "collision": int(state.collision is not None),
-                    "location_x": state.location.x,
-                    "location_y": state.location.y,
-                    "location_z": state.location.z,
-                    "velocity_x": state.velocity.x,
-                    "velocity_y": state.velocity.y,
-                    "velocity_z": state.velocity.z,
-                    "speed": state.speed,
-                    "orientation_x": orientation.x,
-                    "orientation_y": orientation.y,
-                    "orientation_z": orientation.z,
-                }
-            )
-        self._recent_student_driving = []
-
-    def stop(self) -> None:
-        self._store_student_driving()
-
-
 def run_manual() -> None:
     visualizer = visualization.Visualizer()
 
@@ -348,7 +174,7 @@ def run_manual() -> None:
                 break
 
 
-def run_image_agent(store: Store) -> None:
+def run_image_agent(store: data.Store) -> None:
     """
     param store: the store for the episode information.
     """
@@ -399,7 +225,7 @@ def run_image_agent(store: Store) -> None:
 
 
 def demo_image_agent() -> None:
-    run_image_agent(BlackHoleStore())
+    run_image_agent(data.BlackHoleStore())
 
 
 def manual() -> None:
@@ -435,7 +261,9 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
             idx -= 1
 
 
-def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeSummary:
+def run_example_episode(
+    store: data.Store, teacher_checkpoint: Path
+) -> data.EpisodeSummary:
     """
     param store: the store for the episode information.
     """
@@ -499,7 +327,7 @@ def run_example_episode(store: Store, teacher_checkpoint: Path) -> data.EpisodeS
 
 
 def run_on_policy_episode(
-    store: Store, student_checkpoint_path: Path, teacher_checkpoint_path: Path
+    store: data.Store, student_checkpoint_path: Path, teacher_checkpoint_path: Path
 ) -> data.EpisodeSummary:
     """
     param store: the store for the episode information.
@@ -625,7 +453,7 @@ def collect_example_episode(
 
     with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
-            store = ZipStore(zip_archive, csv_file)
+            store = data.ZipStore(zip_archive, csv_file)
             summary = run_example_episode(store, teacher_checkpoint)
             store.stop()
             return summary
@@ -679,7 +507,7 @@ def collect_on_policy_episode(
 
     with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
-            store = ZipStore(zip_archive, csv_file)
+            store = data.ZipStore(zip_archive, csv_file)
             summary = run_on_policy_episode(
                 store, student_checkpoint, teacher_checkpoint
             )
