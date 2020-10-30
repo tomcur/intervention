@@ -1,14 +1,13 @@
-from typing import Tuple, List, TextIO
-
 import abc
-from io import BytesIO
-import dataclasses
-from datetime import datetime, timezone
 import csv
+import dataclasses
 import zipfile
+from datetime import datetime, timezone
+from io import BytesIO
+from typing import List, TextIO, Tuple
 
-import numpy as np
 import dataclass_csv
+import numpy as np
 
 import carla
 

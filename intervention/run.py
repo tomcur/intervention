@@ -1,26 +1,19 @@
-from typing import Any, Optional, Tuple, Dict, List, TextIO
-
-import multiprocessing
-
-import os
-import abc
+import csv
 import itertools
+import multiprocessing
+import os
+import uuid
 import zipfile
 from pathlib import Path
-from datetime import datetime, timezone
-import uuid
-import csv
+
 import numpy as np
 import torch
 from loguru import logger
+
 import carla
 
-from .carla_utils import connect, TickState
-from . import visualization, exceptions, controller
-from . import data
-from . import process
-
-from .learning_by_cheating import image
+from . import controller, data, exceptions, process, visualization
+from .carla_utils import TickState, connect
 from .learning_by_cheating import birdview
 
 
