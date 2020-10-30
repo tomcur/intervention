@@ -192,9 +192,7 @@ class ZipStore(Store):
             return
         last_step, _, _, _ = self._recent_student_driving[-1]
 
-        for (step, model_output, _control, state) in reversed(
-            self._recent_student_driving
-        ):
+        for (step, model_output, _control, state) in self._recent_student_driving:
             rgb_filename = f"{step:05d}-rgb-student.bin"
             self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
 
