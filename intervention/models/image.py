@@ -151,4 +151,8 @@ class Agent:
             )
             targets[idx] = [ego_x, ego_y]
 
-        return targets, command_out.cpu().detach().numpy(), heatmap_out
+        flattened_predictions = np.array(
+            [prediction[0, ...].cpu().detach().numpy() for prediction in predictions]
+        )
+
+        return targets, flattened_predictions, heatmap_out
