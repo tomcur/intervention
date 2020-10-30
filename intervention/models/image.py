@@ -1,13 +1,13 @@
 from typing import List, Tuple
 
-import torch
-from torch import nn
-import torchvision
 import numpy as np
+import torch
+import torchvision
+from torch import nn
 
-from .spatial_softargmax import SpatialSoftargmax
-from ..carla_utils.manager import TickState
 from .. import coordinates
+from ..carla_utils.manager import TickState
+from .spatial_softargmax import SpatialSoftargmax
 
 
 class TaillessResnet34(nn.Module):
