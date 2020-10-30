@@ -53,20 +53,22 @@ def _project_point_on_circle(
     return point_on_circle
 
 
-def _unit_vector(vector):
+def _unit_vector(vector: np.ndarray) -> np.ndarray:
     """
     Returns the unit vector of the vector.
     """
     return vector / np.linalg.norm(vector)
 
 
-def _angle_between(vector1, vector2):
+def _angle_between(vector1: np.ndarray, vector2: np.ndarray) -> np.float64:
     """
     Returns the angle in radians between vectors 'v1' and 'v2'.
     """
     v1_u = _unit_vector(vector1)
     v2_u = _unit_vector(vector2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    angle = np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    assert isinstance(angle, np.float64)
+    return angle
 
 
 class PidController:
@@ -184,7 +186,7 @@ class VehicleController:
         point_to_turn_to = targets[idx_point_to_turn_to + 1]
         point = _project_point_on_circle(point_to_turn_to, circle_origin, circle_radius)
 
-        angle = _angle_between([1.0, 0], point)
+        angle = _angle_between(np.array([1.0, 0]), point)
         if point[1] < 0:
             angle = -angle
 
