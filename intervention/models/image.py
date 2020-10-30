@@ -125,7 +125,7 @@ class Agent:
 
         self._img_size = torch.tensor([384, 160])
 
-    def step(self, state) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def step(self, state: TickState) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Send the state through the underlying model, and return its output
         as predicted ego coordinate waypoints.
