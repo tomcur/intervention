@@ -4,11 +4,11 @@ import dataclasses
 import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Union, List, TextIO, Tuple
-from typing_extensions import Literal
+from typing import List, TextIO, Tuple, Union
 
 import dataclass_csv
 import numpy as np
+from typing_extensions import Literal
 
 import carla
 
