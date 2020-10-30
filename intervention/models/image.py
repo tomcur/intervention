@@ -129,12 +129,24 @@ class Agent:
         """
         Send the state through the underlying model, and return its output
         as predicted ego coordinate waypoints.
+
+        :return: A 3-tuple, where:
+            - the first element is the predicted target locations of the commanded
+              action in ego top-down coordinates;
+            - the second element is the raw model output (dimensions:
+              `[Image.OUTPUTS, Image.COORDINATE_STEPS, 2]`); and
+            - the third element is the heatmap of the predictions of the commanded
+              action.
+
         """
         image = torch.unsqueeze(self._transforms(state.rgb.copy()), 0)
         speed = torch.tensor([state.speed]).float()
         with torch.no_grad():
             predictions, heatmaps = self._model.forward(image, speed)
 
+        # Get the singular heatmap and prediction based on the commanded action and
+        # taking only the first minibatch result (the agent runs with a minibatch of
+        # size 1).
         heatmap_out = heatmaps[state.command - 1][0, ...].cpu().detach().numpy()
         command_out = predictions[state.command - 1][0, ...]
         locations = command_out + 1
