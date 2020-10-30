@@ -4,7 +4,8 @@ import dataclasses
 import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import List, TextIO, Tuple
+from typing import Union, List, TextIO, Tuple
+from typing_extensions import Literal
 
 import dataclass_csv
 import numpy as np
@@ -117,6 +118,7 @@ class ZipStore(Store):
                 "rgb_filename",
                 "student_output_filename",
                 "time_to_intervention",
+                "time_to_end",
                 "time_from_intervention",
                 "lane_invasion",
                 "collision",
@@ -153,7 +155,7 @@ class ZipStore(Store):
         if not self._teacher_in_control:
             self._intervention_step = step
             self._teacher_in_control = True
-            self._store_student_driving()
+            self._store_student_driving(reason="intervention")
 
         rgb_filename = f"{step:05d}-rgb-teacher.bin"
         self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
@@ -164,7 +166,6 @@ class ZipStore(Store):
                 "command": state.command,
                 "controller": "teacher",
                 "rgb_filename": rgb_filename,
-                "time_to_intervention": None,
                 "time_from_intervention": step - self._intervention_step,
                 "lane_invasion": int(state.lane_invasion is not None),
                 "collision": int(state.collision is not None),
@@ -184,7 +185,13 @@ class ZipStore(Store):
     def _add_file(self, filename: str, data: bytes) -> None:
         self._archive.writestr(filename, data)
 
-    def _store_student_driving(self) -> None:
+    def _store_student_driving(
+        self, reason: Union[Literal["intervention"], Literal["end"]]
+    ) -> None:
+        if len(self._recent_student_driving) == 0:
+            return
+        last_step, _, _, _ = self._recent_student_driving[-1]
+
         for (step, model_output, _control, state) in reversed(
             self._recent_student_driving
         ):
@@ -196,6 +203,14 @@ class ZipStore(Store):
             np.save(buffer, model_output)
             self._add_file(model_output_filename, buffer.getvalue())
 
+            time_to_intervention = None
+            time_to_end = None
+
+            if reason == "intervention":
+                time_to_intervention = self._intervention_step - step
+            elif reason == "end":
+                time_to_end = last_step - self._intervention_step
+
             orientation = state.rotation.get_forward_vector()
             self._csv_writer.writerow(
                 {
@@ -204,8 +219,8 @@ class ZipStore(Store):
                     "controller": "student",
                     "rgb_filename": rgb_filename,
                     "student_output_filename": model_output_filename,
-                    "time_to_intervention": self._intervention_step - step,
-                    "time_from_intervention": None,
+                    "time_to_intervention": time_to_intervention,
+                    "time_to_end": time_to_end,
                     "lane_invasion": int(state.lane_invasion is not None),
                     "collision": int(state.collision is not None),
                     "location_x": state.location.x,
@@ -223,4 +238,4 @@ class ZipStore(Store):
         self._recent_student_driving = []
 
     def stop(self) -> None:
-        self._store_student_driving()
+        self._store_student_driving(reason="end")
