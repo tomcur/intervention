@@ -209,7 +209,7 @@ class ZipStore(Store):
             if reason == "intervention":
                 time_to_intervention = self._intervention_step - step
             elif reason == "end":
-                time_to_end = last_step - self._intervention_step
+                time_to_end = last_step - step
 
             orientation = state.rotation.get_forward_vector()
             self._csv_writer.writerow(
