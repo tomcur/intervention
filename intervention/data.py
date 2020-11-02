@@ -64,7 +64,7 @@ class FrameData(TypedDict):
     command: int
     controller: str
     rgb_filename: str
-    student_output_filename: str
+    student_output_filename: Optional[str]
     time_to_intervention: Optional[int]
     time_to_end: Optional[int]
     time_from_intervention: Optional[int]
