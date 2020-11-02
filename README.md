@@ -1,4 +1,18 @@
-# Installing dependencies
+# Setup
+## System dependencies
+There are some system dependencies.
+This repository provides `./flake.nix` and `./shell.nix` to prepare a development environment using [Nix](https://nixos.org).
+
+```shell
+# On a flake-enabled Nix system:
+$ nix develop
+# On a non-flake-enabled Nix system:
+$ nix-shell
+```
+
+Furthermore, the [intervention-scripts repository](https://github.com/beskhue/intervention-scripts) provides a Conda `environment.yml` that can help you get started.
+
+## Installing Python dependencies
 A `requirements.txt` is provided to pin dependencies to some quite specific versions known to work well.
 Note that you might need to override some dependencies (probably PyTorch and Torchvision) to satisfy your platform's requirements.
 For example, to install pytorch and torchvision with CUDA 10.1 support, apply the following patch
@@ -21,3 +35,4 @@ and install requirements with
 ```
 
 For more information see [PyTorch's documentation on this matter](https://pytorch.org/get-started/previous-versions/).
+
