@@ -460,11 +460,11 @@ class Client:
     ):
         ...
 
-    def apply_batch(self, commands: List[Command]):
+    def apply_batch(self, commands: Sequence[Command]):
         ...
 
     def apply_batch_sync(
-        self, commands: List[carla.command], due_tick_cue: bool = False
+        self, commands: Sequence[Command], due_tick_cue: bool = False
     ) -> List[Response]:
         ...
 
