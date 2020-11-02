@@ -1,0 +1,84 @@
+{
+  "nodes": {
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1603796912,
+        "narHash": "sha256-6ayqpH/4XiEXylNdWI3AghubqS6XuiPg3Y60jY8RTo4=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "19576c2aea7f074ff0da818b21a8b0950ff6ec86",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1601282935,
+        "narHash": "sha256-WQAFV6sGGQxrRs3a+/Yj9xUYvhTpukQJIcMbIi7LCJ4=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "588973065fce51f4763287f0fda87a174d78bf48",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "libjpeg": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-srMHF8CBTwPPO9a5D3JmYY7N6punFHNAHahuNintC1U=",
+        "type": "tarball",
+        "url": "http://www.ijg.org/files/jpegsrc.v8d.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "http://www.ijg.org/files/jpegsrc.v8d.tar.gz"
+      }
+    },
+    "libproj": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-g7tNY0ono/M6BlbTdN2OzpKIaPe5z25TQ7mrErY0ih0=",
+        "type": "tarball",
+        "url": "http://download.osgeo.org/proj/proj-4.9.1.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "http://download.osgeo.org/proj/proj-4.9.1.tar.gz"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1604300544,
+        "narHash": "sha256-xBWYKInp/RblScv+UlNlZlk962+a9NeWbA+AHErhpBg=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "2c931312ce6c7baf91ec98e164bef0241fc20aa6",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "flake-utils": "flake-utils",
+        "libjpeg": "libjpeg",
+        "libproj": "libproj",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
