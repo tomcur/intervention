@@ -1,4 +1,6 @@
-from . import ActorBlueprint, Actor, Transform
+from typing import Optional, Union
+
+from . import Actor, ActorBlueprint, Transform
 
 
 class Command:
@@ -15,6 +17,6 @@ class SpawnActor(Command):
         self,
         blueprint: ActorBlueprint,
         transform: Transform,
-        parent: Optional[Actor] = None,
+        parent: Optional[Union[Actor, int]] = None,
     ):
         ...

@@ -63,7 +63,6 @@ class ActorAttributeType:
 class ActorAttribute:
     id: str
     is_modifiable: bool
-    recommended_values: List[str]
     type: ActorAttributeType
 
     @property
@@ -85,7 +84,7 @@ class ActorAttribute:
     def as_str(self) -> str:
         ...
 
-    def __eq__(self, other: Union[bool, int, float, str, "ActorAttribute"]):
+    def __eq__(self, other: object) -> bool:
         ...
 
 
