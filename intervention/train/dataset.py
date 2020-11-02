@@ -156,7 +156,7 @@ def off_policy_data(data_directory) -> OffPolicyDataset:
         episode_summaries_reader = DataclassReader(
             episode_summaries_file, EpisodeSummary
         )
-        episode_summaries = list(episode_summaries_reader)
+        episode_summaries: List[EpisodeSummary] = list(episode_summaries_reader)
 
     episodes = [ep.uuid for ep in episode_summaries if ep.success]
     logger.info(
