@@ -1,5 +1,5 @@
-from typing import List, Any, Optional, Callable, Sequence, Union
 from dataclasses import dataclass
+from typing import Any, Callable, List, Optional, Sequence, Union, overload
 
 from .command import Command, Response
 
@@ -116,6 +116,17 @@ class BlueprintLibrary(Sequence[ActorBlueprint]):
     def find(self, id: str) -> ActorBlueprint:
         ...
 
+    @overload
+    def __getitem__(self, key: int) -> ActorBlueprint:
+        ...
+
+    @overload
+    def __getitem__(self, key: slice) -> Sequence[ActorBlueprint]:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
 
 class Actor:
     def destroy(self) -> bool:
@@ -136,6 +147,17 @@ class Actor:
 
 class ActorList(Sequence[Actor]):
     def filter(self, wildcard_pattern: str) -> List[Actor]:
+        ...
+
+    @overload
+    def __getitem__(self, key: int) -> Actor:
+        ...
+
+    @overload
+    def __getitem__(self, key: slice) -> Sequence[Actor]:
+        ...
+
+    def __len__(self) -> int:
         ...
 
 
