@@ -3,9 +3,10 @@ import csv
 import dataclasses
 import sys
 import zipfile
+from collections import deque
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import List, Optional, TextIO, Tuple, Union
+from typing import List, Optional, TextIO, Tuple, Union, Deque
 
 import dataclass_csv
 import numpy as np
@@ -67,9 +68,11 @@ class FrameData(TypedDict):
     controller: str
     rgb_filename: str
     student_output_filename: Optional[str]
-    time_to_intervention: Optional[int]
-    time_to_end: Optional[int]
-    time_from_intervention: Optional[int]
+    ticks_engaged: Optional[int]
+    ticks_to_intervention: Optional[int]
+    ticks_intervened: Optional[int]
+    ticks_to_engagement: Optional[int]
+    ticks_to_end: Optional[int]
     lane_invasion: int  # (int-encoded bool: 0 = False, 1 = True)
     collision: int  # (int-encoded bool: 0 = False, 1 = True)
     location_x: float
@@ -132,12 +135,11 @@ class ZipStore(Store):
     def __init__(self, archive: zipfile.ZipFile, csv_file: TextIO):
         self._archive = archive
         self._csv = csv
-        self._recent_student_driving: List[
-            Tuple[int, np.ndarray, carla.VehicleControl, TickState]
-        ] = []
-        self._teacher_in_control = False
-        self._intervention_step = 0
-        self._latest_step = 0
+        self._frame_data_queue: Deque[Tuple[int, FrameData]] = deque()
+
+        self._teacher_in_control = True
+        self._intervention_tick = 0
+        self._engagement_tick = 0
 
         self._csv_file = csv_file
         self._csv_writer = csv.DictWriter(
@@ -148,105 +150,128 @@ class ZipStore(Store):
 
     def push_student_driving(
         self,
-        step: int,
+        tick: int,
         model_output: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
     ) -> None:
-        self._teacher_in_control = False
-        self._recent_student_driving.append((step, model_output, control, state))
-        if len(self._recent_student_driving) > self.STORE_NUM_TICKS_BEFORE_INTERVENTION:
-            self._recent_student_driving.pop(0)
+        if self._teacher_in_control:
+            self._engagement_tick = tick
+            self._teacher_in_control = False
+            self._store_teacher_driving(reason="engagement")
+
+        rgb_filename = f"{tick:05d}-rgb-student.bin"
+        self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+
+        model_output_filename = f"{tick:05d}-output-student.npy"
+        buffer = BytesIO()
+        np.save(buffer, model_output)
+        self._add_file(model_output_filename, buffer.getvalue())
+
+        orientation = state.rotation.get_forward_vector()
+
+        frame_data = FrameData(
+            tick=tick,
+            command=state.command,
+            controller="student",
+            rgb_filename=rgb_filename,
+            student_output_filename=model_output_filename,
+            ticks_engaged=tick - self._engagement_tick,
+            ticks_to_intervention=None,
+            ticks_intervened=None,
+            ticks_to_engagement=None,
+            ticks_to_end=None,
+            lane_invasion=int(state.lane_invasion is not None),
+            collision=int(state.collision is not None),
+            location_x=state.location.x,
+            location_y=state.location.y,
+            location_z=state.location.z,
+            velocity_x=state.velocity.x,
+            velocity_y=state.velocity.y,
+            velocity_z=state.velocity.z,
+            speed=state.speed,
+            orientation_x=orientation.x,
+            orientation_y=orientation.y,
+            orientation_z=orientation.z,
+        )
+        self._frame_data_queue.append((tick, frame_data))
 
     def push_teacher_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
+        self, tick: int, control: carla.VehicleControl, state: TickState
     ) -> None:
         if not self._teacher_in_control:
-            self._intervention_step = step
+            self._intervention_tick = tick
             self._teacher_in_control = True
             self._store_student_driving(reason="intervention")
 
-        rgb_filename = f"{step:05d}-rgb-teacher.bin"
+        rgb_filename = f"{tick:05d}-rgb-teacher.bin"
         self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+
         orientation = state.rotation.get_forward_vector()
-        self._csv_writer.writerow(
-            FrameData(
-                tick=step,
-                command=state.command,
-                controller="teacher",
-                rgb_filename=rgb_filename,
-                student_output_filename=None,
-                time_to_intervention=None,
-                time_to_end=None,
-                time_from_intervention=step - self._intervention_step,
-                lane_invasion=int(state.lane_invasion is not None),
-                collision=int(state.collision is not None),
-                location_x=state.location.x,
-                location_y=state.location.y,
-                location_z=state.location.z,
-                velocity_x=state.velocity.x,
-                velocity_y=state.velocity.y,
-                velocity_z=state.velocity.z,
-                speed=state.speed,
-                orientation_x=orientation.x,
-                orientation_y=orientation.y,
-                orientation_z=orientation.z,
-            )
+
+        frame_data = FrameData(
+            tick=tick,
+            command=state.command,
+            controller="teacher",
+            rgb_filename=rgb_filename,
+            student_output_filename=None,
+            ticks_engaged=None,
+            ticks_to_intervention=None,
+            ticks_intervened=tick - self._intervention_tick,
+            ticks_to_engagement=None,
+            ticks_to_end=None,
+            lane_invasion=int(state.lane_invasion is not None),
+            collision=int(state.collision is not None),
+            location_x=state.location.x,
+            location_y=state.location.y,
+            location_z=state.location.z,
+            velocity_x=state.velocity.x,
+            velocity_y=state.velocity.y,
+            velocity_z=state.velocity.z,
+            speed=state.speed,
+            orientation_x=orientation.x,
+            orientation_y=orientation.y,
+            orientation_z=orientation.z,
         )
+        self._frame_data_queue.append((tick, frame_data))
 
     def _add_file(self, filename: str, data: bytes) -> None:
         self._archive.writestr(filename, data)
 
+    def _store_teacher_driving(
+        self, reason: Union[Literal["engagement"], Literal["end"]]
+    ) -> None:
+        if len(self._frame_data_queue) == 0:
+            return
+        last_tick, _ = self._frame_data_queue[-1]
+
+        for (tick, frame_data) in self._frame_data_queue:
+            if reason == "engagement":
+                frame_data["ticks_to_engagement"] = last_tick - tick
+            elif reason == "end":
+                frame_data["ticks_to_end"] = last_tick - tick
+
+            self._csv_writer.writerow(frame_data)
+        self._frame_data_queue.clear()
+
     def _store_student_driving(
         self, reason: Union[Literal["intervention"], Literal["end"]]
     ) -> None:
-        if len(self._recent_student_driving) == 0:
+        if len(self._frame_data_queue) == 0:
             return
-        last_step, _, _, _ = self._recent_student_driving[-1]
+        last_tick, _ = self._frame_data_queue[-1]
 
-        for (step, model_output, _control, state) in self._recent_student_driving:
-            rgb_filename = f"{step:05d}-rgb-student.bin"
-            self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
-
-            model_output_filename = f"{step:05d}-output-student.npy"
-            buffer = BytesIO()
-            np.save(buffer, model_output)
-            self._add_file(model_output_filename, buffer.getvalue())
-
-            time_to_intervention = None
-            time_to_end = None
-
+        for (tick, frame_data) in self._frame_data_queue:
             if reason == "intervention":
-                time_to_intervention = self._intervention_step - step
+                frame_data["ticks_to_intervention"] = last_tick - tick
             elif reason == "end":
-                time_to_end = last_step - step
+                frame_data["ticks_to_end"] = last_tick - tick
 
-            orientation = state.rotation.get_forward_vector()
-            self._csv_writer.writerow(
-                FrameData(
-                    tick=step,
-                    command=state.command,
-                    controller="student",
-                    rgb_filename=rgb_filename,
-                    student_output_filename=model_output_filename,
-                    time_to_intervention=time_to_intervention,
-                    time_to_end=time_to_end,
-                    time_from_intervention=None,
-                    lane_invasion=int(state.lane_invasion is not None),
-                    collision=int(state.collision is not None),
-                    location_x=state.location.x,
-                    location_y=state.location.y,
-                    location_z=state.location.z,
-                    velocity_x=state.velocity.x,
-                    velocity_y=state.velocity.y,
-                    velocity_z=state.velocity.z,
-                    speed=state.speed,
-                    orientation_x=orientation.x,
-                    orientation_y=orientation.y,
-                    orientation_z=orientation.z,
-                )
-            )
-        self._recent_student_driving = []
+            self._csv_writer.writerow(frame_data)
+        self._frame_data_queue.clear()
 
     def stop(self) -> None:
-        self._store_student_driving(reason="end")
+        if self._teacher_in_control:
+            self._store_teacher_driving(reason="end")
+        else:
+            self._store_student_driving(reason="end")
