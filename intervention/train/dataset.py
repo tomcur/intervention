@@ -158,7 +158,7 @@ def off_policy_data(data_directory) -> OffPolicyDataset:
         )
         episode_summaries: List[EpisodeSummary] = list(episode_summaries_reader)
 
-    episodes = [ep.uuid for ep in episode_summaries if ep.success]
+    episodes = [ep.uuid for ep in episode_summaries if ep.end_status == "success"]
     logger.info(
         f"Using {len(episodes)} successful episodes "
         f"out of {len(episode_summaries)} total episodes."

@@ -307,16 +307,16 @@ def run_example_episode(
                 painter.add_birdview(birdview_render)
 
             if state.probably_stuck:
-                summary.terminated = True
+                summary.end_status = "stuck"
                 break
 
             if state.collision:
                 summary.collisions += 1
-                summary.terminated = True
+                summary.end_status = "collision"
                 break
 
             if state.route_completed:
-                summary.success = True
+                summary.end_status = "success"
                 break
 
     summary.end()
@@ -412,16 +412,16 @@ def run_on_policy_episode(
                 painter.add_birdview(birdview_render)
 
             if state.probably_stuck:
-                summary.terminated = True
+                summary.end_status = "stuck"
                 break
 
             if state.collision:
                 summary.collisions += 1
-                summary.terminated = True
+                summary.end_status = "collision"
                 break
 
             if state.route_completed:
-                summary.success = True
+                summary.end_status = "success"
                 break
 
     summary.end()

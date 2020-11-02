@@ -21,6 +21,9 @@ else:
     from typing_extensions import TypedDict
 
 
+EndStatus = Union[Literal["success", "collision", "stuck", "unknown"]]
+
+
 @dataclasses.dataclass
 @dataclass_csv.dateformat("%Y-%m-%dT%H:%M:%S.%f%z")
 class EpisodeSummary:
@@ -32,8 +35,7 @@ class EpisodeSummary:
         default_factory=lambda: datetime.now(timezone.utc)
     )
     town: str = ""
-    terminated: bool = False
-    success: bool = False
+    end_status: EndStatus = "unknown"
     collisions: int = 0
     distance_travelled: float = 0.0
     interventions: int = 0
