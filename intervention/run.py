@@ -284,7 +284,11 @@ def run_example_episode(
                 {
                     "birdview": state.birdview,
                     "velocity": np.float32(
-                        [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
+                        [  # type: ignore
+                            state.velocity.x,
+                            state.velocity.y,
+                            state.velocity.z,
+                        ]
                     ),
                     "command": state.command,
                 },
@@ -355,7 +359,11 @@ def run_on_policy_episode(
                 {
                     "birdview": state.birdview,
                     "velocity": np.float32(
-                        [state.velocity.x, state.velocity.y, state.velocity.z]  # type: ignore
+                        [  # type: ignore
+                            state.velocity.x,
+                            state.velocity.y,
+                            state.velocity.z,
+                        ]
                     ),
                     "command": state.command,
                 },
