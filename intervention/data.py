@@ -1,10 +1,11 @@
 import abc
 import csv
 import dataclasses
+import sys
 import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import List, TextIO, Tuple, Union
+from typing import List, Optional, TextIO, Tuple, Union
 
 import dataclass_csv
 import numpy as np
@@ -13,6 +14,11 @@ from typing_extensions import Literal
 import carla
 
 from .carla_utils import TickState
+
+if sys.version_info >= (3, 8):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
 
 
 @dataclasses.dataclass
@@ -51,6 +57,29 @@ class EpisodeSummary:
             elif isinstance(value, datetime):
                 values[key] = value.isoformat()
         return values
+
+
+class FrameData(TypedDict):
+    tick: int
+    command: int
+    controller: str
+    rgb_filename: str
+    student_output_filename: str
+    time_to_intervention: Optional[int]
+    time_to_end: Optional[int]
+    time_from_intervention: Optional[int]
+    lane_invasion: int  # (int-encoded bool: 0 = False, 1 = True)
+    collision: int  # (int-encoded bool: 0 = False, 1 = True)
+    location_x: float
+    location_y: float
+    location_z: float
+    velocity_x: float
+    velocity_y: float
+    velocity_z: float
+    speed: float
+    orientation_x: float
+    orientation_y: float
+    orientation_z: float
 
 
 class Store:
@@ -110,29 +139,7 @@ class ZipStore(Store):
 
         self._csv_file = csv_file
         self._csv_writer = csv.DictWriter(
-            csv_file,
-            fieldnames=[
-                "tick",
-                "command",
-                "controller",
-                "rgb_filename",
-                "student_output_filename",
-                "time_to_intervention",
-                "time_to_end",
-                "time_from_intervention",
-                "lane_invasion",
-                "collision",
-                "location_x",
-                "location_y",
-                "location_z",
-                "velocity_x",
-                "velocity_y",
-                "velocity_z",
-                "speed",
-                "orientation_x",
-                "orientation_y",
-                "orientation_z",
-            ],
+            csv_file, fieldnames=list(FrameData.__annotations__.keys()),
         )
         self._csv_writer.writeheader()
         self._csv_file.flush()
@@ -161,25 +168,28 @@ class ZipStore(Store):
         self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
         orientation = state.rotation.get_forward_vector()
         self._csv_writer.writerow(
-            {
-                "tick": step,
-                "command": state.command,
-                "controller": "teacher",
-                "rgb_filename": rgb_filename,
-                "time_from_intervention": step - self._intervention_step,
-                "lane_invasion": int(state.lane_invasion is not None),
-                "collision": int(state.collision is not None),
-                "location_x": state.location.x,
-                "location_y": state.location.y,
-                "location_z": state.location.z,
-                "velocity_x": state.velocity.x,
-                "velocity_y": state.velocity.y,
-                "velocity_z": state.velocity.z,
-                "speed": state.speed,
-                "orientation_x": orientation.x,
-                "orientation_y": orientation.y,
-                "orientation_z": orientation.z,
-            }
+            FrameData(
+                tick=step,
+                command=state.command,
+                controller="teacher",
+                rgb_filename=rgb_filename,
+                student_output_filename=None,
+                time_to_intervention=None,
+                time_to_end=None,
+                time_from_intervention=step - self._intervention_step,
+                lane_invasion=int(state.lane_invasion is not None),
+                collision=int(state.collision is not None),
+                location_x=state.location.x,
+                location_y=state.location.y,
+                location_z=state.location.z,
+                velocity_x=state.velocity.x,
+                velocity_y=state.velocity.y,
+                velocity_z=state.velocity.z,
+                speed=state.speed,
+                orientation_x=orientation.x,
+                orientation_y=orientation.y,
+                orientation_z=orientation.z,
+            )
         )
 
     def _add_file(self, filename: str, data: bytes) -> None:
@@ -211,27 +221,28 @@ class ZipStore(Store):
 
             orientation = state.rotation.get_forward_vector()
             self._csv_writer.writerow(
-                {
-                    "tick": step,
-                    "command": state.command,
-                    "controller": "student",
-                    "rgb_filename": rgb_filename,
-                    "student_output_filename": model_output_filename,
-                    "time_to_intervention": time_to_intervention,
-                    "time_to_end": time_to_end,
-                    "lane_invasion": int(state.lane_invasion is not None),
-                    "collision": int(state.collision is not None),
-                    "location_x": state.location.x,
-                    "location_y": state.location.y,
-                    "location_z": state.location.z,
-                    "velocity_x": state.velocity.x,
-                    "velocity_y": state.velocity.y,
-                    "velocity_z": state.velocity.z,
-                    "speed": state.speed,
-                    "orientation_x": orientation.x,
-                    "orientation_y": orientation.y,
-                    "orientation_z": orientation.z,
-                }
+                FrameData(
+                    tick=step,
+                    command=state.command,
+                    controller="student",
+                    rgb_filename=rgb_filename,
+                    student_output_filename=model_output_filename,
+                    time_to_intervention=time_to_intervention,
+                    time_to_end=time_to_end,
+                    time_from_intervention=None,
+                    lane_invasion=int(state.lane_invasion is not None),
+                    collision=int(state.collision is not None),
+                    location_x=state.location.x,
+                    location_y=state.location.y,
+                    location_z=state.location.z,
+                    velocity_x=state.velocity.x,
+                    velocity_y=state.velocity.y,
+                    velocity_z=state.velocity.z,
+                    speed=state.speed,
+                    orientation_x=orientation.x,
+                    orientation_y=orientation.y,
+                    orientation_z=orientation.z,
+                )
             )
         self._recent_student_driving = []
 
