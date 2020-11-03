@@ -436,15 +436,34 @@ def process_wrapper(target, *args, **kwargs):
     queue = multiprocessing.Queue()
 
     def _wrapper(target, queue, *args, **kwargs):
-        value = target(*args, **kwargs)
-        queue.put(value)
+        """
+        Runs `target` with `*args` and `**kwargs`. Puts a 2-tuple in `queue`. The first
+        member of the tuple is a boolean indicating whether`target` succeeded or raised
+        an exception. The second member is the return value of `target` or the raised
+        exception.
+        """
+        try:
+            value = target(*args, **kwargs)
+            queue.put((True, value))
+        except Exception as e:
+            queue.put((False, e))
 
     process = multiprocessing.Process(
         target=_wrapper, args=(target, queue) + args, kwargs=kwargs
     )
     process.start()
     process.join()
-    return queue.get()
+    if process.exitcode == 0:
+        (success, value) = queue.get()
+        if success:
+            return value
+        else:
+            assert isinstance(value, Exception)
+            raise value
+    else:
+        raise exceptions.UnexpectedError(
+            f"Child process exited with error code {process.exitcode}"
+        )
 
 
 def collect_example_episode(
