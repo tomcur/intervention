@@ -455,18 +455,11 @@ def process_wrapper(target: Callable[..., T], *args, **kwargs) -> T:
         target=_wrapper, args=(target, queue) + args, kwargs=kwargs
     )
     process.start()
-    process.join()
-    if process.exitcode == 0:
-        (success, value) = queue.get()
-        if success:
-            return value
-        else:
-            assert isinstance(value, Exception)
-            raise value
+    success, value = queue.get()
+    if success:
+        return value
     else:
-        raise exceptions.UnexpectedError(
-            f"Child process exited with error code {process.exitcode}"
-        )
+        raise value
 
 
 def collect_example_episode(
