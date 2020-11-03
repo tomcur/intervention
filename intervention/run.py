@@ -5,7 +5,7 @@ import os
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Callable, TypeVar
+from typing import Callable, Tuple, TypeVar, Union
 
 import numpy as np
 import torch
@@ -436,9 +436,16 @@ def process_wrapper(target: Callable[..., T], *args, **kwargs) -> T:
     Runs `target` (with `*args` and `**kwargs`) in a subprocess. Blocks until `target`
     is done. Returns the return value of `target`.
     """
-    queue = multiprocessing.Queue()
+    queue: multiprocessing.SimpleQueue[
+        Tuple[bool, Union[T, Exception]]
+    ] = multiprocessing.SimpleQueue()
 
-    def _wrapper(target, queue, *args, **kwargs):
+    def _wrapper(
+        target: Callable[..., T],
+        queue,
+        *args,
+        **kwargs,
+    ):
         """
         Runs `target` with `*args` and `**kwargs`. Puts a 2-tuple in `queue`. The first
         member of the tuple is a boolean indicating whether`target` succeeded or raised
@@ -457,9 +464,9 @@ def process_wrapper(target: Callable[..., T], *args, **kwargs) -> T:
     process.start()
     success, value = queue.get()
     if success:
-        return value
+        return value  # type: ignore
     else:
-        raise value
+        raise value  # type: ignore
 
 
 def collect_example_episode(
