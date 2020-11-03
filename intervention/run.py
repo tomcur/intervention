@@ -5,6 +5,7 @@ import os
 import uuid
 import zipfile
 from pathlib import Path
+from typing import Callable, TypeVar
 
 import numpy as np
 import torch
@@ -15,6 +16,8 @@ import carla
 from . import controller, data, exceptions, process, visualization
 from .carla_utils import TickState, connect
 from .learning_by_cheating import birdview
+
+T = TypeVar("T")
 
 
 def controls_differ(observation, supervisor_control, model_control) -> bool:
@@ -428,10 +431,10 @@ def run_on_policy_episode(
     return summary
 
 
-def process_wrapper(target, *args, **kwargs):
+def process_wrapper(target: Callable[..., T], *args, **kwargs) -> T:
     """
-    Runs target (with *args and **kwargs) in a subprocess. Blocks until target is done.
-    Returns the return value of target.
+    Runs `target` (with `*args` and `**kwargs`) in a subprocess. Blocks until `target`
+    is done. Returns the return value of `target`.
     """
     queue = multiprocessing.Queue()
 
