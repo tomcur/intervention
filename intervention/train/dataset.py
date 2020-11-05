@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import torchvision
 
-from ..data import EpisodeSummary
+from ..data import EpisodeSummary, FrameData
 from ..utils import image
 from .. import coordinates
 
@@ -48,29 +48,31 @@ class DatapointMeta(TypedDict):
     next_locations_image_coordinates: List[Any]
 
 
-def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointMeta]:
+def datapoint_meta_from_dictionaries(
+    dictionaries: List[FrameData],
+) -> List[DatapointMeta]:
     datapoints = []
     for (idx, dictionary) in enumerate(
         dictionaries[: -LOCATIONS_NUM_STEPS * LOCATIONS_STEP_INTERVAL]
     ):
 
         current_orientation = Orientation(
-            x=float(dictionary["orientation_x"]),
-            y=float(dictionary["orientation_y"]),
-            z=float(dictionary["orientation_z"]),
+            x=dictionary["orientation_x"],
+            y=dictionary["orientation_y"],
+            z=dictionary["orientation_z"],
         )
 
         current_location = Location(
-            x=float(dictionary["location_x"]),
-            y=float(dictionary["location_y"]),
-            z=float(dictionary["location_z"]),
+            x=dictionary["location_x"],
+            y=dictionary["location_y"],
+            z=dictionary["location_z"],
         )
 
         next_locations = [
             Location(
-                x=float(subsequent_dictionary["location_x"]),
-                y=float(subsequent_dictionary["location_y"]),
-                z=float(subsequent_dictionary["location_z"]),
+                x=subsequent_dictionary["location_x"],
+                y=subsequent_dictionary["location_y"],
+                z=subsequent_dictionary["location_z"],
             )
             for subsequent_dictionary in dictionaries[
                 (idx + LOCATIONS_STEP_INTERVAL) : (
@@ -96,8 +98,8 @@ def datapoint_meta_from_dictionaries(dictionaries: List[Any]) -> List[DatapointM
 
         meta = DatapointMeta(
             rgb_filename=dictionary["rgb_filename"],
-            command=int(dictionary["command"]),
-            speed=float(dictionary["speed"]),
+            command=dictionary["command"],
+            speed=dictionary["speed"],
             current_orientation=current_orientation,
             current_location=current_location,
             next_locations=next_locations,
@@ -130,7 +132,45 @@ class OffPolicyDataset(torch.utils.data.Dataset):
 
             with open(data_directory / episode / "episode.csv") as csv_file:
                 csv_reader = DictReader(csv_file)
-                rows = list(csv_reader)
+                rows = [
+                    FrameData(
+                        tick=int(r["tick"]),
+                        command=int(r["tick"]),
+                        controller=r["controller"],
+                        rgb_filename=r["rgb_filename"],
+                        student_output_filename=r["student_output"]
+                        if r["student_output"]
+                        else None,
+                        ticks_engaged=int(r["ticks_engaged"])
+                        if r["ticks_engaged"]
+                        else None,
+                        ticks_to_intervention=int(r["ticks_to_intervention"])
+                        if r["ticks_to_intervention"]
+                        else None,
+                        ticks_intervened=int(r["ticks_intervened"])
+                        if r["ticks_intervened"]
+                        else None,
+                        ticks_to_engagement=int(r["ticks_to_engagement"])
+                        if r["ticks_to_engagement"]
+                        else None,
+                        ticks_to_end=int(r["ticks_to_end"])
+                        if r["ticks_to_end"]
+                        else None,
+                        lane_invasion=int(r["lane_invasion"]),
+                        collision=int(r["collision"]),
+                        location_x=float(r["location_x"]),
+                        location_y=float(r["location_y"]),
+                        location_z=float(r["location_z"]),
+                        velocity_x=float(r["velocity_x"]),
+                        velocity_y=float(r["velocity_y"]),
+                        velocity_z=float(r["velocity_z"]),
+                        speed=float(r["speed"]),
+                        orientation_x=float(r["orientation_x"]),
+                        orientation_y=float(r["orientation_y"]),
+                        orientation_z=float(r["orientation_z"]),
+                    )
+                    for r in csv_reader
+                ]
                 self._episodes[episode] = datapoint_meta_from_dictionaries(rows)
                 self._index_map.extend(
                     [(episode, idx) for idx in range(len(self._episodes[episode]))]
