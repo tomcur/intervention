@@ -1,6 +1,6 @@
 import sys
 
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, List, Dict, Mapping, Any, Sequence
 
 from pathlib import Path
 from zipfile import ZipFile
@@ -38,8 +38,9 @@ class Orientation(TypedDict):
     z: float
 
 
-class DatapointMeta(TypedDict):
+class Datapoint(TypedDict):
     rgb_filename: str
+    model_output_filename: str
     command: int
     speed: float
     current_orientation: Orientation
@@ -48,9 +49,7 @@ class DatapointMeta(TypedDict):
     next_locations_image_coordinates: List[Any]
 
 
-def datapoint_meta_from_dictionaries(
-    dictionaries: List[FrameData],
-) -> List[DatapointMeta]:
+def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoint]:
     datapoints = []
     for (idx, dictionary) in enumerate(
         dictionaries[: -LOCATIONS_NUM_STEPS * LOCATIONS_STEP_INTERVAL]
@@ -96,8 +95,9 @@ def datapoint_meta_from_dictionaries(
             for location in next_locations
         ]
 
-        meta = DatapointMeta(
+        datapoint = Datapoint(
             rgb_filename=dictionary["rgb_filename"],
+            student_output_filename=dictionary["student_output_filename"],
             command=dictionary["command"],
             speed=dictionary["speed"],
             current_orientation=current_orientation,
@@ -105,14 +105,47 @@ def datapoint_meta_from_dictionaries(
             next_locations=next_locations,
             next_locations_image_coordinates=np.array(next_locations_image_coordinates),
         )
-        datapoints.append(meta)
+        datapoints.append(datapoint)
     return datapoints
+
+
+def _parse_frame_data(r: Dict[str, str]) -> FrameData:
+    return FrameData(
+        tick=int(r["tick"]),
+        command=int(r["tick"]),
+        controller=r["controller"],
+        rgb_filename=r["rgb_filename"],
+        student_output_filename=r["student_output_filename"]
+        if r["student_output_filename"]
+        else None,
+        ticks_engaged=int(r["ticks_engaged"]) if r["ticks_engaged"] else None,
+        ticks_to_intervention=int(r["ticks_to_intervention"])
+        if r["ticks_to_intervention"]
+        else None,
+        ticks_intervened=int(r["ticks_intervened"]) if r["ticks_intervened"] else None,
+        ticks_to_engagement=int(r["ticks_to_engagement"])
+        if r["ticks_to_engagement"]
+        else None,
+        ticks_to_end=int(r["ticks_to_end"]) if r["ticks_to_end"] else None,
+        lane_invasion=int(r["lane_invasion"]),
+        collision=int(r["collision"]),
+        location_x=float(r["location_x"]),
+        location_y=float(r["location_y"]),
+        location_z=float(r["location_z"]),
+        velocity_x=float(r["velocity_x"]),
+        velocity_y=float(r["velocity_y"]),
+        velocity_z=float(r["velocity_z"]),
+        speed=float(r["speed"]),
+        orientation_x=float(r["orientation_x"]),
+        orientation_y=float(r["orientation_y"]),
+        orientation_z=float(r["orientation_z"]),
+    )
 
 
 class OffPolicyDataset(torch.utils.data.Dataset):
     def __init__(self, data_directory: Path, episodes: List[str]):
         self._index_map: List[Tuple[str, int]] = []
-        self._episodes: Dict[str, List[DatapointMeta]] = {}
+        self._episodes: Dict[str, List[Datapoint]] = {}
         self._zip_files: Dict[str, ZipFile] = {}
 
         self._transforms = torchvision.transforms.Compose(
@@ -132,46 +165,8 @@ class OffPolicyDataset(torch.utils.data.Dataset):
 
             with open(data_directory / episode / "episode.csv") as csv_file:
                 csv_reader = DictReader(csv_file)
-                rows = [
-                    FrameData(
-                        tick=int(r["tick"]),
-                        command=int(r["tick"]),
-                        controller=r["controller"],
-                        rgb_filename=r["rgb_filename"],
-                        student_output_filename=r["student_output"]
-                        if r["student_output"]
-                        else None,
-                        ticks_engaged=int(r["ticks_engaged"])
-                        if r["ticks_engaged"]
-                        else None,
-                        ticks_to_intervention=int(r["ticks_to_intervention"])
-                        if r["ticks_to_intervention"]
-                        else None,
-                        ticks_intervened=int(r["ticks_intervened"])
-                        if r["ticks_intervened"]
-                        else None,
-                        ticks_to_engagement=int(r["ticks_to_engagement"])
-                        if r["ticks_to_engagement"]
-                        else None,
-                        ticks_to_end=int(r["ticks_to_end"])
-                        if r["ticks_to_end"]
-                        else None,
-                        lane_invasion=int(r["lane_invasion"]),
-                        collision=int(r["collision"]),
-                        location_x=float(r["location_x"]),
-                        location_y=float(r["location_y"]),
-                        location_z=float(r["location_z"]),
-                        velocity_x=float(r["velocity_x"]),
-                        velocity_y=float(r["velocity_y"]),
-                        velocity_z=float(r["velocity_z"]),
-                        speed=float(r["speed"]),
-                        orientation_x=float(r["orientation_x"]),
-                        orientation_y=float(r["orientation_y"]),
-                        orientation_z=float(r["orientation_z"]),
-                    )
-                    for r in csv_reader
-                ]
-                self._episodes[episode] = datapoint_meta_from_dictionaries(rows)
+                rows = [_parse_frame_data(r) for r in csv_reader]
+                self._episodes[episode] = datapoints_from_dictionaries(rows)
                 self._index_map.extend(
                     [(episode, idx) for idx in range(len(self._episodes[episode]))]
                 )
@@ -181,10 +176,10 @@ class OffPolicyDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         episode, episode_idx = self._index_map[idx]
-        episode_meta = self._episodes[episode][episode_idx]
-        episode_img_bytes = self._zip_files[episode].read(episode_meta["rgb_filename"])
+        datapoint = self._episodes[episode][episode_idx]
+        episode_img_bytes = self._zip_files[episode].read(datapoint["rgb_filename"])
         episode_img = image.buffer_to_np(episode_img_bytes)
-        return self._transforms(episode_img), episode_img, episode_meta
+        return self._transforms(episode_img), episode_img, datapoint
 
     def __del__(self):
         for zip_file in self._zip_files.values():
