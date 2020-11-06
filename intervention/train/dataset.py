@@ -199,3 +199,140 @@ def off_policy_data(data_directory) -> OffPolicyDataset:
         f"out of {len(episode_summaries)} total episodes."
     )
     return OffPolicyDataset(data_directory, episodes)
+
+
+class OnPolicySupervisionDataset(torch.utils.data.Dataset):
+    def __init__(self):
+        self._transforms = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+
+    def __len__(self):
+        raise NotImplementedError()
+
+    def __getitem__(self, idx):
+        raise NotImplementedError()
+
+    def __del__(self):
+        for zip_file in self._zip_files.values():
+            zip_file.close()
+
+
+# class InterventionSampler(torch.utils.data.
+
+
+class _Dataset(torch.utils.data.Dataset):
+    def __init__(self, datapoints: Sequence[Tuple[Datapoint, ZipFile]]):
+        self._datapoints = datapoints
+
+        self._transforms = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+
+    def __len__(self):
+        return len(self._datapoints)
+
+    def __getitem__(self, idx):
+        (datapoint, zip_file) = self._datapoints[idx]
+
+        img_bytes = zip_file.read(datapoint["rgb_filename"])
+        img = image.buffer_to_np(img_bytes)
+        return self._transforms(img), img, datapoint
+
+
+class _DatasetBuilder:
+    def __init__(self):
+        self._datapoints: List[Tuple[Datapoint, ZipFile]] = []
+
+    def add_datapoint(self, zip_file: ZipFile, datapoint: Datapoint):
+        self._datapoints.append((datapoint, zip_file))
+
+    def build(self) -> _Dataset:
+        return _Dataset(self._datapoints)
+
+
+class _ConcatenatedDataset(torch.utils.data.Dataset):
+    def __init__(self, datasets: Sequence[torch.utils.data.Dataset]):
+        self._datasets = datasets
+
+        self._len = sum([len(dataset) for dataset in self._datasets])
+
+    def __len__(self):
+        return self._len
+
+    def __getitem__(self, idx):
+        offset = 0
+        for dataset in self._datasets:
+            if idx < offset + len(dataset):
+                return dataset[idx - offset]
+            offset += len(dataset)
+
+        raise IndexError()
+
+
+def intervention_data(
+    data_directory,
+) -> torch.utils.data.Dataset:  # InterventionDataset:
+    with open(data_directory / "episodes.csv") as episode_summaries_file:
+        episode_summaries_reader = DataclassReader(
+            episode_summaries_file, EpisodeSummary
+        )
+        episode_summaries: List[EpisodeSummary] = list(episode_summaries_reader)
+
+    logger.info(f"Using {len(episode_summaries)} episodes.")
+
+    negative_dataset_builder = _DatasetBuilder()
+    supervision_signal_dataset_builder = _DatasetBuilder()
+    imitation_dataset_builder = _DatasetBuilder()
+
+    for episode in episode_summaries:
+        # Note we do not explicitly close this zipfile, but as we're opening read-only
+        # that's fine. The underlying file will be closed when the reference count drops
+        # to 0.
+        zip_file = ZipFile(data_directory / episode.uuid / "data.zip", mode="r")
+
+        with open(data_directory / episode.uuid / "episode.csv") as csv_file:
+            csv_reader = DictReader(csv_file)
+            frames = [_parse_frame_data(r) for r in csv_reader]
+            datapoints = datapoints_from_dictionaries(frames)
+            for (frame_data, datapoint) in zip(frames, datapoints):
+                if frame_data["controller"] == "student":
+                    ticks_to_intervention = frame_data["ticks_to_intervention"]
+                    if (
+                        ticks_to_intervention is None
+                        and episode.end_status != "success"
+                    ):
+                        ticks_to_intervention = frame_data["ticks_to_end"]
+
+                    if ticks_to_intervention is None or ticks_to_intervention > 25:
+                        supervision_signal_dataset_builder.add_datapoint(
+                            zip_file, datapoint
+                        )
+                    else:
+                        negative_dataset_builder.add_datapoint(zip_file, datapoint)
+                else:
+                    assert frame_data["controller"] == "teacher"
+                    if (
+                        frame_data["ticks_to_end"] is None
+                        or frame_data["ticks_to_end"] <= 50
+                        or episode.end_status == "success"
+                    ):
+                        imitation_dataset_builder.add_datapoint(zip_file, datapoint)
+
+    return _ConcatenatedDataset(
+        [
+            negative_dataset_builder.build(),
+            supervision_signal_dataset_builder.build(),
+            imitation_dataset_builder.build(),
+        ]
+    )
