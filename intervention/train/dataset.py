@@ -1,21 +1,18 @@
 import sys
-
-from typing import Tuple, List, Dict, Mapping, Any, Sequence
-
-from pathlib import Path
-from zipfile import ZipFile
 from csv import DictReader
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from zipfile import ZipFile
 
-from loguru import logger
-
-from dataclass_csv import DataclassReader
 import numpy as np
 import torch
 import torchvision
+from dataclass_csv import DataclassReader
+from loguru import logger
 
+from .. import coordinates
 from ..data import EpisodeSummary, FrameData
 from ..utils import image
-from .. import coordinates
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
