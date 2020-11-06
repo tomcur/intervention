@@ -1,5 +1,6 @@
 import sys
 from csv import DictReader
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 from zipfile import ZipFile
@@ -277,9 +278,14 @@ class _ConcatenatedDataset(torch.utils.data.Dataset):
         raise IndexError()
 
 
-def intervention_data(
-    data_directory,
-) -> torch.utils.data.Dataset:  # InterventionDataset:
+@dataclass
+class InterventionDatasets:
+    negative: torch.utils.data.Dataset
+    supervision_signal: torch.utils.data.Dataset
+    imitation: torch.utils.data.Dataset
+
+
+def intervention_data(data_directory,) -> InterventionDatasets:
     with open(data_directory / "episodes.csv") as episode_summaries_file:
         episode_summaries_reader = DataclassReader(
             episode_summaries_file, EpisodeSummary
@@ -326,10 +332,8 @@ def intervention_data(
                     ):
                         imitation_dataset_builder.add_datapoint(zip_file, datapoint)
 
-    return _ConcatenatedDataset(
-        [
-            negative_dataset_builder.build(),
-            supervision_signal_dataset_builder.build(),
-            imitation_dataset_builder.build(),
-        ]
+    return InterventionDatasets(
+        negative=negative_dataset_builder.build(),
+        supervision_signal=supervision_signal_dataset_builder.build(),
+        imitation=imitation_dataset_builder.build(),
     )
