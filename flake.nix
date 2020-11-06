@@ -65,7 +65,7 @@
             libraries = [
               # Libraries
               pkgs.stdenv.cc.cc.lib
-              pkgs.glib
+              pkgs.glib.out
               pkgs.xlibs.libSM.out
               pkgs.xlibs.libICE.out
               pkgs.xlibs.libXext.out
