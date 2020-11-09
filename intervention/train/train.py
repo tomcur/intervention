@@ -188,3 +188,140 @@ def intervention(
     ) = _intervention_data_loaders(
         intervention_dataset_path, imitation_dataset_path, batch_size
     )
+
+    model = Image().to(process.torch_device)
+    model.train()
+
+    img_size = torch.tensor([384, 160], device=process.torch_device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    initial_epoch = 0
+    if initial_checkpoint_path is not None:
+        logger.info(f"Reading checkpoint from {initial_checkpoint_path}.")
+        checkpoint = torch.load(initial_checkpoint_path)
+
+        logger.info(f"Resuming from Epoch {checkpoint['epoch']} checkpoint.")
+        initial_epoch = checkpoint["epoch"] + 1
+
+        # model.load_state_dict(checkpoint["model_state_dict"])
+        # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+    for epoch in range(initial_epoch, initial_epoch + epochs):
+        out_path = output_checkpoint_path / f"{epoch}.pth"
+        if out_path.exists():
+            raise Exception(
+                f"Output checkpoint for Epoch {epoch} already exists: {out_path}."
+            )
+
+        num_batches = min(
+            len(negative_generator),
+            len(recovery_imitation_generator),
+            len(regular_imitation_generator),
+        )
+        logger.info(f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{epochs}).")
+        for (
+            batch_number,
+            (negative_batch, recovery_imitation_batch, regular_imitation_batch),
+        ) in enumerate(
+            zip(
+                iter(negative_generator),
+                iter(recovery_imitation_generator),
+                iter(regular_imitation_generator),
+            )
+        ):
+            (
+                negative_rgb_images,
+                _,
+                negative_model_output,
+                negative_datapoint,
+            ) = negative_batch
+            (
+                recovery_imitation_rgb_images,
+                _,
+                recovery_imitation_datapoint,
+            ) = recovery_imitation_batch
+            (
+                regular_imitation_rgb_images,
+                _,
+                regular_imitation_datapoint,
+            ) = regular_imitation_batch
+
+            rgb_images = torch.cat(
+                (
+                    negative_rgb_images.float(),
+                    recovery_imitation_rgb_images.float(),
+                    regular_imitation_rgb_images.float(),
+                )
+            ).to(process.torch_device)
+            del negative_rgb_images
+            del recovery_imitation_rgb_images
+            del regular_imitation_rgb_images
+
+            speeds = torch.cat(
+                (
+                    negative_datapoint["speed"].float(),
+                    recovery_imitation_datapoint["speed"].float(),
+                    regular_imitation_datapoint["speed"].float(),
+                )
+            ).to(process.torch_device)
+
+            all_branch_predictions, *_ = model.forward(rgb_images, speeds)
+            del rgb_images, speeds
+
+            commands = torch.cat(
+                (
+                    negative_datapoint["command"],
+                    recovery_imitation_datapoint["command"],
+                    regular_imitation_datapoint["command"],
+                )
+            )
+
+            pred_locations = select_branch(
+                all_branch_predictions, list(map(int, commands))
+            )
+            del commands, all_branch_predictions
+
+            negative_model_output = torch.transpose(negative_model_output, 0, 1)
+
+            converted = [out for out in negative_model_output[:, ...]]
+
+            original_negative_model_output = select_branch(
+                converted, list(map(int, negative_datapoint["command"])),
+            )
+
+            locations = torch.cat(
+                (
+                    original_negative_model_output,
+                    recovery_imitation_datapoint[
+                        "next_locations_image_coordinates"
+                    ].float(),
+                    regular_imitation_datapoint[
+                        "next_locations_image_coordinates"
+                    ].float(),
+                )
+            ).to(process.torch_device)
+
+            # Transform X and Y differently; we can never have a waypoint above the
+            # horizon (i.e. above the vertical middle of the camera frame).
+            locations[..., 0] = locations[..., 0] / (0.5 * img_size[0]) - 1
+            locations[..., 1] = (locations[..., 1] - img_size[1] / 2) / (
+                0.25 * img_size[1]
+            ) - 1
+
+            # locations = locations / (0.5 * img_size) - 1
+            loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
+            del pred_locations, locations
+
+            meta_learning_rates = torch.cat(
+                (
+                    -1 * torch.ones(len(negative_datapoint["speed"])),
+                    torch.ones(len(recovery_imitation_datapoint["speed"])),
+                    torch.ones(len(regular_imitation_datapoint["speed"])),
+                )
+            ).to(process.torch_device)
+
+            loss_mean = (meta_learning_rates * loss).mean()
+            del loss, meta_learning_rates
+
+            print(loss_mean)
+            del loss_mean
