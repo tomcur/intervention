@@ -246,6 +246,10 @@ def intervention(
                 regular_imitation_datapoint,
             ) = regular_imitation_batch
 
+            negative_len = len(negative_rgb_images)
+            recovery_imitation_len = len(recovery_imitation_rgb_images)
+            regular_imitation_len = len(regular_imitation_rgb_images)
+
             rgb_images = torch.cat(
                 (
                     negative_rgb_images.float(),
@@ -308,15 +312,17 @@ def intervention(
                 0.25 * img_size[1]
             ) - 1
 
+            # print(locations[0])
+
             # locations = locations / (0.5 * img_size) - 1
             loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
             del pred_locations, locations
 
             meta_learning_rates = torch.cat(
                 (
-                    -1 * torch.ones(len(negative_datapoint["speed"])),
-                    torch.ones(len(recovery_imitation_datapoint["speed"])),
-                    torch.ones(len(regular_imitation_datapoint["speed"])),
+                    -1 * torch.ones(negative_len),
+                    torch.ones(recovery_imitation_len),
+                    torch.ones(regular_imitation_len),
                 )
             ).to(process.torch_device)
 
