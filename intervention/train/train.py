@@ -318,9 +318,6 @@ def intervention(
                 0.25 * img_size[1]
             ) - 1
 
-            # print(locations[0])
-
-            # locations = locations / (0.5 * img_size) - 1
             loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
             del pred_locations, locations
 
@@ -334,7 +331,10 @@ def intervention(
                 )
             ).to(process.torch_device)
 
-            loss_mean = (meta_learning_rates * loss).mean()
+            loss = meta_learning_rates * loss
+            print(loss)
+            loss_mean = loss.mean()
+            # loss_mean = (meta_learning_rates * loss).mean()
             del loss, meta_learning_rates
 
             logger.trace(
