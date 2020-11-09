@@ -95,7 +95,7 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoi
 
         datapoint = Datapoint(
             rgb_filename=dictionary["rgb_filename"],
-            student_output_filename=dictionary["student_output_filename"],
+            student_output_filename=dictionary["student_output_filename"] or "",
             command=dictionary["command"],
             speed=dictionary["speed"],
             current_orientation=current_orientation,
