@@ -301,7 +301,6 @@ def intervention(
 
             locations = torch.cat(
                 (
-                    original_negative_model_output,
                     recovery_imitation_datapoint[
                         "next_locations_image_coordinates"
                     ].float(),
@@ -317,6 +316,10 @@ def intervention(
             locations[..., 1] = (locations[..., 1] - img_size[1] / 2) / (
                 0.25 * img_size[1]
             ) - 1
+
+            locations = torch.cat(
+                (original_negative_model_output.to(process.torch_device), locations)
+            )
 
             loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
             del pred_locations, locations
