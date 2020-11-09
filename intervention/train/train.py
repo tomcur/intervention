@@ -203,7 +203,7 @@ def intervention(
         logger.info(f"Resuming from Epoch {checkpoint['epoch']} checkpoint.")
         initial_epoch = checkpoint["epoch"] + 1
 
-        # model.load_state_dict(checkpoint["model_state_dict"])
+        model.load_state_dict(checkpoint["model_state_dict"])
         # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
     for epoch in range(initial_epoch, initial_epoch + epochs):
