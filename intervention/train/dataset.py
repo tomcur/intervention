@@ -52,7 +52,6 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoi
     for (idx, dictionary) in enumerate(
         dictionaries[: -LOCATIONS_NUM_STEPS * LOCATIONS_STEP_INTERVAL]
     ):
-
         current_orientation = Orientation(
             x=dictionary["orientation_x"],
             y=dictionary["orientation_y"],
@@ -138,65 +137,6 @@ def _parse_frame_data(r: Dict[str, str]) -> FrameData:
         orientation_y=float(r["orientation_y"]),
         orientation_z=float(r["orientation_z"]),
     )
-
-
-class OffPolicyDataset(torch.utils.data.Dataset):
-    def __init__(self, data_directory: Path, episodes: List[str]):
-        self._index_map: List[Tuple[str, int]] = []
-        self._episodes: Dict[str, List[Datapoint]] = {}
-        self._zip_files: Dict[str, ZipFile] = {}
-
-        self._transforms = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.ToTensor(),
-                torchvision.transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-
-        for episode in episodes:
-            self._episodes[episode] = []
-            self._zip_files[episode] = ZipFile(
-                data_directory / episode / "data.zip", mode="r"
-            )
-
-            with open(data_directory / episode / "episode.csv") as csv_file:
-                csv_reader = DictReader(csv_file)
-                rows = [_parse_frame_data(r) for r in csv_reader]
-                self._episodes[episode] = datapoints_from_dictionaries(rows)
-                self._index_map.extend(
-                    [(episode, idx) for idx in range(len(self._episodes[episode]))]
-                )
-
-    def __len__(self):
-        return len(self._index_map)
-
-    def __getitem__(self, idx):
-        episode, episode_idx = self._index_map[idx]
-        datapoint = self._episodes[episode][episode_idx]
-        episode_img_bytes = self._zip_files[episode].read(datapoint["rgb_filename"])
-        episode_img = image.buffer_to_np(episode_img_bytes)
-        return self._transforms(episode_img), episode_img, datapoint
-
-    def __del__(self):
-        for zip_file in self._zip_files.values():
-            zip_file.close()
-
-
-def off_policy_data(data_directory) -> OffPolicyDataset:
-    with open(data_directory / "episodes.csv") as episode_summaries_file:
-        episode_summaries_reader = DataclassReader(
-            episode_summaries_file, EpisodeSummary
-        )
-        episode_summaries: List[EpisodeSummary] = list(episode_summaries_reader)
-
-    episodes = [ep.uuid for ep in episode_summaries if ep.end_status == "success"]
-    logger.info(
-        f"Using {len(episodes)} successful episodes "
-        f"out of {len(episode_summaries)} total episodes."
-    )
-    return OffPolicyDataset(data_directory, episodes)
 
 
 class _Dataset(torch.utils.data.Dataset):
@@ -312,3 +252,14 @@ def intervention_data(data_directory,) -> InterventionDatasets:
         supervision_signal=supervision_signal_dataset_builder.build(),
         imitation=imitation_dataset_builder.build(),
     )
+
+
+def off_policy_data(data_directory) -> torch.utils.data.Dataset:
+    datasets = intervention_data(data_directory)
+    assert (
+        len(datasets.negative) == 0
+    ), "Off-policy data should not have student driving"
+    assert (
+        len(datasets.supervision_signal) == 0
+    ), "Off-policy data should not have student driving"
+    return datasets.imitation
