@@ -160,7 +160,13 @@ class _Dataset(torch.utils.data.Dataset):
 
         img_bytes = zip_file.read(datapoint["rgb_filename"])
         img = image.buffer_to_np(img_bytes)
-        return self._transforms(img), img, datapoint
+
+        if datapoint["student_output_filename"] != "":
+            with zip_file.open(datapoint["student_output_filename"]) as f:
+                student_model_output = np.load(f)
+            return self._transforms(img), img, student_model_output, datapoint
+        else:
+            return self._transforms(img), img, datapoint
 
 
 class _DatasetBuilder:
