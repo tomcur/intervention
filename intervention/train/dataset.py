@@ -110,7 +110,7 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoi
 def _parse_frame_data(r: Dict[str, str]) -> FrameData:
     return FrameData(
         tick=int(r["tick"]),
-        command=int(r["tick"]),
+        command=int(r["command"]),
         controller=r["controller"],
         rgb_filename=r["rgb_filename"],
         student_output_filename=r["student_output_filename"]
