@@ -280,15 +280,21 @@ def intervention(
                 )
             )
 
+            # Select the predicted locations head based on the planner's command.
             pred_locations = select_branch(
                 all_branch_predictions, list(map(int, commands))
             )
             del commands, all_branch_predictions
 
+            # Swap dimensions. Coming from the data loader, the first dimension are the
+            # batch samples. We expect the first dimension to be the output heads...
             negative_model_output = torch.transpose(negative_model_output, 0, 1)
 
+            # ... and we actually expect the output heads to be a list.
             converted = [out for out in negative_model_output[:, ...]]
 
+            # Select the original (erroneous) student model output head based on the
+            # planner's command.
             original_negative_model_output = select_branch(
                 converted, list(map(int, negative_datapoint["command"])),
             )
@@ -318,6 +324,8 @@ def intervention(
             loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
             del pred_locations, locations
 
+            # The learning rates of the negative samples are negative.
+            # TODO: negative sample learning rate curve
             meta_learning_rates = torch.cat(
                 (
                     -1 * torch.ones(negative_len),
