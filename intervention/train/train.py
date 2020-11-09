@@ -339,4 +339,9 @@ def intervention(
                 f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
                 f"Mean loss: {loss_mean}."
             )
+
+            optimizer.zero_grad()
+            loss_mean.backward()
+            optimizer.step()
+
             del loss_mean
