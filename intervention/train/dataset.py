@@ -207,6 +207,9 @@ class InterventionDatasets:
 
 
 def intervention_data(data_directory,) -> InterventionDatasets:
+    """
+    Load an (on-policy) intervention dataset.
+    """
     with open(data_directory / "episodes.csv") as episode_summaries_file:
         episode_summaries_reader = DataclassReader(
             episode_summaries_file, EpisodeSummary
@@ -261,6 +264,12 @@ def intervention_data(data_directory,) -> InterventionDatasets:
 
 
 def off_policy_data(data_directory) -> torch.utils.data.Dataset:
+    """
+    Load an off-policy dataset.
+    """
+    # Off-policy data can be seen as a special case of intervention data with only
+    # imitation frames. Load it as intervention data, and return only the imitation
+    # dataset.
     datasets = intervention_data(data_directory)
     assert (
         len(datasets.negative) == 0
