@@ -38,7 +38,7 @@ class Orientation(TypedDict):
 
 class Datapoint(TypedDict):
     rgb_filename: str
-    model_output_filename: str
+    student_output_filename: str
     command: int
     speed: float
     current_orientation: Orientation
