@@ -332,9 +332,7 @@ def intervention(
             ).to(process.torch_device)
 
             loss = meta_learning_rates * loss
-            print(loss)
             loss_mean = loss.mean()
-            # loss_mean = (meta_learning_rates * loss).mean()
             del loss, meta_learning_rates
 
             logger.trace(
