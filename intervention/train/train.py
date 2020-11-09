@@ -1,13 +1,12 @@
-from typing import Optional, List
-
-import torch
 from pathlib import Path
-from loguru import logger
+from typing import List, Optional
 
 import numpy as np
+import torch
+from loguru import logger
 
-from ..models.image import Image
 from .. import process
+from ..models.image import Image
 from . import dataset
 
 
