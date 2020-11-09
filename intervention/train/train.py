@@ -337,5 +337,8 @@ def intervention(
             loss_mean = (meta_learning_rates * loss).mean()
             del loss, meta_learning_rates
 
-            print(loss_mean)
+            logger.trace(
+                f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
+                f"Mean loss: {loss_mean}."
+            )
             del loss_mean
