@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -106,3 +106,85 @@ def imitation(
             out_path,
         )
         logger.info(f"Saved Epoch {epoch} checkpoint to {out_path}.")
+
+
+def _intervention_data_loaders(
+    intervention_dataset_path: Path, imitation_dataset_path: Path, batch_size: int
+) -> Tuple[
+    torch.utils.data.DataLoader,
+    torch.utils.data.DataLoader,
+    torch.utils.data.DataLoader,
+]:
+    """
+    Creates a 3-tuple of `torch.utils.data.DataLoader` respectively:
+    (1) generating negative batches, (2) recovery imitation batches and (3) regular
+    imitation batches.
+
+    The batch sizes are such that the total batch distribution is the same as the
+    natural distribution of the intervention dataset.
+    """
+    intervention_datasets = dataset.intervention_data(intervention_dataset_path)
+    imitation_dataset = dataset.off_policy_data(imitation_dataset_path)
+
+    negative_len = len(intervention_datasets.negative)
+    recovery_imitation_len = len(intervention_datasets.imitation)
+    supervision_signal_len = len(intervention_datasets.supervision_signal)
+
+    logger.debug(
+        "Intervention dataset sizes:\n"
+        f"\tNegative: {negative_len}\n"
+        f"\tImitation: {recovery_imitation_len}\n"
+        f"\tSupervision signal: {supervision_signal_len}\n"
+    )
+
+    total_len = negative_len + recovery_imitation_len + supervision_signal_len
+
+    negative_batch_size = round(negative_len / total_len * batch_size)
+    recovery_imitation_batch_size = round(
+        recovery_imitation_len / total_len * batch_size
+    )
+    regular_imitation_batch_size = (
+        batch_size - negative_batch_size - recovery_imitation_batch_size
+    )
+
+    logger.debug(
+        "Batch sizes:\n"
+        f"\tNegative: {negative_batch_size}\n"
+        f"\tRecovery imitation: {recovery_imitation_batch_size}\n"
+        f"\tRegular imitation: {regular_imitation_batch_size}\n"
+    )
+
+    assert negative_batch_size > 0
+    assert recovery_imitation_batch_size > 0
+    assert regular_imitation_batch_size > 0
+
+    negative_generator = torch.utils.data.DataLoader(
+        intervention_datasets.negative, batch_size=negative_batch_size, shuffle=True
+    )
+    recovery_imitation_generator = torch.utils.data.DataLoader(
+        intervention_datasets.imitation,
+        batch_size=recovery_imitation_batch_size,
+        shuffle=True,
+    )
+    regular_imitation_generator = torch.utils.data.DataLoader(
+        imitation_dataset, batch_size=regular_imitation_batch_size, shuffle=True,
+    )
+
+    return negative_generator, recovery_imitation_generator, regular_imitation_generator
+
+
+def intervention(
+    intervention_dataset_path: Path,
+    imitation_dataset_path: Path,
+    output_checkpoint_path: Path,
+    batch_size: int = 30,
+    initial_checkpoint_path: Optional[Path] = None,
+    epochs: int = 5,
+) -> None:
+    (
+        negative_generator,
+        recovery_imitation_generator,
+        regular_imitation_generator,
+    ) = _intervention_data_loaders(
+        intervention_dataset_path, imitation_dataset_path, batch_size
+    )
