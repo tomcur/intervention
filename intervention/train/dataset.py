@@ -199,31 +199,6 @@ def off_policy_data(data_directory) -> OffPolicyDataset:
     return OffPolicyDataset(data_directory, episodes)
 
 
-class OnPolicySupervisionDataset(torch.utils.data.Dataset):
-    def __init__(self):
-        self._transforms = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.ToTensor(),
-                torchvision.transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-
-    def __len__(self):
-        raise NotImplementedError()
-
-    def __getitem__(self, idx):
-        raise NotImplementedError()
-
-    def __del__(self):
-        for zip_file in self._zip_files.values():
-            zip_file.close()
-
-
-# class InterventionSampler(torch.utils.data.
-
-
 class _Dataset(torch.utils.data.Dataset):
     def __init__(self, datapoints: Sequence[Tuple[Datapoint, ZipFile]]):
         self._datapoints = datapoints
