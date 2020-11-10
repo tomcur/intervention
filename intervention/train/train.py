@@ -291,7 +291,9 @@ def intervention(
                 )
             ).to(process.torch_device)
 
-            all_branch_predictions, *_ = model.forward(rgb_images, speeds)
+            all_branch_predictions, all_branch_heatmaps = model.forward(
+                rgb_images, speeds
+            )
             del rgb_images, speeds
 
             commands = torch.cat(
@@ -306,7 +308,11 @@ def intervention(
             pred_locations = select_branch(
                 all_branch_predictions, list(map(int, commands))
             )
-            del commands, all_branch_predictions
+            pred_locations = pred_locations[negative_len:, ...]
+
+            pred_heatmaps = select_branch(all_branch_heatmaps, list(map(int, commands)))
+            pred_heatmaps = pred_heatmaps[:negative_len, ...]
+            del commands, all_branch_predictions, all_branch_heatmaps
 
             # Swap dimensions. Coming from the data loader, the first dimension are the
             # batch samples. We expect the first dimension to be the output heads...
@@ -339,9 +345,6 @@ def intervention(
                 0.25 * img_size[1]
             ) - 1
 
-            locations = torch.cat(
-                (original_negative_model_output.to(process.torch_device), locations)
-            )
 
             loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
             del pred_locations, locations
@@ -350,7 +353,6 @@ def intervention(
             # TODO: negative sample learning rate curve
             meta_learning_rates = torch.cat(
                 (
-                    -1 * torch.ones(negative_len),
                     torch.ones(recovery_imitation_len),
                     torch.ones(regular_imitation_len),
                 )
