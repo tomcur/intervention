@@ -173,6 +173,28 @@ def _intervention_data_loaders(
     return negative_generator, recovery_imitation_generator, regular_imitation_generator
 
 
+def _predicted_locations_to_one_hot_heatmap(predicted_locations, img_size):
+    batch_size, coordinate_steps, _ = predicted_locations.shape
+    assert Image.COORDINATE_STEPS == coordinate_steps
+
+    one_hot = torch.zeros(
+        batch_size, coordinate_steps, Image.HEATMAP_HEIGHT, Image.HEATMAP_WIDTH
+    ).to(process.torch_device)
+
+    predicted_locations[..., 0] = (
+        (predicted_locations[..., 0] + 1.0) / 2.0 * (Image.HEATMAP_WIDTH - 1)
+    )
+    predicted_locations[..., 1] = (
+        (predicted_locations[..., 1] + 1.0) / 2.0 * (Image.HEATMAP_HEIGHT - 1)
+    )
+    predicted_locations[..., :] = torch.round(predicted_locations[..., :])
+    predicted_locations = predicted_locations.long()
+
+    one_hot[..., predicted_locations[..., 1], predicted_locations[..., 0]] = 1
+
+    return one_hot
+
+
 def intervention(
     intervention_dataset_path: Path,
     imitation_dataset_path: Path,
