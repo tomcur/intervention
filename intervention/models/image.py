@@ -84,8 +84,8 @@ class Image(nn.Module):
                     nn.BatchNorm2d(64),
                     nn.Conv2d(64, Image.COORDINATE_STEPS, 1, 1, 0),
                     SpatialSoftargmax(
-                        Image.HEATMAP_WIDTH,
                         Image.HEATMAP_HEIGHT,
+                        Image.HEATMAP_WIDTH,
                         Image.COORDINATE_STEPS,
                     ),
                 )
