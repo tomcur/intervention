@@ -36,7 +36,7 @@ class EpisodeSummary:
         default_factory=lambda: datetime.now(timezone.utc)
     )
     town: str = ""
-    end_status: EndStatus = "unknown"
+    end_status: str = "unknown"
     collisions: int = 0
     distance_travelled: float = 0.0
     interventions: int = 0
