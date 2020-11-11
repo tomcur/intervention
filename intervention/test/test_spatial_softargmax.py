@@ -39,3 +39,22 @@ class Test(unittest.TestCase):
 
             self.assertTrue(abs(x_target - argmax_x) < Test.EPSILON)
             self.assertTrue(abs(y_target - argmax_y) < Test.EPSILON)
+
+    def test_heatmap(self):
+        ssam = SpatialSoftargmax(21, 7, 1)
+
+        for ((x1, y1), (x2, y2), (x_target, y_target)) in [
+            ((0, 0), (6, 20), (3, 10)),
+            ((0, 0), (6, 0), (3, 0)),
+            ((2, 12), (3, 20), (2.5, 16)),
+        ]:
+            t = torch.zeros(1, 1, 21, 7)
+            t[..., y1, x1] = 1000
+            t[..., y2, x2] = 1000
+
+            _, heatmap = ssam(t)
+
+            self.assertTrue(abs(1.0 - heatmap.sum().item()) < Test.EPSILON)
+
+            self.assertTrue(abs(0.5 - heatmap[0, 0, y1, x1].item()) < Test.EPSILON)
+            self.assertTrue(abs(0.5 - heatmap[0, 0, y2, x2].item()) < Test.EPSILON)
