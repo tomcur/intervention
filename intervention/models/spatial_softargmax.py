@@ -7,7 +7,9 @@ import numpy as np
 
 class SpatialSoftargmax(nn.Module):
     """
-    From: https://gist.github.com/jeasinema/1cba9b40451236ba2cfb507687e08834
+    Adapted from: https://gist.github.com/jeasinema/1cba9b40451236ba2cfb507687e08834
+
+    When temperature is not given, the temperature is initialized as 1.0 and trainable.
     """
 
     def __init__(self, height, width, channel, temperature=None):
@@ -32,8 +34,12 @@ class SpatialSoftargmax(nn.Module):
         self.register_buffer("pos_y", pos_y)
 
     def forward(self, feature):
-        # Output:
-        #   (N, C, 2) [[[x_0, y_0], ...]]
+        """
+        Input feature should be of shape `[N, C, height, width]`.
+        The output is a tuple of coordinates and the heatmap. The coordinates are of
+        shape `[N, C, 2]`, of the form: `[[[x_0, y_0], ...]]`. The heatmap is of shape
+        `[N, C, height, width]`, the values are the softmax of the input.
+        """
 
         size = feature.size()
         feature = feature.view(-1, self.height * self.width)
