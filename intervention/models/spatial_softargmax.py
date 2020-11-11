@@ -10,9 +10,8 @@ class SpatialSoftargmax(nn.Module):
     From: https://gist.github.com/jeasinema/1cba9b40451236ba2cfb507687e08834
     """
 
-    def __init__(self, height, width, channel, temperature=None, data_format="NCHW"):
+    def __init__(self, height, width, channel, temperature=None):
         super().__init__()
-        self.data_format = data_format
         self.height = height
         self.width = width
         self.channel = channel
@@ -37,14 +36,7 @@ class SpatialSoftargmax(nn.Module):
         #   (N, C, 2) [[[x_0, y_0], ...]]
 
         size = feature.size()
-        if self.data_format == "NHWC":
-            feature = (
-                feature.transpose(1, 3)
-                .tranpose(2, 3)
-                .view(-1, self.height * self.width)
-            )
-        else:
-            feature = feature.view(-1, self.height * self.width)
+        feature = feature.view(-1, self.height * self.width)
 
         softmax_attention = F.softmax(feature / self.temperature, dim=-1)
         expected_x = torch.sum(self.pos_x * softmax_attention, dim=1, keepdim=True)
