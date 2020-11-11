@@ -18,9 +18,9 @@ class SpatialSoftargmax(nn.Module):
         self.channel = channel
 
         if temperature:
-            self.temperature = Parameter(torch.ones(1) * temperature)
+            self.temperature = torch.ones(1) * temperature
         else:
-            self.temperature = 1.0
+            self.temperature = Parameter(torch.ones(1))
 
         pos_y, pos_x = np.meshgrid(
             np.linspace(-1.0, 1.0, self.height),
