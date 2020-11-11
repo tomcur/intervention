@@ -22,8 +22,10 @@ class SpatialSoftargmax(nn.Module):
         else:
             self.temperature = 1.0
 
-        pos_x, pos_y = np.meshgrid(
-            np.linspace(-1.0, 1.0, self.height), np.linspace(-1.0, 1.0, self.width)
+        pos_y, pos_x = np.meshgrid(
+            np.linspace(-1.0, 1.0, self.height),
+            np.linspace(-1.0, 1.0, self.width),
+            indexing="ij",
         )
         pos_x = torch.from_numpy(pos_x.reshape(self.height * self.width)).float()
         pos_y = torch.from_numpy(pos_y.reshape(self.height * self.width)).float()
