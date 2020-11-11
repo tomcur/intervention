@@ -53,3 +53,14 @@ class SpatialSoftargmax(nn.Module):
         feature_keypoints = expected_xy.view(-1, self.channel, 2)
 
         return feature_keypoints, softmax_attention.view(*size)
+
+    def to_width_height_range(self, coordinates):
+        """
+        Transforms coordinates of dimensions [N, C, 2] in value range [-1, 1] to range
+        [0, width-1] and [0, height-1]
+        """
+        return (
+            (coordinates + 1.0)
+            / 2.0
+            * torch.tensor([[[self.width - 1, self.height - 1]]])
+        )
