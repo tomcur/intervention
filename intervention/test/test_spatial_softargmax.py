@@ -185,7 +185,7 @@ class TestGradients(unittest.TestCase):
         #    [-1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05],
         #    [-1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05,  9.4304e-05]]]])
 
-        # We expect the loss for the non-zero target_map regions to be positive,
+        # We expect the gradient for the non-zero target_map regions to be positive,
         # and the other regions to be negative.
         expected_positive_gradient = torch.tensor(
             [
