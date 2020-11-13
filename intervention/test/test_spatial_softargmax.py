@@ -87,7 +87,7 @@ class TestGradients(unittest.TestCase):
         loss.backward()
 
         # We expect the negative gradient to be to positive-X.
-        expected_positive_loss = torch.tensor(
+        expected_positive_gradient = torch.tensor(
             [
                 [
                     [True, True, False, False, False],
@@ -101,7 +101,7 @@ class TestGradients(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(torch.all(expected_positive_loss.eq(tensor.grad > 0)))
+        self.assertTrue(torch.all(expected_positive_gradient.eq(tensor.grad > 0)))
 
         # Make a small step in direction of negative loss.
         with torch.no_grad():
