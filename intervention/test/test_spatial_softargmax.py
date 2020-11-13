@@ -131,3 +131,74 @@ class TestGradients(unittest.TestCase):
 
         # ... and for the argmax Y to still stay the same.
         self.assertAlmostEqual(old_argmax_y, new_argmax_y, places=6)
+
+    def test_heatmap_gradient(self):
+        tensor = torch.tensor(
+            [
+                [
+                    [
+                        [0.0, 0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0],
+                        [1.0, 1.0, 1.0, 0.0, 0.0],
+                        [1.0, 1.0, 1.0, 0.0, 0.0],
+                        [1.0, 1.0, 1.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0],
+                    ]
+                ]
+            ],
+            requires_grad=True,
+        )
+
+        ssam = SpatialSoftargmax(7, 5, 1)
+        coord, heatmap = ssam(tensor)
+
+        # The target map is the map we want to move away from.
+        target_map = torch.tensor(
+            [
+                [
+                    [
+                        [0.0, 0.2, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.2, 0.0, 0.0],
+                        [0.0, 0.2, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.2, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.2],
+                    ]
+                ]
+            ]
+        )
+
+        print(heatmap * target_map)
+        loss = (heatmap * target_map).mean()
+        loss.backward()
+
+        # The gradients look like:
+        # > print(tensor.grad)
+        # tensor(
+        # [[[[-1.8930e-05,  9.4304e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05],
+        #    [-1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05],
+        #    [-5.1458e-05, -5.1458e-05,  2.5634e-04, -1.8930e-05, -1.8930e-05],
+        #    [-5.1458e-05,  2.5634e-04, -5.1458e-05, -1.8930e-05, -1.8930e-05],
+        #    [-5.1458e-05, -5.1458e-05, -5.1458e-05,  9.4304e-05, -1.8930e-05],
+        #    [-1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05],
+        #    [-1.8930e-05, -1.8930e-05, -1.8930e-05, -1.8930e-05,  9.4304e-05]]]])
+
+        # We expect the loss for the non-zero target_map regions to be positive,
+        # and the other regions to be negative.
+        expected_positive_gradient = torch.tensor(
+            [
+                [
+                    [False, True, False, False, False],
+                    [False, False, False, False, False],
+                    [False, False, True, False, False],
+                    [False, True, False, False, False],
+                    [False, False, False, True, False],
+                    [False, False, False, False, False],
+                    [False, False, False, False, True],
+                ]
+            ]
+        )
+
+        self.assertTrue(torch.all(expected_positive_gradient.eq(tensor.grad > 0)))
