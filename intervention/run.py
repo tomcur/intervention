@@ -334,12 +334,14 @@ def run_on_policy_episode(
     from .models.image import Image, Agent
 
     visualizer = visualization.Visualizer()
-    summary = data.EpisodeSummary()
     comparer = Comparer()
 
     managed_episode = connect(
         carla_host=process.carla_host, carla_world_port=process.carla_world_port
     )
+    managed_episode.town = process.rng.choice(["Town01", "Town02", "Town07"])
+
+    summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
         vehicle_controller = controller.VehicleController()
 
