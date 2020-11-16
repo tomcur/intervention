@@ -1,16 +1,17 @@
-from typing import Optional, Tuple, Dict, List, cast
-
 import collections
-from dataclasses import dataclass
 import queue
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple, cast
+
 import numpy as np
 from loguru import logger
+
 import carla
 
+from .. import process
+from ..utils.carla_image import carla_image_to_np
 from .agents.navigation.local_planner import LocalPlannerNew
 from .map_utils import Renderer
-from ..utils.carla_image import carla_image_to_np
-from .. import process
 
 #: The number of ticks without movement after which we consider the vehicle to be stuck
 STUCK_TICKS: int = 90 * 10
