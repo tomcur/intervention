@@ -6,7 +6,7 @@ import zipfile
 from collections import deque
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import List, Optional, TextIO, Tuple, Union, Deque
+from typing import Deque, List, Optional, TextIO, Tuple, Union
 
 import dataclass_csv
 import numpy as np
