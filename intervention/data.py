@@ -14,7 +14,7 @@ from typing_extensions import Literal
 
 import carla
 
-from .carla_utils import TickState
+from .carla_utils import ManagedEpisode, TickState
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -42,6 +42,10 @@ class EpisodeSummary:
     interventions: int = 0
     ticks: int = 0
     ticks_per_second: float = 0.0
+
+    @classmethod
+    def from_managed_episode(clss, managed_episode: ManagedEpisode) -> "EpisodeSummary":
+        return clss(town=managed_episode.town)
 
     def end(self):
         self.collection_end_datetime = datetime.now(timezone.utc)
