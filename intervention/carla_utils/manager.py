@@ -1,10 +1,11 @@
 import collections
 import queue
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from loguru import logger
+from typing_extensions import Literal
 
 import carla
 
@@ -15,6 +16,23 @@ from .map_utils import Renderer
 
 #: The number of ticks without movement after which we consider the vehicle to be stuck
 STUCK_TICKS: int = 90 * 10
+
+CarlaWeather = Union[
+    Literal["ClearNoon"],
+    Literal["CloudyNoon"],
+    Literal["WetNoon"],
+    Literal["WetCloudyNoon"],
+    Literal["SoftRainNoon"],
+    Literal["MidRainyNoon"],
+    Literal["HardRainNoon"],
+    Literal["ClearSunset"],
+    Literal["CloudySunset"],
+    Literal["WetSunset"],
+    Literal["WetCloudySunset"],
+    Literal["SoftRainSunset"],
+    Literal["MidRainSunset"],
+    Literal["HardRainSunset"],
+]
 
 
 @dataclass
@@ -218,7 +236,7 @@ class Episode:
 @dataclass
 class ManagedEpisode:
     town: str = "Town01"
-    weather: carla.WeatherParameters = carla.WeatherParameters.ClearNoon
+    weather: CarlaWeather = "ClearNoon"
     vehicle_name: str = "vehicle.mustang.mustang"
     minimal_route_distance: int = 250
 
@@ -264,8 +282,9 @@ class ManagedEpisode:
 
         traffic_manager_port = self._set_up_traffic_manager()
 
-        logger.trace(f"Setting world weather to {self.weather}.")
-        self._carla_world.set_weather(self.weather)
+        weather = getattr(carla.WeatherParameters, self.weather)
+        logger.trace(f"Setting world weather to {weather}.")
+        self._carla_world.set_weather(weather)
 
         self._set_up_world_settings(self._carla_world)
 
