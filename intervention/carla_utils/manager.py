@@ -281,10 +281,7 @@ class ManagedEpisode:
 
         logger.debug("Spawning vehicles.")
         self._spawn_vehicles(
-            self._carla_world,
-            carla_map,
-            50,
-            [start_pose.location],
+            self._carla_world, carla_map, 50, [start_pose.location],
         )
 
         logger.debug("Spawning pedestrians.")
