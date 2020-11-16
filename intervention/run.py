@@ -510,7 +510,7 @@ def collect_example_episodes(
             episode_summary = process_wrapper(
                 collect_example_episode, teacher_checkpoint, episode_dir, seed_sequence,
             )
-            episode_summary.uuid = episode_id
+            episode_summary.uuid = str(episode_id)
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
 
             # try:
@@ -573,5 +573,5 @@ def collect_on_policy_episodes(
                 episode_dir,
                 seed_sequence,
             )
-            episode_summary.uuid = episode_id
+            episode_summary.uuid = str(episode_id)
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
