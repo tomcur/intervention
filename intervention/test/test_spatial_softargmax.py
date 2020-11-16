@@ -132,6 +132,64 @@ class TestGradients(unittest.TestCase):
         # ... and for the argmax Y to still stay the same.
         self.assertAlmostEqual(old_argmax_y, new_argmax_y, places=6)
 
+    def test_granular_gradient(self):
+        # Uniform input.
+        tensor = torch.tensor(
+            [
+                [
+                    [
+                        [0.0, 0.0, 0.0, 0.0, 0.0,],
+                        [0.0, 0.0, 0.0, 0.0, 0.0,],
+                        [0.0, 0.0, 0.0, 0.0, 0.0,],
+                    ]
+                ]
+            ],
+            requires_grad=True,
+        )
+        ssam = SpatialSoftargmax(3, 5, 1)
+        coords, _ = ssam(tensor)
+
+        # Initial argmax is at 0, 0.
+        self.assertAlmostEqual(coords[0, 0, 0].item(), 0.0, places=6)
+        self.assertAlmostEqual(coords[0, 0, 1].item(), 0.0, places=6)
+
+        # Set target expected value to positive-X.
+        diff = torch.abs(coords - torch.tensor([1.0, 0.0]))
+        loss = torch.abs(diff.pow(2)).mean()
+        loss.backward()
+
+        # The gradients look like:
+        # > print(tensor.grad)
+        # tensor(
+        # [[[[ 6.6667e-02,  3.3333e-02,  9.9341e-10, -3.3333e-02, -6.6667e-02],
+        #    [ 6.6667e-02,  3.3333e-02, -0.0000e+00, -3.3333e-02, -6.6667e-02],
+        #    [ 6.6667e-02,  3.3333e-02, -9.9341e-10, -3.3333e-02, -6.6667e-02]]]])
+
+        # Because the loss in this situation is symmetric over the horizontal axis,
+        # gradients for all Y coordinates on a given X coordinate should be identical.
+        for column_idx in [0, 1, 4]:
+            self.assertAlmostEqual(
+                tensor.grad[0, 0, 0, column_idx].item(),
+                tensor.grad[0, 0, 1, column_idx].item(),
+                places=6,
+            )
+            self.assertAlmostEqual(
+                tensor.grad[0, 0, 1, column_idx].item(),
+                tensor.grad[0, 0, 2, column_idx].item(),
+                places=6,
+            )
+
+        # Grab a row.
+        row_grad = tensor.grad[0, 0, 1, ...].tolist()
+
+        # And we expect gradients to be greater the more it would move the argmax and
+        # thereby the more it would impact the loss.
+        self.assertGreater(row_grad[0], row_grad[1])
+        self.assertGreater(row_grad[1], row_grad[2])
+        self.assertAlmostEqual(row_grad[2], 0.0, places=6)
+        self.assertGreater(row_grad[2], row_grad[3])
+        self.assertGreater(row_grad[3], row_grad[4])
+
     def test_heatmap_gradient(self):
         tensor = torch.tensor(
             [
@@ -170,7 +228,6 @@ class TestGradients(unittest.TestCase):
             ]
         )
 
-        print(heatmap * target_map)
         loss = (heatmap * target_map).mean()
         loss.backward()
 
