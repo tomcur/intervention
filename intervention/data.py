@@ -36,6 +36,7 @@ class EpisodeSummary:
         default_factory=lambda: datetime.now(timezone.utc)
     )
     town: str = ""
+    weather: str = ""
     end_status: str = "unknown"
     collisions: int = 0
     distance_travelled: float = 0.0
@@ -45,7 +46,7 @@ class EpisodeSummary:
 
     @classmethod
     def from_managed_episode(clss, managed_episode: ManagedEpisode) -> "EpisodeSummary":
-        return clss(town=managed_episode.town)
+        return clss(town=managed_episode.town, weather=managed_episode.weather)
 
     def end(self):
         self.collection_end_datetime = datetime.now(timezone.utc)
