@@ -110,7 +110,7 @@ def control_stable(control) -> bool:
 
 
 class Comparer:
-    def __init__(self, threshold: float = 5.0):
+    def __init__(self, threshold: float = 3.5):
         self.threshold = threshold
         self.difference_integral = 0.0
 
