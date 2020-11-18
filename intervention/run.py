@@ -48,17 +48,50 @@ def controls_difference(state: TickState, supervisor_control, model_control) -> 
     if supervisor_control.reverse != model_control.reverse:
         diff += 1
 
-    diff += 0.7 * abs(supervisor_control.throttle - model_control.throttle)
-    diff += 1.5 * abs(supervisor_control.steer - model_control.steer)
+    if state.speed > 15.0 * 1000 / 60 / 60:
+        throttle_diff_weight = 0.10
+        throttle_diff_thresh = 0.40
 
-    if state.speed > 30.0 * 1000 / 60 / 60:
-        diff += abs(supervisor_control.brake - model_control.brake)
+        brake_diff_weight = 0.80
+        brake_diff_thresh = 0.1
+
+        steer_diff_weight = 3.50
+        steer_diff_thresh = 0.0
     elif state.speed > 10.0 * 1000 / 60 / 60:
-        diff += 0.5 * abs(supervisor_control.brake - model_control.brake)
+        throttle_diff_weight = 0.15
+        throttle_diff_thresh = 0.40
+
+        brake_diff_weight = 0.60
+        brake_diff_thresh = 0.1
+
+        steer_diff_weight = 2.00
+        steer_diff_thresh = 0.0
     elif state.speed > 5.0 * 1000 / 60 / 60:
-        diff += 0.25 * abs(supervisor_control.brake - model_control.brake)
+        throttle_diff_weight = 0.30
+        throttle_diff_thresh = 0.10
+
+        brake_diff_weight = 0.50
+        brake_diff_thresh = 0.05
+
+        steer_diff_weight = 1.0
+        steer_diff_thresh = 0.0
     else:
-        diff += 0.1 * abs(supervisor_control.brake - model_control.brake)
+        throttle_diff_weight = 0.40
+        throttle_diff_thresh = 0.10
+
+        brake_diff_weight = 0.60
+        brake_diff_thresh = 0.20
+
+        steer_diff_weight = 0.5
+        steer_diff_thresh = 0.0
+
+    throttle_diff = abs(supervisor_control.throttle - model_control.throttle)
+    brake_diff = abs(supervisor_control.brake - model_control.brake)
+    steer_diff = abs(supervisor_control.steer - model_control.steer)
+
+    diff += throttle_diff_weight * max(throttle_diff - throttle_diff_thresh, 0.0)
+    diff += brake_diff_weight * max(brake_diff - brake_diff_thresh, 0.0)
+    diff += steer_diff_weight * max(steer_diff - steer_diff_thresh, 0.0)
 
     return diff
 
