@@ -1,10 +1,5 @@
-import csv
 import itertools
-import os
-import uuid
-import zipfile
 from pathlib import Path
-from typing import Callable, Tuple, TypeVar, Union
 
 import numpy as np
 import torch
@@ -15,8 +10,6 @@ import carla
 from . import controller, data, exceptions, process, visualization
 from .carla_utils import TickState, connect
 from .learning_by_cheating import birdview
-
-T = TypeVar("T")
 
 
 def controls_differ(observation, supervisor_control, model_control) -> bool:
