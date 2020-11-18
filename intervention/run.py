@@ -40,7 +40,9 @@ def controls_differ(observation, supervisor_control, model_control) -> bool:
     )
 
 
-def controls_difference(state: TickState, supervisor_control, model_control) -> float:
+def controls_difference(
+    state: TickState, supervisor_target_waypoints, supervisor_control, model_control
+) -> float:
     diff = 0
 
     if supervisor_control.hand_brake != model_control.hand_brake:
@@ -57,6 +59,9 @@ def controls_difference(state: TickState, supervisor_control, model_control) -> 
 
         steer_diff_weight = 3.50
         steer_diff_thresh = 0.0
+
+        next_x_offset_weight = 0.5
+        next_x_offset_thresh = 0.15
     elif state.speed > 10.0 * 1000 / 60 / 60:
         throttle_diff_weight = 0.15
         throttle_diff_thresh = 0.40
@@ -66,6 +71,9 @@ def controls_difference(state: TickState, supervisor_control, model_control) -> 
 
         steer_diff_weight = 2.00
         steer_diff_thresh = 0.0
+
+        next_x_offset_weight = 0.5
+        next_x_offset_thresh = 0.15
     elif state.speed > 5.0 * 1000 / 60 / 60:
         throttle_diff_weight = 0.30
         throttle_diff_thresh = 0.10
@@ -75,6 +83,9 @@ def controls_difference(state: TickState, supervisor_control, model_control) -> 
 
         steer_diff_weight = 1.0
         steer_diff_thresh = 0.0
+
+        next_x_offset_weight = 0.4
+        next_x_offset_thresh = 0.15
     else:
         throttle_diff_weight = 0.40
         throttle_diff_thresh = 0.10
@@ -85,13 +96,18 @@ def controls_difference(state: TickState, supervisor_control, model_control) -> 
         steer_diff_weight = 0.5
         steer_diff_thresh = 0.0
 
+        next_x_offset_weight = 0.0
+        next_x_offset_thresh = 0.0
+
     throttle_diff = abs(supervisor_control.throttle - model_control.throttle)
     brake_diff = abs(supervisor_control.brake - model_control.brake)
     steer_diff = abs(supervisor_control.steer - model_control.steer)
+    next_x_offset = abs(supervisor_target_waypoints[0, 0])
 
     diff += throttle_diff_weight * max(throttle_diff - throttle_diff_thresh, 0.0)
     diff += brake_diff_weight * max(brake_diff - brake_diff_thresh, 0.0)
     diff += steer_diff_weight * max(steer_diff - steer_diff_thresh, 0.0)
+    diff += next_x_offset_weight * max(next_x_offset - next_x_offset_thresh, 0.0)
 
     return diff
 
@@ -120,13 +136,14 @@ class Comparer:
     def evaluate_and_compare(
         self,
         state: TickState,
+        teacher_target_waypoints: np.ndarray,
         teacher_control: carla.VehicleControl,
         student_control: carla.VehicleControl,
     ) -> None:
         if self.student_in_control:
             self.difference_integral *= 0.9
             self.difference_integral += controls_difference(
-                state, teacher_control, student_control
+                state, teacher_target_waypoints, teacher_control, student_control
             )
             if self.difference_integral >= self.threshold:
                 logger.trace("switching to teacher control")
@@ -428,7 +445,9 @@ def run_on_policy_episode(
                 episode.apply_control(student_control)
                 store.push_student_driving(step, model_output, student_control, state)
 
-            comparer.evaluate_and_compare(state, teacher_control, student_control)
+            comparer.evaluate_and_compare(
+                state, teacher_target_waypoints, teacher_control, student_control
+            )
 
             with visualizer as painter:
                 painter.add_rgb(state.rgb)
