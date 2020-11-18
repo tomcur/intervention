@@ -107,6 +107,9 @@ def controls_difference(
     diff += throttle_diff_weight * max(throttle_diff - throttle_diff_thresh, 0.0)
     diff += brake_diff_weight * max(brake_diff - brake_diff_thresh, 0.0)
     diff += steer_diff_weight * max(steer_diff - steer_diff_thresh, 0.0)
+
+    # We see the next X offset as a measure of how much the student is drifting out of
+    # lane according to the teacher.
     diff += next_x_offset_weight * max(next_x_offset - next_x_offset_thresh, 0.0)
 
     return diff
