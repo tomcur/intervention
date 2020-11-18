@@ -177,6 +177,7 @@ class VehicleController:
             throttle = 0.0
             steering = 0.0
             brake = self._brake_control.step(state.speed, update=update_pids)
+            brake = max(brake, 0.05)
         else:
             throttle = self._speed_control.step(acceleration, update=update_pids)
             brake = self._brake_control.step(-acceleration, update=update_pids)
