@@ -168,7 +168,7 @@ class VehicleController:
 
         # Calculate throttle and braking
         deltas = np.linalg.norm(targets[:-1] - targets[1:], axis=1)
-        target_speed = deltas[:2].mean() / (self._waypoint_step_gap * self._dt)
+        target_speed = deltas[:3].mean() / (self._waypoint_step_gap * self._dt)
 
         acceleration = target_speed - state.speed
 
