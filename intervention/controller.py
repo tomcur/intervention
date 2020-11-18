@@ -173,7 +173,7 @@ class VehicleController:
         acceleration = target_speed - state.speed
 
         # Hacky heuristic to allow agent to more easily come to a full stop
-        if target_speed * 60.0 * 60.0 / 1000.0 < 1.0:
+        if target_speed * 60.0 * 60.0 / 1000.0 < 3.5:
             throttle = 0.0
             brake = self._brake_control.step(state.speed, update=update_pids)
         else:
