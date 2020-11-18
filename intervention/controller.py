@@ -175,22 +175,23 @@ class VehicleController:
         # Hacky heuristic to allow agent to more easily come to a full stop
         if target_speed * 60.0 * 60.0 / 1000.0 < 3.5:
             throttle = 0.0
+            steering = 0.0
             brake = self._brake_control.step(state.speed, update=update_pids)
         else:
             throttle = self._speed_control.step(acceleration, update=update_pids)
             brake = self._brake_control.step(-acceleration, update=update_pids)
 
-        # Calculate steering
-        circle_origin, circle_radius = _least_square_circle_fit(waypoints)
-        idx_point_to_turn_to = self._waypoint_steps_for_steering[state.command]
-        point_to_turn_to = targets[idx_point_to_turn_to + 1]
-        point = _project_point_on_circle(point_to_turn_to, circle_origin, circle_radius)
+            # Calculate steering
+            circle_origin, circle_radius = _least_square_circle_fit(waypoints)
+            idx_point_to_turn_to = self._waypoint_steps_for_steering[state.command]
+            point_to_turn_to = targets[idx_point_to_turn_to + 1]
+            point = _project_point_on_circle(point_to_turn_to, circle_origin, circle_radius)
 
-        angle = _angle_between(np.array([1.0, 0]), point)
-        if point[1] < 0:
-            angle = -angle
+            angle = _angle_between(np.array([1.0, 0]), point)
+            if point[1] < 0:
+                angle = -angle
 
-        steering = self._turn_control.step(angle, update=update_pids)
+            steering = self._turn_control.step(angle, update=update_pids)
 
         throttle = np.clip(throttle, 0.0, 1.0)
         brake = np.clip(brake, 0.0, 1.0)
