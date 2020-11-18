@@ -103,8 +103,9 @@ def control_stable(control) -> bool:
     return (
         not control.reverse
         and not control.hand_brake
-        and control.brake == 0
-        and abs(control.steer) < 0.4
+        and control.throttle > 0.01
+        and control.brake < 0.01
+        and abs(control.steer) < 0.3
     )
 
 
