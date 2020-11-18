@@ -132,7 +132,7 @@ def ego_coordinate_to_image_coordinate(
 
     :param egocentric_x: The x-component of an egocentric coordinate.
     :param egocentric_y: The y-component of an egocentric coordinate.
-    :param fov: The camera field-of-view.
+    :param fov: The camera horizontal field-of-view in degrees.
     :param image_width: The image width in pixels.
     :param image_height: The image height in pixels.
     :param forward_offset: Relative locations close to 0 are projected outside the
@@ -170,8 +170,6 @@ def ego_coordinate_to_image_coordinate(
 def image_coordinate_to_ego_coordinate(
     image_x: float,
     image_y: float,
-    # current_forward_x: float,
-    # current_forward_y: float,
     fov: float = 90.0,
     image_width: int = 384,
     image_height: int = 160,
@@ -184,7 +182,7 @@ def image_coordinate_to_ego_coordinate(
 
     :param image_x: The x-component of the image coordinate.
     :param image_y: The y-component of the image coordinate.
-    :param fov: The camera field-of-view.
+    :param fov: The camera horizontal field-of-view in degrees.
     :param image_width: The image width in pixels.
     :param image_height: The image height in pixels.
     :param forward_offset: The constant offset used when projecting using
