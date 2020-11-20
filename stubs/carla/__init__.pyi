@@ -318,6 +318,7 @@ class DebugHelper:
 
 @dataclass
 class WeatherParameters:
+    Default: "WeatherParameters"
     ClearNoon: "WeatherParameters"
     CloudyNoon: "WeatherParameters"
     WetNoon: "WeatherParameters"

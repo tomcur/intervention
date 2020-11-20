@@ -18,6 +18,7 @@ from .map_utils import Renderer
 STUCK_TICKS: int = 90 * 10
 
 CarlaWeather = Union[
+    Literal["Default"],
     Literal["ClearNoon"],
     Literal["CloudyNoon"],
     Literal["WetNoon"],
@@ -236,7 +237,7 @@ class Episode:
 @dataclass
 class ManagedEpisode:
     town: str = "Town01"
-    weather: CarlaWeather = "ClearNoon"
+    weather: CarlaWeather = "Default"
     vehicle_name: str = "vehicle.mustang.mustang"
     minimal_route_distance: int = 250
 
