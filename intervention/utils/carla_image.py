@@ -9,6 +9,7 @@ import carla
 
 
 def carla_image_to_np(carla_img: carla.Image) -> np.ndarray:
+    """Converts a Carla Image to an RGB numpy array (uint8)."""
     carla_img.convert(carla.ColorConverter.Raw)
 
     img = np.frombuffer(carla_img.raw_data, dtype=np.dtype(np.uint8))
