@@ -317,7 +317,7 @@ def run_example_episode(
     )
     managed_episode.town = process.rng.choice(["Town01", "Town02"])
     managed_episode.weather = process.rng.choice(
-        ["ClearNoon", "ClearSunset", "MidRainyNoon", "MidRainSunset"]
+        ["Default", "ClearNoon", "MidRainSunset"]
     )
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
@@ -390,7 +390,7 @@ def run_on_policy_episode(
     )
     managed_episode.town = process.rng.choice(["Town01", "Town02"])
     managed_episode.weather = process.rng.choice(
-        ["ClearNoon", "ClearSunset", "MidRainyNoon", "MidRainSunset"]
+        ["Default", "ClearNoon", "MidRainSunset"]
     )
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
