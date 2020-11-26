@@ -35,6 +35,14 @@ CarlaWeather = Union[
     Literal["HardRainSunset"],
 ]
 
+CarlaTown = Union[
+    Literal["Town01"],
+    Literal["Town02"],
+    Literal["Town03"],
+    Literal["Town04"],
+    Literal["Town05"],
+]
+
 
 @dataclass
 class TickState:
@@ -292,7 +300,7 @@ class Episode:
 
 @dataclass
 class ManagedEpisode:
-    town: str = "Town01"
+    town: CarlaTown = "Town01"
     weather: CarlaWeather = "Default"
     vehicle_name: str = "vehicle.mustang.mustang"
     minimal_route_distance: int = 250
