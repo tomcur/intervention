@@ -228,6 +228,9 @@ def run_image_agent(store: data.Store) -> None:
         carla_host=process.carla_host, carla_world_port=process.carla_world_port
     )
     with managed_episode as episode:
+        vehicle_geometry = episode.get_vehicle_geometry()
+        vehicle_controller = controller.VehicleController(vehicle_geometry)
+
         logger.debug("Creating agent.")
         model = Image()
         agent = Agent(model)
@@ -310,7 +313,6 @@ def run_example_episode(
     param store: the store for the episode information.
     """
     visualizer = visualization.Visualizer()
-    vehicle_controller = controller.VehicleController()
 
     managed_episode = connect(
         carla_host=process.carla_host, carla_world_port=process.carla_world_port
@@ -322,6 +324,8 @@ def run_example_episode(
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
+        vehicle_geometry = episode.get_vehicle_geometry()
+        vehicle_controller = controller.VehicleController(vehicle_geometry)
 
         logger.debug("Creating teacher agent.")
         teacher = _prepare_teacher_agent(teacher_checkpoint)
@@ -395,7 +399,8 @@ def run_on_policy_episode(
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
-        vehicle_controller = controller.VehicleController()
+        vehicle_geometry = episode.get_vehicle_geometry()
+        vehicle_controller = controller.VehicleController(vehicle_geometry)
 
         logger.debug("Creating student agent.")
         student_model = Image()
