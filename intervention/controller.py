@@ -1,8 +1,10 @@
+import math
 from typing import List, Tuple
 
 import numpy as np
 import carla
 
+from . import physics
 from .carla_utils.manager import TickState
 
 
@@ -51,6 +53,13 @@ def _project_point_on_circle(
     )
 
     return point_on_circle
+
+
+def _turning_radius_to(x: float, y: float) -> float:
+    if x == 0:
+        return math.inf
+    radius = (x ** 2 + y ** 2) / (2 * abs(x))
+    return radius
 
 
 def _unit_vector(vector: np.ndarray) -> np.ndarray:
@@ -124,10 +133,46 @@ class PidController:
         return control
 
 
+def _interpolate_waypoint_n_meters_ahead(
+    waypoints: np.ndarray, meters: float
+) -> (float, float):
+    """
+    Gets a waypoint that is `meters` from the origin (at `0, 0`) along the trajectory in
+    `waypoints`. This linearly interpolates the trajectory between the waypoints.
+
+    :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
+    :param meters`: the distance from the origin along the trajectory
+    """
+    total_dist = np.float(0.0)
+    prev_pos = np.array([0, 0])
+    cur_pos = np.array([0, 0])
+
+    for waypoint in waypoints[:]:
+        dist = np.linalg.norm(waypoint - cur_pos)
+        if total_dist + dist >= meters:
+            unit = (waypoint - cur_pos) / dist
+            [x, y] = (cur_pos + unit * (meters - total_dist)).tolist()
+            return x, y
+        else:
+            total_dist += dist
+            prev_pos = cur_pos
+            cur_pos = waypoint
+
+    unit = (cur_pos - prev_pos) / dist
+    [x, y] = (cur_pos + unit * (meters - total_dist)).tolist()
+    return x, y
+
+
 class VehicleController:
-    def __init__(self, waypoint_step_gap: int = 5, unit_time_per_step: float = 0.1):
+    def __init__(
+        self,
+        vehicle_geometry: physics.VehicleGeometry,
+        waypoint_step_gap: int = 5,
+        unit_time_per_step: float = 0.1,
+    ):
         self._waypoint_step_gap = waypoint_step_gap
         self._dt = unit_time_per_step
+        self._kinematic_bicycle = physics.KinematicBicycle(vehicle_geometry)
 
         self._speed_control = PidController(
             unit_time_per_step, proportional=0.5, integral=0.05, derivative=0.02,
@@ -135,20 +180,6 @@ class VehicleController:
         self._brake_control = PidController(
             unit_time_per_step, proportional=0.5, integral=0.05, derivative=0.02,
         )
-        self._turn_control = PidController(
-            unit_time_per_step,
-            proportional=0.5,
-            integral=0.05,
-            derivative=0.02,
-            integral_discounting_per_step=0.08,
-        )
-
-        self._waypoint_steps_for_steering = {
-            1: 4,  # Left
-            2: 4,  # Right
-            3: 2,  # Straight
-            4: 3,  # Lane follow
-        }
 
     def step(
         self, state: TickState, waypoints: np.ndarray, update_pids=True
@@ -172,30 +203,33 @@ class VehicleController:
 
         acceleration = target_speed - state.speed
 
+        logger.trace(f"Target speed {target_speed * 60 * 60 / 1000}")
+
+        x, y = _interpolate_waypoint_n_meters_ahead(waypoints, 5.0)
+        print("xy", x, y)
+        # [y, x] = waypoints[2, :].tolist()
+        radius = _turning_radius_to(x, y)
+        steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
+            radius
+        )
+        if x < 0.0:
+            steering_angle = -steering_angle
+        print("sa", steering_angle)
+
         # Hacky heuristic to allow agent to more easily come to a full stop
         if target_speed * 60.0 * 60.0 / 1000.0 < 3.5:
             throttle = 0.0
-            steering = 0.0
+            steering_angle = 0.0
             brake = self._brake_control.step(state.speed, update=update_pids)
             brake = max(brake, 0.05)
         else:
             throttle = self._speed_control.step(acceleration, update=update_pids)
             brake = self._brake_control.step(-acceleration, update=update_pids)
 
-            # Calculate steering
-            circle_origin, circle_radius = _least_square_circle_fit(waypoints)
-            idx_point_to_turn_to = self._waypoint_steps_for_steering[state.command]
-            point_to_turn_to = targets[idx_point_to_turn_to + 1]
-            point = _project_point_on_circle(point_to_turn_to, circle_origin, circle_radius)
-
-            angle = _angle_between(np.array([1.0, 0]), point)
-            if point[1] < 0:
-                angle = -angle
-
-            steering = self._turn_control.step(angle, update=update_pids)
-
         throttle = np.clip(throttle, 0.0, 1.0)
         brake = np.clip(brake, 0.0, 1.0)
-        steering = np.clip(steering, -1.0, 1.0)
+        steering = np.clip(steering_angle, -1.0, 1.0)
 
-        return carla.VehicleControl(throttle=throttle, steer=steering, brake=brake)
+        return carla.VehicleControl(
+            throttle=throttle, steer=steering_angle, brake=brake
+        )
