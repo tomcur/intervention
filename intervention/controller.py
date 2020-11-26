@@ -175,10 +175,18 @@ class VehicleController:
         self._kinematic_bicycle = physics.KinematicBicycle(vehicle_geometry)
 
         self._speed_control = PidController(
-            unit_time_per_step, proportional=0.5, integral=0.05, derivative=0.02,
+            unit_time_per_step,
+            proportional=0.5,
+            integral=0.05,
+            derivative=0.02,
+            integral_discounting_per_step=0.04,
         )
         self._brake_control = PidController(
-            unit_time_per_step, proportional=0.5, integral=0.05, derivative=0.02,
+            unit_time_per_step,
+            proportional=0.5,
+            integral=0.05,
+            derivative=0.02,
+            integral_discounting_per_step=0.04,
         )
 
     def step(
