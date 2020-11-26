@@ -200,7 +200,6 @@ class VehicleController:
         """
         targets = np.insert(waypoints, 0, [0, 0], axis=0)
 
-        # Calculate throttle and braking
         deltas = np.linalg.norm(targets[:-1] - targets[1:], axis=1)
         target_speed = deltas[:3].mean() / (self._waypoint_step_gap * self._dt)
 
@@ -209,15 +208,12 @@ class VehicleController:
         logger.trace(f"Target speed {target_speed * 60 * 60 / 1000}")
 
         x, y = _interpolate_waypoint_n_meters_ahead(waypoints, 5.0)
-        print("xy", x, y)
-        # [y, x] = waypoints[2, :].tolist()
         radius = _turning_radius_to(x, y)
         steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
             radius
         )
         if x < 0.0:
             steering_angle = -steering_angle
-        print("sa", steering_angle)
 
         # Hacky heuristic to allow agent to more easily come to a full stop
         if target_speed * 60.0 * 60.0 / 1000.0 < 3.5:
@@ -231,7 +227,7 @@ class VehicleController:
 
         throttle = np.clip(throttle, 0.0, 1.0)
         brake = np.clip(brake, 0.0, 1.0)
-        steering = np.clip(steering_angle, -1.0, 1.0)
+        steering_angle = np.clip(steering_angle, -1.0, 1.0)
 
         return carla.VehicleControl(
             throttle=throttle, steer=steering_angle, brake=brake
