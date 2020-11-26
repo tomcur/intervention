@@ -9,7 +9,7 @@ from typing_extensions import Literal
 
 import carla
 
-from .. import process
+from .. import process, physics
 from ..utils.carla_image import carla_image_to_np
 from .agents.navigation.local_planner import LocalPlannerNew
 from .map_utils import Renderer
@@ -141,6 +141,59 @@ class EgoVehicle:
 
         return collision_detector
 
+    def get_vehicle_geometry(self) -> physics.VehicleGeometry:
+        vehicle_physics = self.vehicle.get_physics_control()
+
+        wheel_front_left = vehicle_physics.wheels[0]
+        wheel_front_right = vehicle_physics.wheels[1]
+        wheel_rear_left = vehicle_physics.wheels[2]
+
+        # print(wheel_front_left.max_steer_angle)
+        # print(wheel_front_right.max_steer_angle)
+
+        # These positions are world coordinates in centimeters
+        wheel_front_left_pos = (
+            np.array(
+                [
+                    wheel_front_left.position.x,
+                    wheel_front_left.position.y,
+                    wheel_front_left.position.z,
+                ]
+            )
+            / 100.0
+        )
+        wheel_front_right_pos = (
+            np.array(
+                [
+                    wheel_front_right.position.x,
+                    wheel_front_right.position.y,
+                    wheel_front_right.position.z,
+                ]
+            )
+            / 100.0
+        )
+        wheel_rear_left_pos = (
+            np.array(
+                [
+                    wheel_rear_left.position.x,
+                    wheel_rear_left.position.y,
+                    wheel_rear_left.position.z,
+                ]
+            )
+            / 100.0
+        )
+
+        wheel_base = np.linalg.norm(wheel_front_left_pos - wheel_rear_left_pos)
+        wheel_track = np.linalg.norm(wheel_front_left_pos - wheel_front_right_pos)
+
+        max_inner_wheel_angle = np.radians(wheel_front_left.max_steer_angle)
+
+        return physics.VehicleGeometry(
+            wheel_base=float(wheel_base),
+            wheel_track=float(wheel_track),
+            max_inner_wheel_angle=float(max_inner_wheel_angle),
+        )
+
 
 class Episode:
     def __init__(
@@ -159,6 +212,9 @@ class Episode:
         self._route_completed: bool = False
         self._unmoved_ticks: int = 0
         self._distance_travelled: float = 0.0
+
+    def get_vehicle_geometry(self) -> physics.VehicleGeometry:
+        return self._ego_vehicle.get_vehicle_geometry()
 
     def apply_control(self, control: carla.VehicleControl):
         """Apply control on the ego vehicle."""
