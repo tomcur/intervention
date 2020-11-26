@@ -192,17 +192,12 @@ class VehicleController:
     def step(
         self, state: TickState, waypoints: np.ndarray, update_pids=True
     ) -> carla.VehicleControl:
-        # Swap Y and X coordinates, and add our current position (at origin)
-        # In the Learning by Cheating codebase, the following is used instead.
-        # targets = [(0, 0)]
-        # for i in range(STEPS):
-        #     pixel_dx, pixel_dy = world_pred[i]
-        #     angle = np.arctan2(pixel_dx, pixel_dy)
-        #     dist = np.linalg.norm([pixel_dx, pixel_dy])
-        #     targets.append([dist * np.cos(angle), dist * np.sin(angle)])
-        # targets = np.array(targets)
-
-        waypoints = waypoints[..., [1, 0]]
+        """
+        :param state: current tick's state data
+        :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
+        :param update_pids: whether to update the low-level PID controllers with this
+        input
+        """
         targets = np.insert(waypoints, 0, [0, 0], axis=0)
 
         # Calculate throttle and braking
