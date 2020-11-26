@@ -56,6 +56,19 @@ def _project_point_on_circle(
 
 
 def _turning_radius_to(x: float, y: float) -> float:
+    """
+    Calculates the turning radius assuming we're driving a circle from (0, 0) to (x, y),
+    with a line crossing points (0, 0) to (0, 1) being on a tangent with this circle.
+    """
+    # The circle is defined by
+    # (x - h)^2 + (y - k)^2 = r^2
+    # with k = 0
+    # so, h^2 = r^2
+    # and thus r^2 = (x - r)^2 + y^2
+    # => r^2 = x^2 - 2xr + r^2 + y^2
+    # => 0 = x^2 - 2xr + y^2
+    # => 2xr = x^2 + y^2
+    # => r = (x^2 + y^2) / (2x)
     if x == 0:
         return math.inf
     radius = (x ** 2 + y ** 2) / (2 * abs(x))
