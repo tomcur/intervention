@@ -23,47 +23,45 @@ class TestTransform(unittest.TestCase):
 
 
 class Test(unittest.TestCase):
-    EPSILON = 1e-10
-
     def test_world_to_ego_transform_1(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
             20, 10, 0, 0, 0, 1
         )
 
-        self.assertTrue(abs(-20 - ego_x) < Test.EPSILON)
-        self.assertTrue(abs(10 - ego_y) < Test.EPSILON)
+        self.assertAlmostEqual(ego_x, -20, places=7)
+        self.assertAlmostEqual(ego_y, 10, places=7)
 
     def test_world_to_ego_transform_2(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
             20, 10, 0, 0, 0, -1
         )
 
-        self.assertTrue(abs(20 - ego_x) < Test.EPSILON)
-        self.assertTrue(abs(-10 - ego_y) < Test.EPSILON)
+        self.assertAlmostEqual(ego_x, 20, places=7)
+        self.assertAlmostEqual(ego_y, -10, places=7)
 
     def test_world_to_ego_transform_3(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
             20, -10, 5, 2, 0, -1
         )
 
-        self.assertTrue(abs(15 - ego_x) < Test.EPSILON)
-        self.assertTrue(abs(12 - ego_y) < Test.EPSILON)
+        self.assertAlmostEqual(ego_x, 15, places=7)
+        self.assertAlmostEqual(ego_y, 12, places=7)
 
     def test_world_to_ego_transform_4(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
             20, 10, 0, 0, 1, 0
         )
 
-        self.assertTrue(abs(10 - ego_x) < Test.EPSILON)
-        self.assertTrue(abs(20 - ego_y) < Test.EPSILON)
+        self.assertAlmostEqual(ego_x, 10, places=7)
+        self.assertAlmostEqual(ego_y, 20, places=7)
 
     def test_world_to_ego_transform_5(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
             20, 10, 0, 0, -1, 0
         )
 
-        self.assertTrue(abs(-10 - ego_x) < Test.EPSILON)
-        self.assertTrue(abs(-20 - ego_y) < Test.EPSILON)
+        self.assertAlmostEqual(ego_x, -10, places=7)
+        self.assertAlmostEqual(ego_y, -20, places=7)
 
     def test_ego_transform_roundtrip_1(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
@@ -74,8 +72,8 @@ class Test(unittest.TestCase):
             ego_x, ego_y, 0, 0, 0, -1
         )
 
-        self.assertTrue(abs(world_x - 20) < Test.EPSILON)
-        self.assertTrue(abs(world_y - -10) < Test.EPSILON)
+        self.assertAlmostEqual(world_x, 20, places=7)
+        self.assertAlmostEqual(world_y, -10, places=7)
 
     def test_ego_transform_roundtrip_2(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
@@ -86,8 +84,8 @@ class Test(unittest.TestCase):
             ego_x, ego_y, 5, 10, math.sqrt(1 / 2), -math.sqrt(1 / 2)
         )
 
-        self.assertTrue(abs(world_x - 20) < Test.EPSILON)
-        self.assertTrue(abs(world_y - -10) < Test.EPSILON)
+        self.assertAlmostEqual(world_x, 20, places=7)
+        self.assertAlmostEqual(world_y, -10, places=7)
 
     def test_image_transform_roundtrip_1(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
@@ -100,11 +98,11 @@ class Test(unittest.TestCase):
 
         im_x2, im_y2 = coordinates.ego_coordinate_to_image_coordinate(ego_x2, ego_y2,)
 
-        self.assertTrue(abs(ego_x - ego_x2) < Test.EPSILON)
-        self.assertTrue(abs(ego_y - ego_y2) < Test.EPSILON)
+        self.assertAlmostEqual(ego_x, ego_x2, places=7)
+        self.assertAlmostEqual(ego_y, ego_y2, places=7)
 
-        self.assertTrue(abs(im_x - im_x2) < Test.EPSILON)
-        self.assertTrue(abs(im_y - im_y2) < Test.EPSILON)
+        self.assertAlmostEqual(im_x, im_x2, places=7)
+        self.assertAlmostEqual(im_y, im_y2, places=7)
 
     def test_image_transform_roundtrip_2(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
@@ -123,8 +121,8 @@ class Test(unittest.TestCase):
             ego_x2, ego_y2, forward_offset=6.0
         )
 
-        self.assertTrue(abs(ego_x - ego_x2) < Test.EPSILON)
-        self.assertTrue(abs(ego_y - ego_y2) < Test.EPSILON)
+        self.assertAlmostEqual(ego_x, ego_x2, places=7)
+        self.assertAlmostEqual(ego_y, ego_y2, places=7)
 
-        self.assertTrue(abs(im_x - im_x2) < Test.EPSILON)
-        self.assertTrue(abs(im_y - im_y2) < Test.EPSILON)
+        self.assertAlmostEqual(im_x, im_x2, places=7)
+        self.assertAlmostEqual(im_y, im_y2, places=7)
