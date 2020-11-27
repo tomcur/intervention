@@ -118,6 +118,36 @@ def world_coordinate_to_ego_coordinate(
     return -x, y
 
 
+def ego_coordinate_to_world_coordinate(
+    egocentric_x: float,
+    egocentric_y: float,
+    current_location_x: float,
+    current_location_y: float,
+    current_forward_x: float,
+    current_forward_y: float,
+) -> Tuple[float, float]:
+    """
+    :param location_x: The x-component of an egocentric location.
+    :param location_y: The y-component of an egocentric location.
+    :param current_location_x: The x-component of the current world location.
+    :param current_location_y: The y-component of the current world location.
+    :param current_forward_x: The x-component of the vector pointing forwards according
+    to the current orientation.
+    :param current_forward_y: The y-component of the vector pointing forwards according
+    to the current orientation.
+    :return: A tuple of the world top-down X and Y coordinates.
+    """
+    egocentric_x *= -1
+
+    dx = current_forward_x * egocentric_y + current_forward_y * egocentric_x
+    dy = -current_forward_x * egocentric_x + current_forward_y * egocentric_y
+
+    x = current_location_x + dx
+    y = current_location_y + dy
+
+    return x, y
+
+
 def ego_coordinate_to_image_coordinate(
     egocentric_x: float,
     egocentric_y: float,
