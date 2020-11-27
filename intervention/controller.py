@@ -1,10 +1,11 @@
 import math
+from collections import deque
 from typing import Tuple
 
 import numpy as np
 import carla
 
-from . import physics
+from . import coordinates, physics
 from .carla_utils.manager import TickState
 
 
@@ -201,6 +202,7 @@ class VehicleController:
             derivative=0.02,
             integral_discounting_per_step=0.04,
         )
+        self._previous_waypoints_world = deque(maxlen=6)
 
     def step(
         self, state: TickState, waypoints: np.ndarray, update_pids=True
@@ -211,6 +213,20 @@ class VehicleController:
         :param update_pids: whether to update the low-level PID controllers with this
         input
         """
+        forward = state.rotation.get_forward_vector()
+        waypoints_world = [
+            coordinates.ego_coordinate_to_world_coordinate(
+                ego_x,
+                ego_y,
+                current_location_x=state.location.x,
+                current_location_y=state.location.y,
+                current_forward_x=forward.x,
+                current_forward_y=forward.y,
+            )
+            for ego_x, ego_y in waypoints.tolist()
+        ]
+        self._previous_waypoints_world.append(waypoints_world)
+
         targets = np.insert(waypoints, 0, [0, 0], axis=0)
 
         deltas = np.linalg.norm(targets[:-1] - targets[1:], axis=1)
@@ -220,7 +236,21 @@ class VehicleController:
 
         logger.trace(f"Target speed {target_speed * 60 * 60 / 1000}")
 
-        x, y = _interpolate_waypoint_n_meters_ahead(waypoints, 5.0)
+        turn_waypoints = np.array(
+            [
+                coordinates.world_coordinate_to_ego_coordinate(
+                    world_x,
+                    world_y,
+                    current_location_x=state.location.x,
+                    current_location_y=state.location.y,
+                    current_forward_x=forward.x,
+                    current_forward_y=forward.y,
+                )
+                for world_x, world_y in self._previous_waypoints_world[0]
+            ]
+        )
+        print(turn_waypoints)
+        x, y = _interpolate_waypoint_n_meters_ahead(turn_waypoints, 4.0)
         radius = _turning_radius_to(x, y)
         steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
             radius
