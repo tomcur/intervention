@@ -1,4 +1,6 @@
+import math
 import unittest
+
 import numpy as np
 
 from .. import coordinates
@@ -62,6 +64,30 @@ class Test(unittest.TestCase):
 
         self.assertTrue(abs(-10 - ego_x) < Test.EPSILON)
         self.assertTrue(abs(-20 - ego_y) < Test.EPSILON)
+
+    def test_ego_transform_roundtrip_1(self):
+        ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
+            20, -10, 0, 0, 0, -1
+        )
+
+        world_x, world_y = coordinates.ego_coordinate_to_world_coordinate(
+            ego_x, ego_y, 0, 0, 0, -1
+        )
+
+        self.assertTrue(abs(world_x - 20) < Test.EPSILON)
+        self.assertTrue(abs(world_y - -10) < Test.EPSILON)
+
+    def test_ego_transform_roundtrip_2(self):
+        ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
+            20, -10, 5, 10, math.sqrt(1 / 2), -math.sqrt(1 / 2)
+        )
+
+        world_x, world_y = coordinates.ego_coordinate_to_world_coordinate(
+            ego_x, ego_y, 5, 10, math.sqrt(1 / 2), -math.sqrt(1 / 2)
+        )
+
+        self.assertTrue(abs(world_x - 20) < Test.EPSILON)
+        self.assertTrue(abs(world_y - -10) < Test.EPSILON)
 
     def test_image_transform_roundtrip_1(self):
         ego_x, ego_y = coordinates.world_coordinate_to_ego_coordinate(
