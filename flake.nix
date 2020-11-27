@@ -63,6 +63,7 @@
             cmake
             python37Packages.black
             python37Packages.python-language-server
+            python37Packages.jupyter
             python37Packages.venvShellHook
           ];
           MYPYPATH = toString ./stubs;
@@ -88,6 +89,9 @@
             "/run/opengl-driver/lib:"
             + (pkgs.stdenv.lib.concatMapStringsSep ":" (pkg: "${pkg}/lib")
               libraries);
+          postShellHook = ''
+            PYTHONPATH=$PWD/$venvDir/${packages.pythonWithPackages.sitePackages}:$PYTHONPATH
+          '';
         };
       });
 }
