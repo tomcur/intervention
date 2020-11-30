@@ -1,6 +1,6 @@
 import math
 from collections import deque
-from typing import Tuple
+from typing import Deque, List, Tuple
 
 import numpy as np
 import carla
@@ -202,7 +202,9 @@ class VehicleController:
             derivative=0.02,
             integral_discounting_per_step=0.04,
         )
-        self._previous_waypoints_world = deque(maxlen=6)
+        self._previous_waypoints_world: Deque[List[Tuple[float, float]]] = deque(
+            maxlen=6
+        )
 
     def step(
         self, state: TickState, waypoints: np.ndarray, update_pids=True
