@@ -251,8 +251,17 @@ class VehicleController:
                 for world_x, world_y in self._previous_waypoints_world[0]
             ]
         )
-        print(turn_waypoints)
-        x, y = _interpolate_waypoint_n_meters_ahead(turn_waypoints, 4.0)
+
+        if state.speed * 60 * 60 / 1000 > 12.0:
+            lookahead = 10.0
+        elif state.speed * 60 * 60 / 1000 > 8.0:
+            lookahead = 7.0
+        elif state.speed * 60 * 60 / 1000 > 5.0:
+            lookahead = 6.0
+        else:
+            lookahead = 4.0
+
+        x, y = _interpolate_waypoint_n_meters_ahead(turn_waypoints, lookahead)
         radius = _turning_radius_to(x, y)
         steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
             radius
