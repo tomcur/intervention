@@ -149,7 +149,7 @@ class PidController:
 
 def _interpolate_waypoint_n_meters_ahead(
     waypoints: np.ndarray, meters: float
-) -> (float, float):
+) -> Tuple[float, float]:
     """
     Gets a waypoint that is `meters` from the origin (at `0, 0`) along the trajectory in
     `waypoints`. This linearly interpolates the trajectory between the waypoints.
@@ -206,7 +206,7 @@ class VehicleController:
 
     def step(
         self, state: TickState, waypoints: np.ndarray, update_pids=True
-    ) -> carla.VehicleControl:
+    ) -> Tuple[carla.VehicleControl, float]:
         """
         :param state: current tick's state data
         :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
@@ -272,6 +272,7 @@ class VehicleController:
         brake = np.clip(brake, 0.0, 1.0)
         steering_angle = np.clip(steering_angle, -1.0, 1.0)
 
-        return carla.VehicleControl(
-            throttle=throttle, steer=steering_angle, brake=brake
+        return (
+            carla.VehicleControl(throttle=throttle, steer=steering_angle, brake=brake),
+            radius,
         )
