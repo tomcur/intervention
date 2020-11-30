@@ -1,12 +1,12 @@
-from typing import Iterable, List, Tuple, Optional
-
-from enum import Enum
 from collections import deque
+from enum import Enum
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import pygame
 import pygame.locals as pglocals
 from pygame import gfxdraw
+
 import carla
 
 from .coordinates import ego_coordinate_to_image_coordinate
