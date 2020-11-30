@@ -245,7 +245,7 @@ def run_image_agent(store: data.Store) -> None:
             logger.trace("distance travelled {}", state.distance_travelled)
 
             target_waypoints, _network_output, target_heatmap = agent.step(state)
-            control = vehicle_controller.step(state, target_waypoints)
+            control, turn_radius = vehicle_controller.step(state, target_waypoints)
 
             episode.apply_control(control)
 
@@ -254,6 +254,11 @@ def run_image_agent(store: data.Store) -> None:
             with visualizer as painter:
                 painter.add_rgb(state.rgb)
                 painter.add_waypoints(target_waypoints)
+                painter.add_turn_radius(
+                    turn_radius,
+                    "LEFT" if control.steer < 0 else "RIGHT",
+                    color=(255, 145, 0),
+                )
                 painter.add_control("student", control)
                 painter.add_birdview(birdview_render)
 
@@ -349,7 +354,9 @@ def run_example_episode(
                 },
                 teaching=True,
             )
-            teacher_control = vehicle_controller.step(state, teacher_target_waypoints,)
+            teacher_control, teacher_turn_radius = vehicle_controller.step(
+                state, teacher_target_waypoints,
+            )
 
             store.push_teacher_driving(step, teacher_control, state)
             episode.apply_control(teacher_control)
@@ -359,6 +366,11 @@ def run_example_episode(
                 painter.add_rgb(state.rgb)
                 painter.add_control("teacher", teacher_control)
                 painter.add_waypoints(teacher_target_waypoints)
+                painter.add_turn_radius(
+                    teacher_turn_radius,
+                    "LEFT" if teacher_control.steer < 0 else "RIGHT",
+                    color=(0, 145, 255),
+                )
                 painter.add_birdview(birdview_render)
 
             if state.probably_stuck:
@@ -430,7 +442,7 @@ def run_on_policy_episode(
                 },
                 teaching=True,
             )
-            teacher_control = vehicle_controller.step(
+            teacher_control, teacher_turn_radius = vehicle_controller.step(
                 state,
                 teacher_target_waypoints,
                 update_pids=not comparer.student_in_control,
@@ -444,7 +456,7 @@ def run_on_policy_episode(
                 model_output,
                 _student_target_heatmap,
             ) = student_agent.step(state)
-            student_control = vehicle_controller.step(
+            student_control, student_turn_radius = vehicle_controller.step(
                 state,
                 student_target_waypoints,
                 update_pids=comparer.student_in_control,
@@ -460,7 +472,17 @@ def run_on_policy_episode(
             with visualizer as painter:
                 painter.add_rgb(state.rgb)
                 painter.add_waypoints(teacher_target_waypoints, color=(0, 145, 255))
+                painter.add_turn_radius(
+                    teacher_turn_radius,
+                    "LEFT" if teacher_control.steer < 0 else "RIGHT",
+                    color=(0, 145, 255),
+                )
                 painter.add_waypoints(student_target_waypoints, color=(255, 145, 0))
+                painter.add_turn_radius(
+                    student_turn_radius,
+                    "LEFT" if student_control.steer < 0 else "RIGHT",
+                    color=(255, 145, 0),
+                )
                 painter.add_control(
                     "student", student_control, grayout=not comparer.student_in_control
                 )
