@@ -1,11 +1,12 @@
 from collections import deque
 from enum import Enum
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pygame
 import pygame.locals as pglocals
 from pygame import gfxdraw
+from typing_extensions import Literal
 
 import carla
 
@@ -128,6 +129,48 @@ class FramePainter:
             gfxdraw.filled_circle(self._surface, draw_x, draw_y, 4, (0, 0, 0))
             gfxdraw.aacircle(self._surface, draw_x, draw_y, 3, color)
             gfxdraw.filled_circle(self._surface, draw_x, draw_y, 3, color)
+
+    def add_turn_radius(
+        self,
+        radius: float,
+        direction: Union[Literal["LEFT"], Literal["RIGHT"]],
+        color: Tuple[int, int, int] = (240, 240, 240),
+    ) -> None:
+        max_y = min(radius, 40.0)
+        step_size = 0.25
+
+        ys = np.arange(step_size, max_y, step_size)
+        xs = radius - np.sqrt(-(ys ** 2) + radius ** 2)
+        if direction == "LEFT":
+            xs *= -1
+
+        prev_im_location_x, prev_im_location_y = ego_coordinate_to_image_coordinate(
+            0, 0, forward_offset=0.0
+        )
+        for (location_x, location_y) in zip(xs, ys):
+            im_location_x, im_location_y = ego_coordinate_to_image_coordinate(
+                float(location_x), float(location_y), forward_offset=0.0
+            )
+            start_draw_x = int(prev_im_location_x) + FramePainter.IMAGE_X
+            start_draw_y = int(prev_im_location_y) + FramePainter.IMAGE_Y
+            end_draw_x = int(im_location_x) + FramePainter.IMAGE_X
+            end_draw_y = int(im_location_y) + FramePainter.IMAGE_Y
+            if (
+                (0 <= start_draw_x < self._surface.get_width())
+                and (0 <= end_draw_x < self._surface.get_width())
+                and (0 <= start_draw_y < self._surface.get_height())
+                and (0 <= end_draw_y < self._surface.get_height())
+            ):
+                gfxdraw.line(
+                    self._surface,
+                    start_draw_x,
+                    start_draw_y,
+                    end_draw_x,
+                    end_draw_y,
+                    color,
+                )
+            prev_im_location_x = im_location_x
+            prev_im_location_y = im_location_y
 
     def add_control(
         self, name: str, control: carla.VehicleControl, grayout=False
