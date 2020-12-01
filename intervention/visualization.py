@@ -30,16 +30,16 @@ def _render_control(control: carla.VehicleControl, font: pygame.font.Font):
     BAR_WIDTH = 100
     BAR_HEIGHT = 20
 
-    surf = pygame.Surface((200, 80))
-    text_surf = pygame.Surface((100, 80))
+    surf = pygame.Surface((220, 100))
+    text_surf = pygame.Surface((120, 100))
     t = font.render("throttle:", True, (220, 220, 220))
-    text_surf.blit(t, (0, 2))
+    text_surf.blit(t, (0, 0))
     t = font.render("brake:", True, (220, 220, 220))
-    text_surf.blit(t, (0, 32))
+    text_surf.blit(t, (0, 30))
     t = font.render("steering:", True, (220, 220, 220))
-    text_surf.blit(t, (0, 62))
+    text_surf.blit(t, (0, 60))
 
-    bar_surf = pygame.Surface((100, 80))
+    bar_surf = pygame.Surface((100, 100))
 
     # Throttle
     r = pygame.Rect((0, 0), (BAR_WIDTH, BAR_HEIGHT))
@@ -68,7 +68,7 @@ def _render_control(control: carla.VehicleControl, font: pygame.font.Font):
         pygame.draw.rect(bar_surf, (220, 220, 220), r)
 
     surf.blit(text_surf, (0, 0))
-    surf.blit(bar_surf, (100, 0))
+    surf.blit(bar_surf, (120, 0))
 
     return surf
 
@@ -84,8 +84,8 @@ class FramePainter:
     IMAGE_X = 25
     IMAGE_Y = 25
     CONTROL_X = IMAGE_PANEL_X + IMAGE_PANEL_WIDTH + PADDING
-    CONTROL_WIDTH = 200
-    CONTROL_GROUP_HEIGHT = 150
+    CONTROL_WIDTH = 220
+    CONTROL_GROUP_HEIGHT = 170
     CONTROL_FIGURE_HEIGHT = 100
     CONTROL_FIGURE_GRAPH_X = 16 * 4
     CONTROL_FIGURE_GRAPH_Y = 16 / 2
@@ -398,7 +398,7 @@ class Visualizer:
         self._control_difference = deque(maxlen=100)
 
         pygame.font.init()
-        self._font = pygame.font.SysFont("monospace", 16)
+        self._font = pygame.font.SysFont("monospace", 20)
 
         self._event_processor = event_processor
 
