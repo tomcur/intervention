@@ -11,6 +11,7 @@ from typing_extensions import Literal
 import carla
 
 from .coordinates import ego_coordinate_to_image_coordinate
+from .carla_utils.agents.navigation.local_planner import RoadOption
 
 
 class Action(Enum):
@@ -81,8 +82,10 @@ class FramePainter:
     PADDING = 5
     IMAGE_PANEL_X = 0
     IMAGE_PANEL_WIDTH = 450
+    COMMAND_LABEL_X = 25 + 384 // 2
+    COMMAND_LABEL_Y = 25
     IMAGE_X = 25
-    IMAGE_Y = 25
+    IMAGE_Y = COMMAND_LABEL_Y + PADDING + 25
     CONTROL_X = IMAGE_PANEL_X + IMAGE_PANEL_WIDTH + PADDING
     CONTROL_WIDTH = 220
     CONTROL_GROUP_HEIGHT = 170
@@ -101,6 +104,25 @@ class FramePainter:
         self._control_difference = control_difference
 
         self._next_control_y = 0
+
+    def add_command(self, command: RoadOption) -> None:
+        label: Option[str] = None
+        if command is RoadOption.LEFT:
+            label = "<-"
+        elif command is RoadOption.STRAIGHT:
+            label = "^"
+        elif command is RoadOption.RIGHT:
+            label = "->"
+
+        if label:
+            (width, height) = self._font.size(label)
+            self._surface.blit(
+                self._font.render(label, True, (240, 240, 240)),
+                (
+                    FramePainter.COMMAND_LABEL_X - width // 2,
+                    FramePainter.COMMAND_LABEL_Y,
+                ),
+            )
 
     def add_rgb(self, rgb: np.ndarray) -> None:
         """
