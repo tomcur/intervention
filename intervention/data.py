@@ -177,7 +177,7 @@ class ZipStore(Store):
 
         frame_data = FrameData(
             tick=tick,
-            command=state.command,
+            command=int(state.command),
             controller="student",
             rgb_filename=rgb_filename,
             student_output_filename=model_output_filename,
@@ -216,7 +216,7 @@ class ZipStore(Store):
 
         frame_data = FrameData(
             tick=tick,
-            command=state.command,
+            command=int(state.command),
             controller="teacher",
             rgb_filename=rgb_filename,
             student_output_filename=None,

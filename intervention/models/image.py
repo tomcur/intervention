@@ -149,8 +149,8 @@ class Agent:
         # Get the singular heatmap and prediction based on the commanded action and
         # taking only the first minibatch result (the agent runs with a minibatch of
         # size 1).
-        heatmap_out = heatmaps[state.command - 1][0, ...].cpu().detach().numpy()
-        command_out = predictions[state.command - 1][0, ...]
+        heatmap_out = heatmaps[int(state.command) - 1][0, ...].cpu().detach().numpy()
+        command_out = predictions[int(state.command) - 1][0, ...]
         locations = command_out + 1
         locations[..., 0] = locations[..., 0] * 0.5 * self._img_size[0]
         locations[..., 1] = (

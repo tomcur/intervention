@@ -9,9 +9,9 @@ from typing_extensions import Literal
 
 import carla
 
-from .. import process, physics
+from .. import physics, process
 from ..utils.carla_image import carla_image_to_np
-from .agents.navigation.local_planner import LocalPlannerNew
+from .agents.navigation.local_planner import LocalPlannerNew, RoadOption
 from .map_utils import Renderer
 
 #: The number of ticks without movement after which we consider the vehicle to be stuck
@@ -54,7 +54,7 @@ class TickState:
     collision: Optional[carla.CollisionEvent]
     speed: float
     velocity: carla.Vector3D
-    command: int
+    command: RoadOption
     birdview: np.ndarray
     route_completed: bool
     probably_stuck: bool
@@ -272,7 +272,7 @@ class Episode:
             collision=collision,
             speed=speed,
             velocity=velocity,
-            command=int(command),
+            command=command,
             birdview=self.get_birdview(),
             route_completed=self._route_completed,
             probably_stuck=self._unmoved_ticks > STUCK_TICKS,

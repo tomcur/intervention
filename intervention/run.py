@@ -350,7 +350,7 @@ def run_example_episode(
                             state.velocity.z,
                         ]
                     ),
-                    "command": state.command,
+                    "command": int(state.command),
                 },
                 teaching=True,
             )
@@ -438,7 +438,7 @@ def run_on_policy_episode(
                             state.velocity.z,
                         ]
                     ),
-                    "command": state.command,
+                    "command": int(state.command),
                 },
                 teaching=True,
             )
