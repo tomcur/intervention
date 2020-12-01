@@ -1,6 +1,6 @@
 from collections import deque
 from enum import Enum
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pygame
@@ -14,13 +14,16 @@ from .coordinates import ego_coordinate_to_image_coordinate
 
 
 class Action(Enum):
-    SWITCH_CONTROL = 1
-    THROTTLE = 2
-    BRAKE = 3
-    LEFT = 4
-    RIGHT = 5
-    PREVIOUS = 6
-    NEXT = 7
+    SWITCH_CONTROL = 0
+    THROTTLE = 10
+    BRAKE = 11
+    LEFT = 12
+    RIGHT = 13
+    PREVIOUS = 20
+    NEXT = 21
+    GO_LEFT = 30
+    GO_STRAIGHT = 31
+    GO_RIGHT = 32
 
 
 def _render_control(control: carla.VehicleControl, font: pygame.font.Font):
@@ -318,10 +321,70 @@ class FramePainter:
         # self._screen.blit(rgb_surf, (0, 0))
 
 
+def drive_control_event_processor(
+    keydown: List[int], pressed: Dict[int, bool], modifier: int
+) -> List[Action]:
+    """
+    A Pygame event processor used for driving control output.
+    """
+    actions = []
+    if pressed[pygame.K_w]:
+        actions.append(Action.THROTTLE)
+    if pressed[pygame.K_s]:
+        actions.append(Action.BRAKE)
+    if pressed[pygame.K_a]:
+        actions.append(Action.LEFT)
+    if pressed[pygame.K_d]:
+        actions.append(Action.RIGHT)
+    return actions
+
+
+def drive_command_event_processor(
+    keydown: List[int], pressed: Dict[int, bool], modifier: int
+) -> List[Action]:
+    """
+    A Pygame event processor used for generating driving command input.
+    """
+    actions = []
+    if pressed[pygame.K_LEFT]:
+        actions.append(Action.GO_LEFT)
+    if pressed[pygame.K_UP]:
+        actions.append(Action.GO_STRAIGHT)
+    if pressed[pygame.K_RIGHT]:
+        actions.append(Action.GO_RIGHT)
+    return actions
+
+
+def dataset_explorer_event_processor(
+    keydown: List[int], pressed: Dict[int, bool], modifier: int
+) -> List[Action]:
+    """
+    A Pygame event processor used for dataset exploration.
+    """
+    actions = []
+
+    if pygame.K_LEFT in keydown:
+        actions.append(Action.PREVIOUS)
+    elif pressed[pygame.K_LEFT] and not modifier & pygame.KMOD_SHIFT:
+        actions.append(Action.PREVIOUS)
+
+    if pygame.K_RIGHT in keydown:
+        actions.append(Action.NEXT)
+    elif pressed[pygame.K_RIGHT] and not modifier & pygame.KMOD_SHIFT:
+        actions.append(Action.NEXT)
+
+    return actions
+
+
 class Visualizer:
     SIZE = (round(640 * 16 / 9), 640)
 
-    def __init__(self):
+    def __init__(
+        self,
+        event_processor: Callable[
+            [List[int], Dict[int, bool], int], List[Action]
+        ] = drive_control_event_processor,
+    ):
         pygame.init()
         self._screen = pygame.display.set_mode(
             Visualizer.SIZE,
@@ -336,6 +399,8 @@ class Visualizer:
 
         pygame.font.init()
         self._font = pygame.font.SysFont("monospace", 16)
+
+        self._event_processor = event_processor
 
     def __enter__(self) -> FramePainter:
         self._painter = FramePainter(
@@ -380,29 +445,10 @@ class Visualizer:
                 )
 
         keydown_events = [event.key for event in events if event.type == pygame.KEYDOWN]
-        if pygame.K_TAB in keydown_events:
-            self._actions.append(Action.SWITCH_CONTROL)
-
         pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_w]:
-            self._actions.append(Action.THROTTLE)
-        if pressed[pygame.K_s]:
-            self._actions.append(Action.BRAKE)
-        if pressed[pygame.K_a]:
-            self._actions.append(Action.LEFT)
-        if pressed[pygame.K_d]:
-            self._actions.append(Action.RIGHT)
-
         modifier = pygame.key.get_mods()
-        if pygame.K_LEFT in keydown_events:
-            self._actions.append(Action.PREVIOUS)
-        elif pressed[pygame.K_LEFT] and not modifier & pygame.KMOD_SHIFT:
-            self._actions.append(Action.PREVIOUS)
 
-        if pygame.K_RIGHT in keydown_events:
-            self._actions.append(Action.NEXT)
-        elif pressed[pygame.K_RIGHT] and not modifier & pygame.KMOD_SHIFT:
-            self._actions.append(Action.NEXT)
+        self._actions.extend(self._event_processor(keydown_events, pressed, modifier))
 
     def get_actions(self) -> List[Action]:
         actions = list(self._actions)
