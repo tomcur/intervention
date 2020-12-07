@@ -324,7 +324,7 @@ class VehicleController:
         else:
             lookahead = 3.0
 
-        x, y = _interpolate_waypoint_n_meters_ahead(turn_waypoints, lookahead)
+        x, y = _lookahead_trajectory_n_meters_ahead(turn_waypoints, lookahead)
         radius = _turning_radius_to(x, y)
         steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
             radius
