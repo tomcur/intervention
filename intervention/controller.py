@@ -3,6 +3,8 @@ from collections import deque
 from typing import Deque, List, Tuple
 
 import numpy as np
+from loguru import logger
+
 import carla
 
 from . import coordinates, physics
