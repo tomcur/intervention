@@ -177,6 +177,70 @@ def _interpolate_waypoint_n_meters_ahead(
     return x, y
 
 
+def _lookahead_trajectory_n_meters_ahead(
+    waypoints: np.ndarray, lookahead: float
+) -> Tuple[float, float]:
+    """
+    Get a waypoint that is `meters` from the origin (at `0, 0`), that is on the
+    (linearly interpolated) trajectory.
+
+    :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
+    :param meters`: the distance from the origin
+    """
+
+    prev_pos = np.array([0, 0])
+
+    x, y = np.float(0), np.float(0)
+
+    for waypoint in waypoints[:]:
+        max_dist = np.linalg.norm(waypoint)
+
+        # Find intersection between line (x1, y1), (x2, y2) and a circle at origin (0,0)
+        # with radius `lookahead`.
+
+        # See: https://mathworld.wolfram.com/Circle-LineIntersection.html
+
+        if (prev_pos == (0, 0)).all() or (waypoint == (0, 0)).all():
+            print("some zero")
+            unit = (waypoint - prev_pos) / np.linalg.norm(waypoint - prev_pos)
+            xy = unit * lookahead
+            x, y = xy[0], xy[1]
+        else:
+            x1 = prev_pos[0]
+            x2 = waypoint[0]
+            y1 = prev_pos[1]
+            y2 = waypoint[1]
+
+            dx = x2 - x1
+            dy = y2 - y1
+
+            dr = np.sqrt(dx ** 2 + dy ** 2)
+            d = x1 * y2 - x2 * y1
+
+            if dy > 0:
+                y = (
+                    -d * dx + np.abs(dy) * np.sqrt(lookahead ** 2 * dr ** 2 - d ** 2)
+                ) / (dr ** 2)
+            else:
+                y = (
+                    -d * dx - np.abs(dy) * np.sqrt(lookahead ** 2 * dr ** 2 - d ** 2)
+                ) / (dr ** 2)
+
+            if dy == 0:
+                x = lookahead
+                if x2 < 0:
+                    x *= -1
+            else:
+                frac = np.abs(y - y1) / np.abs(dy)
+                x = frac * dx + x1
+
+        prev_pos = waypoint
+        if max_dist >= lookahead:
+            break
+
+    return float(x), float(y)
+
+
 class VehicleController:
     def __init__(
         self,
