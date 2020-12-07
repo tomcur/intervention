@@ -366,11 +366,11 @@ class ManagedEpisode:
 
         logger.debug("Spawning vehicles.")
         self._spawn_vehicles(
-            self._carla_world, carla_map, 50, [start_pose.location],
+            self._carla_world, carla_map, 30, [start_pose.location],
         )
 
         logger.debug("Spawning pedestrians.")
-        self._spawn_pedestrians(self._carla_world, 125)
+        self._spawn_pedestrians(self._carla_world, 45)
 
         for controller in self._pedestrian_controllers:
             controller.start()
