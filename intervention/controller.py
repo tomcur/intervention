@@ -316,15 +316,16 @@ class VehicleController:
             ]
         )
 
-        max_angle = np.arccos(
-            np.dot([0, 1], turn_waypoints[-1] / np.linalg.norm(turn_waypoints[-1]))
-        )
-        if max_angle < np.radians(5.0):
-            lookahead = 5.0
-        else:
-            lookahead = 3.0
+        # max_angle = np.arccos(
+        #     np.dot([0, 1], turn_waypoints[-1] / np.linalg.norm(turn_waypoints[-1]))
+        # )
+        # if max_angle < np.radians(5.0):
+        #     lookahead = 5.0
+        # else:
+        #     lookahead = 3.0
 
-        x, y = _lookahead_trajectory_n_meters_ahead(turn_waypoints, lookahead)
+        # x, y = _lookahead_trajectory_n_meters_ahead(turn_waypoints, lookahead)
+        x, y = targets[2, :] * 1.5
         radius = _turning_radius_to(x, y)
         steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
             radius
