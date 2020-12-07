@@ -316,14 +316,13 @@ class VehicleController:
             ]
         )
 
-        if state.speed * 60 * 60 / 1000 > 12.0:
-            lookahead = 10.0
-        elif state.speed * 60 * 60 / 1000 > 8.0:
-            lookahead = 7.0
-        elif state.speed * 60 * 60 / 1000 > 5.0:
-            lookahead = 6.0
+        max_angle = np.arccos(
+            np.dot([0, 1], turn_waypoints[-1] / np.linalg.norm(turn_waypoints[-1]))
+        )
+        if max_angle < np.radians(5.0):
+            lookahead = 5.0
         else:
-            lookahead = 4.0
+            lookahead = 3.0
 
         x, y = _interpolate_waypoint_n_meters_ahead(turn_waypoints, lookahead)
         radius = _turning_radius_to(x, y)
