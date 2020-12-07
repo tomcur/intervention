@@ -545,8 +545,8 @@ class ManagedEpisode:
                 controllers.append(result.actor_id)
 
         logger.debug(
-            f"Spawned {len(controllers)} pedestrians, after accounting for"
-            "{spawn_collisions} spawn collisions."
+            f"Spawned {len(controllers)} pedestrians, after accounting for "
+            f"{spawn_collisions} spawn collisions."
         )
         self._actor_dict["pedestrians"] = list(carla_world.get_actors(walkers))
         self._actor_dict["pedestrian_controllers"] = list(
