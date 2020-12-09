@@ -9,6 +9,7 @@ import carla
 
 from . import controller, data, exceptions, process, visualization
 from .carla_utils import TickState, connect
+from .carla_utils.agents.navigation.local_planner import RoadOption
 from .learning_by_cheating import birdview
 
 
@@ -321,12 +322,16 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
 
 
 def run_example_episode(
-    store: data.Store, teacher_checkpoint: Path
+    store: data.Store, teacher_checkpoint: Path, user_input_planner: bool = False,
 ) -> data.EpisodeSummary:
     """
-    param store: the store for the episode information.
+    :param store: the store for the episode information.
+    :param teacher_checkpoint: the checkpoint to load for the teacher.
+    :param user_input_planner: whether to use user input for the route planner.
     """
-    visualizer = visualization.Visualizer()
+    visualizer = visualization.Visualizer(
+        event_processor=visualization.drive_command_event_processor,
+    )
 
     managed_episode = connect(
         carla_host=process.carla_host, carla_world_port=process.carla_world_port
@@ -346,6 +351,17 @@ def run_example_episode(
 
         for step in itertools.count():
             state = episode.tick()
+
+            if user_input_planner:
+                state.command = RoadOption.LANEFOLLOW
+                actions = visualizer.get_actions()
+                if visualization.Action.GO_LEFT in actions:
+                    state.command = RoadOption.LEFT
+                elif visualization.Action.GO_RIGHT in actions:
+                    state.command = RoadOption.RIGHT
+                elif visualization.Action.GO_STRAIGHT in actions:
+                    state.command = RoadOption.STRAIGHT
+
             summary.distance_travelled = state.distance_travelled
             summary.ticks += 1
 
@@ -372,6 +388,7 @@ def run_example_episode(
 
             birdview_render = episode.render_birdview()
             with visualizer as painter:
+                painter.add_command(state.command)
                 painter.add_rgb(state.rgb)
                 painter.add_control("teacher", teacher_control)
                 painter.add_waypoints(teacher_target_waypoints)
@@ -479,6 +496,7 @@ def run_on_policy_episode(
             )
 
             with visualizer as painter:
+                painter.add_command(state.command)
                 painter.add_rgb(state.rgb)
                 painter.add_waypoints(teacher_target_waypoints, color=(0, 145, 255))
                 painter.add_turn_radius(
