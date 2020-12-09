@@ -136,7 +136,12 @@ class FramePainter:
         self,
         waypoints: Iterable[Tuple[float, float]],
         color: Tuple[int, int, int] = (240, 240, 240),
+        grayout: bool = False,
     ) -> None:
+        if grayout:
+            # (r, g, b) = color
+            color = (180, 180, 180)
+
         for [location_x, location_y] in waypoints:
             im_location_x, im_location_y = ego_coordinate_to_image_coordinate(
                 location_x, location_y, forward_offset=0.0
@@ -160,7 +165,13 @@ class FramePainter:
         radius: float,
         direction: Union[Literal["LEFT"], Literal["RIGHT"]],
         color: Tuple[int, int, int] = (240, 240, 240),
+        grayout: bool = False,
     ) -> None:
+        if grayout:
+            # (r, g, b) = color
+            # color = (r, g, b, 100)
+            color = (110, 110, 110)
+
         max_y = min(radius, 40.0)
         step_size = 0.25
 
