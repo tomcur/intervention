@@ -498,17 +498,27 @@ def run_on_policy_episode(
             with visualizer as painter:
                 painter.add_command(state.command)
                 painter.add_rgb(state.rgb)
-                painter.add_waypoints(teacher_target_waypoints, color=(0, 145, 255))
+                painter.add_waypoints(
+                    teacher_target_waypoints,
+                    color=(0, 145, 255),
+                    grayout=comparer.student_in_control,
+                )
                 painter.add_turn_radius(
                     teacher_turn_radius,
                     "LEFT" if teacher_control.steer < 0 else "RIGHT",
                     color=(0, 145, 255),
+                    grayout=comparer.student_in_control,
                 )
-                painter.add_waypoints(student_target_waypoints, color=(255, 145, 0))
+                painter.add_waypoints(
+                    student_target_waypoints,
+                    color=(255, 145, 0),
+                    grayout=not comparer.student_in_control,
+                )
                 painter.add_turn_radius(
                     student_turn_radius,
                     "LEFT" if student_control.steer < 0 else "RIGHT",
                     color=(255, 145, 0),
+                    grayout=not comparer.student_in_control,
                 )
                 painter.add_control(
                     "student", student_control, grayout=not comparer.student_in_control
