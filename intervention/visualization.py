@@ -139,7 +139,6 @@ class FramePainter:
         grayout: bool = False,
     ) -> None:
         if grayout:
-            # (r, g, b) = color
             color = (180, 180, 180)
 
         for [location_x, location_y] in waypoints:
@@ -168,8 +167,6 @@ class FramePainter:
         grayout: bool = False,
     ) -> None:
         if grayout:
-            # (r, g, b) = color
-            # color = (r, g, b, 100)
             color = (110, 110, 110)
 
         max_y = min(radius, 40.0)
