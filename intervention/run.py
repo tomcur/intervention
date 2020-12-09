@@ -274,6 +274,15 @@ def run_image_agent(store: data.Store) -> None:
             # prev_state = state
 
 
+def demo_teacher_agent(teacher_checkpoint: Path, user_input_planner: bool) -> None:
+    """
+    :param user_input_planner: whether to use user input for the route planner.
+    """
+    run_example_episode(
+        data.BlackHoleStore(), teacher_checkpoint, user_input_planner=user_input_planner
+    )
+
+
 def demo_image_agent() -> None:
     run_image_agent(data.BlackHoleStore())
 

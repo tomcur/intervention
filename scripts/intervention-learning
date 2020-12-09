@@ -179,6 +179,48 @@ def collect_on_policy(
 
 
 @cli.command()
+@click.option(
+    "-t",
+    "--teacher-checkpoint",
+    required=True,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+    help=("The checkpoint to use for the teacher."),
+)
+@click.option(
+    "device_name",
+    "--device",
+    default="cuda",
+    type=str,
+    help=(
+        "The device to run on. "
+        "See torch's documentation on torch.device for more information."
+    ),
+)
+@click.option(
+    "-u",
+    "--user-input-planner",
+    is_flag=True,
+    type=bool,
+    help="If set, the user provides route planning through keyboard arrow keys.",
+)
+def demo_teacher_agent(
+    teacher_checkpoint: str, device_name: str, user_input_planner: bool,
+):
+    """
+    Demo driving of a teacher agent.
+    """
+    import torch
+
+    import intervention.run
+
+    teacher_checkpoint_path = Path(teacher_checkpoint)
+
+    intervention.process.torch_device = torch.device(device_name)
+
+    intervention.run.demo_teacher_agent(teacher_checkpoint_path, user_input_planner)
+
+
+@cli.command()
 def demo_image_agent():
     import intervention.run
 
