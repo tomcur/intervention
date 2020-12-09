@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 
-rng = np.random.default_rng()
+rng: np.random.Generator = np.random.default_rng()
 torch_device = torch.device("cpu")
 carla_host = "localhost"
 carla_world_port = 2000
