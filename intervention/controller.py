@@ -203,7 +203,6 @@ def _lookahead_trajectory_n_meters_ahead(
         # See: https://mathworld.wolfram.com/Circle-LineIntersection.html
 
         if (prev_pos == (0, 0)).all() or (waypoint == (0, 0)).all():
-            print("some zero")
             unit = (waypoint - prev_pos) / np.linalg.norm(waypoint - prev_pos)
             xy = unit * lookahead
             x, y = xy[0], xy[1]
