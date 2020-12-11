@@ -106,7 +106,7 @@ class FramePainter:
         self._next_control_y = 0
 
     def add_command(self, command: RoadOption) -> None:
-        label: Option[str] = None
+        label: Optional[str] = None
         if command is RoadOption.LEFT:
             label = "<-"
         elif command is RoadOption.STRAIGHT:
