@@ -89,24 +89,26 @@ def imitation(
             )
 
         num_batches = len(training_generator)
-        logger.info(
-            f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{epochs})."
-        )
+        logger.info(f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{epochs}).")
         for (batch_number, (rgb_image, _, datapoint_meta)) in enumerate(
             training_generator
         ):
             rgb_image = rgb_image.float().to(process.torch_device)
             speed = datapoint_meta["speed"].float().to(process.torch_device)
 
-            all_branch_predictions, *_ = model.forward(rgb_image, speed)
-            del rgb_image, speed
-
-            pred_locations = select_branch(
-                all_branch_predictions, list(map(int, datapoint_meta["command"]))
+            _all_branch_predictions, all_branch_heatmaps = model.forward(
+                rgb_image, speed
             )
-            del all_branch_predictions
+            del _all_branch_predictions, rgb_image, speed
 
-            locations = datapoint_meta["next_locations_image_coordinates"].to(process.torch_device)
+            pred_heatmaps = select_branch(
+                all_branch_heatmaps, list(map(int, datapoint_meta["command"]))
+            )
+
+            locations = datapoint_meta["next_locations_image_coordinates"].to(
+                process.torch_device
+            )
+
             # Transform X and Y differently; we can never have a waypoint above the
             # horizon (i.e. above the vertical middle of the camera frame).
             locations[..., 0] = locations[..., 0] / (0.5 * img_size[0]) - 1
@@ -114,11 +116,23 @@ def imitation(
                 0.25 * img_size[1]
             ) - 1
 
-            loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
-            del pred_locations, locations
+            heatmaps_size = pred_heatmaps.size()
+            target_four_hot = torch.zeros(*heatmaps_size)
 
-            loss_mean = loss.mean()
-            del loss
+            for batch in range(batch_size):
+                for step in range(heatmaps_size[1]):
+                    target_four_hot[batch, step, ...] = cross_entropy_four_hot(
+                        locations[batch, step, 0],
+                        locations[batch, step, 1],
+                        heatmaps_size[3],
+                        heatmaps_size[2],
+                    )
+            del locations
+
+            target_four_hot = target_four_hot.to(process.torch_device)
+
+            loss_mean = torch.mean(-target_four_hot * torch.log(pred_heatmaps))
+            del target_four_hot, pred_heatmaps
 
             optimizer.zero_grad()
             loss_mean.backward()
