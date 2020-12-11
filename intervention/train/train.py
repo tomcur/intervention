@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -17,6 +18,38 @@ def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Te
         # commands are 1-based (valid values 1, 2, 3, 4)
         result[idx, :] += branches[command - 1][idx, :]
     return result
+
+
+def cross_entropy_four_hot(x: float, y: float, width: int, height: int) -> torch.Tensor:
+    """
+    Create a (spatial) probability distribution with four active cells,
+    such that the expected value is centered on `(x, y)`.
+    :param x: x-component of coordinate, within range -1.0 to 1.0
+    :param y: y-component of coordinate, within range -1.0 to 1.0
+    """
+    t = torch.zeros(height, width)
+
+    from_left = (x + 1.0) / 2.0 * (width - 1)
+    from_top = (y + 1.0) / 2.0 * (height - 1)
+
+    width_idx = math.floor(from_left)
+    height_idx = math.floor(from_top)
+
+    left_frac = from_left - width_idx
+    top_frac = from_top - height_idx
+
+    t[height_idx + 0, width_idx + 0] = (1 - top_frac) * (1 - left_frac)
+
+    if width_idx + 1 < width:
+        t[height_idx + 0, width_idx + 1] = (1 - top_frac) * left_frac
+
+    if height_idx + 1 < height:
+        t[height_idx + 1, width_idx + 0] = top_frac * (1 - left_frac)
+
+    if width_idx + 1 < width and height_idx + 1 < height:
+        t[height_idx + 1, width_idx + 1] = top_frac * left_frac
+
+    return t
 
 
 def imitation(
