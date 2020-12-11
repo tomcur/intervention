@@ -4,3 +4,4 @@
 *.egg-info
 *.th
 .venv
+.ipynb_checkpoints
