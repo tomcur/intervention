@@ -1,6 +1,6 @@
 from collections import deque
 from enum import Enum
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Deque, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pygame
@@ -97,7 +97,7 @@ class FramePainter:
     BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH + PADDING
 
     def __init__(
-        self, size: Tuple[int, int], font: pygame.font.Font, control_difference: deque
+        self, size: Tuple[int, int], font: pygame.font.Font, control_difference: Deque[float]
     ):
         self._surface = pygame.Surface(size)
         self._font = font
@@ -423,9 +423,9 @@ class Visualizer:
         )
 
         self._painter: Optional[FramePainter] = None
-        self._actions: deque = deque(maxlen=50)
+        self._actions: Deque[Action] = deque(maxlen=50)
 
-        self._control_difference = deque(maxlen=100)
+        self._control_difference: Deque[float] = deque(maxlen=100)
 
         pygame.font.init()
         self._font = pygame.font.SysFont("monospace", 20)
