@@ -303,7 +303,8 @@ def intervention(
             (
                 negative_rgb_images,
                 _,
-                negative_model_output,
+                _negative_image_targets_output,
+                negative_image_heatmaps_output,
                 negative_datapoint,
             ) = negative_batch
             (
@@ -360,21 +361,24 @@ def intervention(
             pred_locations = pred_locations[negative_len:, ...]
 
             pred_heatmaps = select_branch(all_branch_heatmaps, list(map(int, commands)))
-            pred_heatmaps = pred_heatmaps[:negative_len, ...]
             del commands, all_branch_predictions, all_branch_heatmaps
 
             # Swap dimensions. Coming from the data loader, the first dimension are the
             # batch samples. We expect the first dimension to be the output heads...
-            negative_model_output = torch.transpose(negative_model_output, 0, 1)
+            negative_image_heatmaps_output = torch.transpose(
+                negative_image_heatmaps_output, 0, 1
+            )
 
             # ... and we actually expect the output heads to be a list.
-            converted = [out for out in negative_model_output[:, ...]]
+            converted = [out for out in negative_image_heatmaps_output[:, ...]]
 
             # Select the original (erroneous) student model output head based on the
             # planner's command.
-            original_negative_model_output = select_branch(
+            original_negative_heatmaps_output = select_branch(
                 converted, list(map(int, negative_datapoint["command"])),
-            )
+            ).to(process.torch_device)
+
+            meta_learning_rates = torch.ones(negative_len)
 
             locations = torch.cat(
                 (
@@ -394,30 +398,52 @@ def intervention(
                 0.25 * img_size[1]
             ) - 1
 
+            heatmaps_size = pred_heatmaps.size()
+            target_four_hot = torch.zeros(
+                (
+                    recovery_imitation_len + regular_imitation_len,
+                    heatmaps_size[1],
+                    heatmaps_size[2],
+                    heatmaps_size[3],
+                )
+            )
 
-            loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
-            del pred_locations, locations
+            for example_idx in range(recovery_imitation_len + regular_imitation_len):
+                for step in range(heatmaps_size[1]):
+                    target_four_hot[example_idx, step, ...] = cross_entropy_four_hot(
+                        locations[example_idx, step, 0],
+                        locations[example_idx, step, 1],
+                        heatmaps_size[3],
+                        heatmaps_size[2],
+                    )
+            del locations
 
-            # The learning rates of the negative samples are negative.
-            # TODO: negative sample learning rate curve
+            target_four_hot = target_four_hot.to(process.torch_device)
+
+            targets = torch.cat(
+                (original_negative_heatmaps_output, target_four_hot,)
+            ).to(process.torch_device)
+            del original_negative_heatmaps_output, target_four_hot
+
             meta_learning_rates = torch.cat(
                 (
+                    -1 * torch.ones(negative_len),
                     torch.ones(recovery_imitation_len),
                     torch.ones(regular_imitation_len),
                 )
             ).to(process.torch_device)
 
-            loss = meta_learning_rates * loss
-            loss_mean = loss.mean()
-            del loss, meta_learning_rates
+            loss = torch.mean(-targets * torch.log(pred_heatmaps), dim=(1, 2, 3))
+            del targets, pred_heatmaps
 
-            logger.trace(
-                f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
-                f"Mean loss: {loss_mean}."
-            )
+            loss_mean = (meta_learning_rates * loss).mean()
 
             optimizer.zero_grad()
             loss_mean.backward()
             optimizer.step()
 
+            logger.trace(
+                f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
+                f"Mean loss: {loss_mean}."
+            )
             del loss_mean
