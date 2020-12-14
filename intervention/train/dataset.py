@@ -38,7 +38,8 @@ class Orientation(TypedDict):
 
 class Datapoint(TypedDict):
     rgb_filename: str
-    student_output_filename: str
+    student_image_targets_filename: str
+    student_image_heatmaps_filename: str
     command: int
     speed: float
     current_orientation: Orientation
@@ -94,7 +95,12 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoi
 
         datapoint = Datapoint(
             rgb_filename=dictionary["rgb_filename"],
-            student_output_filename=dictionary["student_output_filename"] or "",
+            student_image_targets_filename=dictionary["student_image_targets_filename"]
+            or "",
+            student_image_heatmaps_filename=dictionary[
+                "student_image_heatmaps_filename"
+            ]
+            or "",
             command=dictionary["command"],
             speed=dictionary["speed"],
             current_orientation=current_orientation,
@@ -112,8 +118,11 @@ def _parse_frame_data(r: Dict[str, str]) -> FrameData:
         command=int(r["command"]),
         controller=r["controller"],
         rgb_filename=r["rgb_filename"],
-        student_output_filename=r["student_output_filename"]
-        if r["student_output_filename"]
+        student_image_targets_filename=r["student_image_targets_filename"]
+        if r["student_image_targets_filename"]
+        else None,
+        student_image_heatmaps_filename=r["student_image_heatmaps_filename"]
+        if r["student_image_heatmaps_filename"]
         else None,
         ticks_engaged=int(r["ticks_engaged"]) if r["ticks_engaged"] else None,
         ticks_to_intervention=int(r["ticks_to_intervention"])
@@ -161,10 +170,22 @@ class _Dataset(torch.utils.data.Dataset):
         img_bytes = zip_file.read(datapoint["rgb_filename"])
         img = image.buffer_to_np(img_bytes)
 
-        if datapoint["student_output_filename"] != "":
-            with zip_file.open(datapoint["student_output_filename"]) as f:
-                student_model_output = np.load(f)
-            return self._transforms(img), img, student_model_output, datapoint
+        if datapoint["student_image_targets_name"] != "":
+            assert datapoint["student_image_heatmaps_name"] != ""
+
+            with zip_file.open(datapoint["student_image_targets_name"]) as f:
+                student_image_targets = np.load(f)
+
+            with zip_file.open(datapoint["student_image_heatmaps_name"]) as f:
+                student_image_heatmaps = np.load(f)
+
+            return (
+                self._transforms(img),
+                img,
+                student_image_targets,
+                student_image_heatmaps,
+                datapoint,
+            )
         else:
             return self._transforms(img), img, datapoint
 
