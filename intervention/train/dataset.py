@@ -171,13 +171,13 @@ class _Dataset(torch.utils.data.Dataset):
         img_bytes = zip_file.read(datapoint["rgb_filename"])
         img = image.buffer_to_np(img_bytes)
 
-        if datapoint["student_image_targets_name"] != "":
-            assert datapoint["student_image_heatmaps_name"] != ""
+        if datapoint["student_image_targets_filename"] != "":
+            assert datapoint["student_image_heatmaps_filename"] != ""
 
-            with zip_file.open(datapoint["student_image_targets_name"]) as f:
+            with zip_file.open(datapoint["student_image_targets_filename"]) as f:
                 student_image_targets = np.load(f)
 
-            with zip_file.open(datapoint["student_image_heatmaps_name"]) as f:
+            with zip_file.open(datapoint["student_image_heatmaps_filename"]) as f:
                 student_image_heatmaps = np.load(f)
 
             return (
