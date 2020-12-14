@@ -119,10 +119,11 @@ def _parse_frame_data(r: Dict[str, str]) -> FrameData:
         controller=r["controller"],
         rgb_filename=r["rgb_filename"],
         student_image_targets_filename=r["student_image_targets_filename"]
-        if r["student_image_targets_filename"]
+        if "student_image_targets_filename" in r and r["student_image_targets_filename"]
         else None,
         student_image_heatmaps_filename=r["student_image_heatmaps_filename"]
-        if r["student_image_heatmaps_filename"]
+        if "student_image_heatmaps_filename" in r
+        and r["student_image_heatmaps_filename"]
         else None,
         ticks_engaged=int(r["ticks_engaged"]) if r["ticks_engaged"] else None,
         ticks_to_intervention=int(r["ticks_to_intervention"])
