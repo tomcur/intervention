@@ -10,8 +10,8 @@ from typing_extensions import Literal
 
 import carla
 
-from .coordinates import ego_coordinate_to_image_coordinate
 from .carla_utils.agents.navigation.local_planner import RoadOption
+from .coordinates import ego_coordinate_to_image_coordinate
 
 
 class Action(Enum):
