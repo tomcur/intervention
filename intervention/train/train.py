@@ -93,6 +93,8 @@ def imitation(
         for (batch_number, (rgb_image, _, datapoint_meta)) in enumerate(
             training_generator
         ):
+            this_batch_size = len(rgb_image)
+
             rgb_image = rgb_image.float().to(process.torch_device)
             speed = datapoint_meta["speed"].float().to(process.torch_device)
 
@@ -119,7 +121,7 @@ def imitation(
             heatmaps_size = pred_heatmaps.size()
             target_four_hot = torch.zeros(*heatmaps_size)
 
-            for batch in range(batch_size):
+            for batch in range(this_batch_size):
                 for step in range(heatmaps_size[1]):
                     target_four_hot[batch, step, ...] = cross_entropy_four_hot(
                         locations[batch, step, 0],
