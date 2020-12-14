@@ -485,9 +485,8 @@ def run_on_policy_episode(
             (
                 student_target_waypoints,
                 _student_target_heatmap,
-                model_location_output,
-                model_heatmap_output,
-
+                model_image_targets,
+                model_image_heatmaps,
             ) = student_agent.step(state)
             student_control, student_turn_radius = vehicle_controller.step(
                 state,
@@ -496,7 +495,13 @@ def run_on_policy_episode(
             )
             if comparer.student_in_control:
                 episode.apply_control(student_control)
-                store.push_student_driving(step, model_location_output, student_control, state)
+                store.push_student_driving(
+                    step,
+                    model_image_targets,
+                    model_image_heatmaps,
+                    student_control,
+                    state,
+                )
 
             comparer.evaluate_and_compare(
                 state, teacher_target_waypoints, teacher_control, student_control

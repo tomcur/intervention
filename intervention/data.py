@@ -72,7 +72,8 @@ class FrameData(TypedDict):
     command: int
     controller: str
     rgb_filename: str
-    student_output_filename: Optional[str]
+    student_image_targets_filename: Optional[str]
+    student_image_heatmaps_filename: Optional[str]
     ticks_engaged: Optional[int]
     ticks_to_intervention: Optional[int]
     ticks_intervened: Optional[int]
@@ -99,7 +100,8 @@ class Store:
     def push_student_driving(
         self,
         step: int,
-        model_output: np.ndarray,
+        model_image_targets: np.ndarray,
+        model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
     ) -> None:
@@ -120,7 +122,8 @@ class BlackHoleStore(Store):
     def push_student_driving(
         self,
         step: int,
-        model_output: np.ndarray,
+        model_image_targets: np.ndarray,
+        model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
     ) -> None:
@@ -156,7 +159,8 @@ class ZipStore(Store):
     def push_student_driving(
         self,
         tick: int,
-        model_output: np.ndarray,
+        model_image_targets: np.ndarray,
+        model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
     ) -> None:
@@ -168,10 +172,15 @@ class ZipStore(Store):
         rgb_filename = f"{tick:05d}-rgb-student.bin"
         self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
 
-        model_output_filename = f"{tick:05d}-output-student.npy"
+        model_image_targets_filename = f"{tick:05d}-image-targets-student.npy"
         buffer = BytesIO()
-        np.save(buffer, model_output)
-        self._add_file(model_output_filename, buffer.getvalue())
+        np.save(buffer, model_image_targets)
+        self._add_file(model_image_targets_filename, buffer.getvalue())
+
+        model_image_heatmaps_filename = f"{tick:05d}-image-heatmaps-student.npy"
+        buffer = BytesIO()
+        np.save(buffer, model_image_heatmaps)
+        self._add_file(model_image_heatmaps_filename, buffer.getvalue())
 
         orientation = state.rotation.get_forward_vector()
 
@@ -180,7 +189,8 @@ class ZipStore(Store):
             command=int(state.command),
             controller="student",
             rgb_filename=rgb_filename,
-            student_output_filename=model_output_filename,
+            student_image_targets_filename=model_image_targets_filename,
+            student_image_heatmaps_filename=model_image_heatmaps_filename,
             ticks_engaged=tick - self._engagement_tick,
             ticks_to_intervention=None,
             ticks_intervened=None,
@@ -219,7 +229,8 @@ class ZipStore(Store):
             command=int(state.command),
             controller="teacher",
             rgb_filename=rgb_filename,
-            student_output_filename=None,
+            student_image_targets_filename=None,
+            student_image_heatmaps_filename=None,
             ticks_engaged=None,
             ticks_to_intervention=None,
             ticks_intervened=tick - self._intervention_tick,
