@@ -128,9 +128,8 @@ class FramePainter:
         """
         Add an RGB image. You should only add it once per frame.
         """
-        rgb = np.swapaxes(rgb, 0, 1)
-        rgb_surf = pygame.pixelcopy.make_surface(rgb)
-        self._surface.blit(rgb_surf, (FramePainter.IMAGE_X, FramePainter.IMAGE_Y))
+        surface = pygame.surfarray.make_surface(rgb.swapaxes(0, 1))
+        self._surface.blit(surface, (FramePainter.IMAGE_X, FramePainter.IMAGE_Y))
 
     def add_waypoints(
         self,
