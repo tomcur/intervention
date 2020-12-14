@@ -164,7 +164,7 @@ class _Dataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self._datapoints)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Any:
         (datapoint, zip_file) = self._datapoints[idx]
 
         img_bytes = zip_file.read(datapoint["rgb_filename"])
