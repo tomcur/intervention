@@ -245,7 +245,12 @@ def run_image_agent(store: data.Store) -> None:
             logger.trace("command {}", state.command)
             logger.trace("distance travelled {}", state.distance_travelled)
 
-            target_waypoints, _network_output, target_heatmap = agent.step(state)
+            (
+                target_waypoints,
+                target_heatmap,
+                _predicted_locations,
+                _predicted_heatmaps,
+            ) = agent.step(state)
             control, turn_radius = vehicle_controller.step(state, target_waypoints)
 
             episode.apply_control(control)
@@ -479,8 +484,10 @@ def run_on_policy_episode(
 
             (
                 student_target_waypoints,
-                model_output,
                 _student_target_heatmap,
+                model_location_output,
+                model_heatmap_output,
+
             ) = student_agent.step(state)
             student_control, student_turn_radius = vehicle_controller.step(
                 state,
@@ -489,7 +496,7 @@ def run_on_policy_episode(
             )
             if comparer.student_in_control:
                 episode.apply_control(student_control)
-                store.push_student_driving(step, model_output, student_control, state)
+                store.push_student_driving(step, model_location_output, student_control, state)
 
             comparer.evaluate_and_compare(
                 state, teacher_target_waypoints, teacher_control, student_control

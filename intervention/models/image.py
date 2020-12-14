@@ -127,18 +127,22 @@ class Agent:
 
         self._img_size = torch.tensor([384, 160])
 
-    def step(self, state: TickState) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def step(
+        self, state: TickState
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Send the state through the underlying model, and return its output
         as predicted ego coordinate waypoints.
 
-        :return: A 3-tuple, where:
+        :return: A 4-tuple, where:
             - the first element is the predicted target locations of the commanded
               action in ego top-down coordinates;
-            - the second element is the raw model output (dimensions:
-              `[Image.OUTPUTS, Image.COORDINATE_STEPS, 2]`); and
-            - the third element is the heatmap of the predictions of the commanded
-              action.
+            - the second element is the predicted heatmap of the commanded action;
+            - the third element is the raw model (expected-value) image coordinate
+              output (dimensions: `[Image.OUTPUTS, Image.COORDINATE_STEPS, 2]`); and
+            - the fourth element is the raw heatmap (2-D softmax, _not_ argmax or
+              expected-value) model output (dimensions: `[Image.OUTPUTS,
+              Image.COORDINATE_STEPS, Image.HEATMAP_HEIGHT, Image.HEATMAP_WIDTH]`).
 
         """
         image = torch.unsqueeze(self._transforms(state.rgb.copy()), 0)
@@ -169,4 +173,8 @@ class Agent:
             [prediction[0, ...].cpu().detach().numpy() for prediction in predictions]
         )
 
-        return targets, flattened_predictions, heatmap_out
+        flattened_heatmaps = np.array(
+            [heatmap[0, ...].cpu().detach().numpy() for heatmap in heatmaps]
+        )
+
+        return targets, heatmap_out, flattened_predictions, flattened_heatmaps
