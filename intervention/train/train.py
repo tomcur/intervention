@@ -167,8 +167,17 @@ def imitation(
 
             target_four_hot = target_four_hot.to(process.torch_device)
 
-            loss_mean = torch.mean(-target_four_hot * torch.log(pred_heatmaps))
+            loss = torch.mean(
+                -target_four_hot * torch.log(pred_heatmaps), dim=(1, 2, 3)
+            )
             del target_four_hot, pred_heatmaps
+
+            writer.add_histogram("loss", loss, global_step=total_batches)
+
+            loss_mean = loss.mean()
+            del loss
+
+            writer.add_scalar("loss-mean", loss_mean, global_step=total_batches)
 
             optimizer.zero_grad()
             loss_mean.backward()
