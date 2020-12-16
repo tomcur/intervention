@@ -1,4 +1,5 @@
 # tensorflow-gpu==1.15.2
+tensorboard==2.4
 tensorboardX
 
 # Currently this installs with CUDA 10.2 support.
