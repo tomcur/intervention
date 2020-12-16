@@ -150,6 +150,11 @@ def _parse_frame_data(r: Dict[str, str]) -> FrameData:
 
 
 class _Dataset(torch.utils.data.Dataset):
+    """
+    This data loader holds handles to open zip files. It loads images and
+    other binary data from the zip-file as needed.
+    """
+
     def __init__(self, datapoints: Sequence[Tuple[Datapoint, ZipFile]]):
         self._datapoints = datapoints
 
@@ -166,6 +171,10 @@ class _Dataset(torch.utils.data.Dataset):
         return len(self._datapoints)
 
     def __getitem__(self, idx) -> Any:
+        """
+        Images (both transformed and non-transformed) are of dimensionality
+        `[N, C, H, W]`.
+        """
         (datapoint, zip_file) = self._datapoints[idx]
 
         img_bytes = zip_file.read(datapoint["rgb_filename"])
@@ -192,6 +201,10 @@ class _Dataset(torch.utils.data.Dataset):
 
 
 class _DatasetBuilder:
+    """
+    A dataset builder. It takes handles to open zip files and datapoints.
+    It can be consumed to create a dataset.
+    """
     def __init__(self):
         self._datapoints: List[Tuple[Datapoint, ZipFile]] = []
 
@@ -199,6 +212,9 @@ class _DatasetBuilder:
         self._datapoints.append((datapoint, zip_file))
 
     def build(self) -> _Dataset:
+        """
+        Consumes the dataset builder, returning a dataset.
+        """
         return _Dataset(self._datapoints)
 
 
