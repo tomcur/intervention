@@ -93,9 +93,9 @@ def imitation(
         purge_step=initial_epoch,
     )
 
-    writer.add_hparams({"learning_rate": LEARNING_RATE, "batch_size": batch_size}, {})
-
     for epoch in range(initial_epoch, initial_epoch + epochs):
+        epoch_total_train_loss = 0.0
+
         out_path = output_checkpoint_path / f"{epoch}.pth"
         if out_path.exists():
             raise Exception(
@@ -116,6 +116,8 @@ def imitation(
             # At start of every epoch, store some data in TensorBoard for sanity
             # checks.
             if batch_number == 0:
+                writer.add_text("progress", f"start of epoch {epoch}", total_batches)
+
                 image_grid = torchvision.utils.make_grid(
                     untransformed_rgb_image, nrow=5,
                 )
@@ -191,9 +193,20 @@ def imitation(
                 f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
                 f"Mean loss: {loss_mean}."
             )
+            epoch_total_train_loss += loss_mean.item()
             del loss_mean
 
             total_batches += 1
+
+        writer.add_hparams(
+            {
+                "learning_rate": LEARNING_RATE,
+                "gradient_norm_clipping": GRADIENT_NORM_CLIPPING,
+                "batch_size": batch_size,
+                "epoch": epoch,
+            },
+            {"hparam/epoch_mean_train_loss": epoch_total_train_loss / num_batches},
+        )
 
         torch.save(
             {
