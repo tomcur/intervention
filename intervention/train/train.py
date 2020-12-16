@@ -1,10 +1,12 @@
 import math
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
+import torchvision
 from loguru import logger
+from torch.utils.tensorboard import SummaryWriter
 
 from .. import process
 from ..models.image import Image
@@ -85,6 +87,13 @@ def imitation(
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
+    writer = SummaryWriter(
+        log_dir=Path("runs") / "imitation" / PurePath(output_checkpoint_path).name,
+        purge_step=initial_epoch,
+    )
+
+    writer.add_hparams({"learning_rate": LEARNING_RATE, "batch_size": batch_size}, {})
+
     for epoch in range(initial_epoch, initial_epoch + epochs):
         out_path = output_checkpoint_path / f"{epoch}.pth"
         if out_path.exists():
@@ -94,13 +103,34 @@ def imitation(
 
         num_batches = len(training_generator)
         logger.info(f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{epochs}).")
-        for (batch_number, (rgb_image, _, datapoint_meta)) in enumerate(
-            training_generator
-        ):
+        for (
+            batch_number,
+            (rgb_image, untransformed_rgb_image, datapoint_meta),
+        ) in enumerate(training_generator):
             this_batch_size = len(rgb_image)
 
             rgb_image = rgb_image.float().to(process.torch_device)
             speed = datapoint_meta["speed"].float().to(process.torch_device)
+
+            # At start of every epoch, store some data in TensorBoard for sanity
+            # checks.
+            if batch_number == 0:
+                image_grid = torchvision.utils.make_grid(
+                    untransformed_rgb_image, nrow=5,
+                )
+                writer.add_image(
+                    "images-rgb-untransformed", image_grid, global_step=total_batches
+                )
+
+                image_grid = torchvision.utils.make_grid(
+                    rgb_image, nrow=5, normalize=True
+                )
+                writer.add_image(
+                    "images-rgb-transformed", image_grid, global_step=total_batches
+                )
+
+                writer.add_graph(model, (rgb_image, speed))
+            del untransformed_rgb_image
 
             _all_branch_predictions, all_branch_heatmaps = model.forward(
                 rgb_image, speed
@@ -162,6 +192,8 @@ def imitation(
             out_path,
         )
         logger.info(f"Saved Epoch {epoch} checkpoint to {out_path}.")
+
+    writer.close()
 
 
 def _intervention_data_loaders(
