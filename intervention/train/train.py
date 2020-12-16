@@ -59,6 +59,8 @@ def imitation(
     initial_checkpoint_path: Optional[Path] = None,
     epochs: int = 5,
 ) -> None:
+    LEARNING_RATE = 0.001
+
     training_dataset = dataset.off_policy_data(dataset_path)
     training_generator = torch.utils.data.DataLoader(
         training_dataset, batch_size=batch_size, shuffle=True
@@ -68,7 +70,7 @@ def imitation(
     model.train()
 
     img_size = torch.tensor([384, 160], device=process.torch_device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     initial_epoch = 0
     total_batches = 0
@@ -257,6 +259,8 @@ def intervention(
     initial_checkpoint_path: Optional[Path] = None,
     epochs: int = 5,
 ) -> None:
+    LEARNING_RATE = 0.001
+
     (
         negative_generator,
         recovery_imitation_generator,
@@ -269,7 +273,7 @@ def intervention(
     model.train()
 
     img_size = torch.tensor([384, 160], device=process.torch_device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     initial_epoch = 0
     total_batches = 0
