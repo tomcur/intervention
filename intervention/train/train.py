@@ -282,7 +282,7 @@ def intervention(
         total_batches = checkpoint["total_batches"]
 
         model.load_state_dict(checkpoint["model_state_dict"])
-        # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
     for epoch in range(initial_epoch, initial_epoch + epochs):
         out_path = output_checkpoint_path / f"{epoch}.pth"
