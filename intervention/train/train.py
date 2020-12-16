@@ -89,7 +89,7 @@ def imitation(
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
     writer = SummaryWriter(
-        log_dir=Path("runs") / "imitation" / PurePath(output_checkpoint_path).name,
+        log_dir=Path("logs") / "imitation" / PurePath(output_checkpoint_path).name,
         purge_step=initial_epoch,
     )
 
