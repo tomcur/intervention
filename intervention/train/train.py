@@ -62,6 +62,7 @@ def imitation(
     epochs: int = 5,
 ) -> None:
     LEARNING_RATE = 0.001
+    GRADIENT_NORM_CLIPPING = 0.1
 
     training_dataset = dataset.off_policy_data(dataset_path)
     training_generator = torch.utils.data.DataLoader(
@@ -181,6 +182,9 @@ def imitation(
 
             optimizer.zero_grad()
             loss_mean.backward()
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(), GRADIENT_NORM_CLIPPING, norm_type=2.0
+            )
             optimizer.step()
 
             logger.trace(
