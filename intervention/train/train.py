@@ -456,3 +456,14 @@ def intervention(
             del loss_mean
 
             total_batches += 1
+
+        torch.save(
+            {
+                "epoch": epoch,
+                "total_batches": total_batches,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+            },
+            out_path,
+        )
+        logger.info(f"Saved Epoch {epoch} checkpoint to {out_path}.")
