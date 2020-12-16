@@ -216,7 +216,9 @@ class _DatasetBuilder:
         """
         Consumes the dataset builder, returning a dataset.
         """
-        return _Dataset(self._datapoints)
+        d = _Dataset(self._datapoints)
+        self._datapoints = []
+        return d
 
 
 class _ConcatenatedDataset(torch.utils.data.Dataset):
