@@ -205,6 +205,7 @@ class _DatasetBuilder:
     A dataset builder. It takes handles to open zip files and datapoints.
     It can be consumed to create a dataset.
     """
+
     def __init__(self):
         self._datapoints: List[Tuple[Datapoint, ZipFile]] = []
 
@@ -239,6 +240,16 @@ class _ConcatenatedDataset(torch.utils.data.Dataset):
 
 @dataclass
 class InterventionDatasets:
+    """
+    An (on-policy) intervention dataset. This consists of three separate datasets:
+        - `negative` consists of examples of student driving leading up to an
+          intervention;
+        - `supervision_signal` consists of examples of student driving that take
+          place more than 2.5 seconds before an intervention; and
+        - `imitation` consists of examples of teacher driving.
+
+    """
+
     negative: torch.utils.data.Dataset
     supervision_signal: torch.utils.data.Dataset
     imitation: torch.utils.data.Dataset
@@ -246,7 +257,7 @@ class InterventionDatasets:
 
 def intervention_data(data_directory,) -> InterventionDatasets:
     """
-    Load an (on-policy) intervention dataset.
+    Load an (on-policy) intervention dataset. This consists of three separate datasets.
     """
     with open(data_directory / "episodes.csv") as episode_summaries_file:
         episode_summaries_reader = DataclassReader(
