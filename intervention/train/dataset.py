@@ -188,7 +188,7 @@ class _Dataset(torch.utils.data.Dataset):
                 datapoint,
             )
         else:
-            return self._transforms(img), img, datapoint
+            return self._transforms(img), np.moveaxis(img, [2], [0]), datapoint
 
 
 class _DatasetBuilder:
