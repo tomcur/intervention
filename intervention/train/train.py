@@ -272,12 +272,14 @@ def intervention(
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     initial_epoch = 0
+    total_batches = 0
     if initial_checkpoint_path is not None:
         logger.info(f"Reading checkpoint from {initial_checkpoint_path}.")
         checkpoint = torch.load(initial_checkpoint_path)
 
         logger.info(f"Resuming from Epoch {checkpoint['epoch']} checkpoint.")
         initial_epoch = checkpoint["epoch"] + 1
+        total_batches = checkpoint["total_batches"]
 
         model.load_state_dict(checkpoint["model_state_dict"])
         # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -452,3 +454,5 @@ def intervention(
                 f"Mean loss: {loss_mean}."
             )
             del loss_mean
+
+            total_batches += 1
