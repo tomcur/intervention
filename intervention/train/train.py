@@ -12,6 +12,8 @@ from .. import process
 from ..models.image import Image
 from . import dataset
 
+EPSILON = 1e-8
+
 
 def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Tensor:
     size = branches[0].size()
@@ -171,7 +173,7 @@ def imitation(
             target_four_hot = target_four_hot.to(process.torch_device)
 
             loss = torch.mean(
-                -target_four_hot * torch.log(pred_heatmaps), dim=(1, 2, 3)
+                -target_four_hot * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
             )
             del target_four_hot, pred_heatmaps
 
@@ -502,7 +504,9 @@ def intervention(
                 )
             ).to(process.torch_device)
 
-            loss = torch.mean(-targets * torch.log(pred_heatmaps), dim=(1, 2, 3))
+            loss = torch.mean(
+                -targets * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
+            )
             del targets, pred_heatmaps
 
             loss_mean = (meta_learning_rates * loss).mean()
