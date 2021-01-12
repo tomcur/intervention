@@ -310,6 +310,7 @@ class ManagedEpisode:
         self._client = carla_client
         self._carla_world: Optional[carla.World] = None
         self._traffic_manager: Optional[carla.TrafficManager] = None
+        self._traffic_manager_port: Optional[int] = None
         self._pedestrian_controllers: List[carla.WalkerAIController] = []
         self._actor_dict: Dict[str, List[carla.Actor]] = collections.defaultdict(list)
 
@@ -328,7 +329,8 @@ class ManagedEpisode:
         logger.trace(f"Setting up/connecting to traffic manager on port {port}.")
         self._traffic_manager = self._client.get_trafficmanager(port)
         self._traffic_manager.set_synchronous_mode(True)
-        return self._traffic_manager.get_port()
+        self._traffic_manager_port = port
+        return port
 
     def _generate_route(
         self, carla_map: carla.Map
@@ -498,7 +500,7 @@ class ManagedEpisode:
         vehicles = carla_world.get_actors(spawned)
         for vehicle in vehicles:
             assert isinstance(vehicle, carla.Vehicle)
-            vehicle.set_autopilot(True)
+            vehicle.set_autopilot(True, self._traffic_manager_port)
 
         self._actor_dict["vehicle"] = list(vehicles)
         logger.debug("Spawned {} vehicles.", len(spawned))
