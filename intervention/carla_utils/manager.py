@@ -324,7 +324,7 @@ class ManagedEpisode:
         if "CARLA_TRAFFIC_MANAGER_PORT" in os.environ:
             port = int(os.environ["CARLA_TRAFFIC_MANAGER_PORT"])
         else:
-           port = 8000
+            port = 8000
         logger.trace(f"Setting up/connecting to traffic manager on port {port}.")
         self._traffic_manager = self._client.get_trafficmanager(port)
         self._traffic_manager.set_synchronous_mode(True)
