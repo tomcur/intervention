@@ -1,3 +1,4 @@
+import os
 import collections
 import queue
 from dataclasses import dataclass
@@ -320,8 +321,12 @@ class ManagedEpisode:
         world.apply_settings(settings)
 
     def _set_up_traffic_manager(self) -> int:
-        logger.trace("Setting up/connecting to traffic manager.")
-        self._traffic_manager = self._client.get_trafficmanager()
+        if "CARLA_TRAFFIC_MANAGER_PORT" in os.environ:
+            port = int(os.environ["CARLA_TRAFFIC_MANAGER_PORT"])
+        else:
+           port = 8000
+        logger.trace(f"Setting up/connecting to traffic manager on port {port}.")
+        self._traffic_manager = self._client.get_trafficmanager(port)
         self._traffic_manager.set_synchronous_mode(True)
         return self._traffic_manager.get_port()
 
