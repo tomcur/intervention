@@ -121,7 +121,8 @@ def imitation(
                 writer.add_text("progress", f"start of epoch {epoch}", total_batches)
 
                 image_grid = torchvision.utils.make_grid(
-                    untransformed_rgb_image, nrow=5,
+                    untransformed_rgb_image,
+                    nrow=5,
                 )
                 writer.add_image(
                     "images-rgb-untransformed", image_grid, global_step=total_batches
@@ -283,7 +284,9 @@ def _intervention_data_loaders(
         shuffle=True,
     )
     regular_imitation_generator = torch.utils.data.DataLoader(
-        imitation_dataset, batch_size=regular_imitation_batch_size, shuffle=True,
+        imitation_dataset,
+        batch_size=regular_imitation_batch_size,
+        shuffle=True,
     )
 
     return negative_generator, recovery_imitation_generator, regular_imitation_generator
@@ -300,9 +303,11 @@ def _predicted_locations_to_one_hot_heatmap(predicted_locations, img_size):
     predicted_locations[..., 0] = (
         (predicted_locations[..., 0] + 1.0) / 2.0 * (Image.HEATMAP_WIDTH - 1)
     )
+
     predicted_locations[..., 1] = (
         (predicted_locations[..., 1] + 1.0) / 2.0 * (Image.HEATMAP_HEIGHT - 1)
     )
+
     predicted_locations[..., :] = torch.round(predicted_locations[..., :])
     predicted_locations = predicted_locations.long()
 
@@ -446,7 +451,8 @@ def intervention(
             # Select the original (erroneous) student model output head based on the
             # planner's command.
             original_negative_heatmaps_output = select_branch(
-                converted, list(map(int, negative_datapoint["command"])),
+                converted,
+                list(map(int, negative_datapoint["command"])),
             ).to(process.torch_device)
 
             meta_learning_rates = torch.ones(negative_len)
@@ -492,7 +498,10 @@ def intervention(
             target_four_hot = target_four_hot.to(process.torch_device)
 
             targets = torch.cat(
-                (original_negative_heatmaps_output, target_four_hot,)
+                (
+                    original_negative_heatmaps_output,
+                    target_four_hot,
+                )
             ).to(process.torch_device)
             del original_negative_heatmaps_output, target_four_hot
 
@@ -532,4 +541,5 @@ def intervention(
             },
             out_path,
         )
+
         logger.info(f"Saved Epoch {epoch} checkpoint to {out_path}.")
