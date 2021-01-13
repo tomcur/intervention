@@ -45,7 +45,7 @@ class Datapoint(TypedDict):
     current_orientation: Orientation
     current_location: Location
     next_locations: List[Location]
-    next_locations_image_coordinates: List[Any]
+    next_locations_image_coordinates: np.ndarray
 
 
 def datapoints_from_dictionaries(
