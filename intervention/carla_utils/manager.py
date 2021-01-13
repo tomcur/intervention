@@ -128,7 +128,9 @@ class EgoVehicle:
         blueprints = carla_world.get_blueprint_library()
         lane_invasion_detector_bp = blueprints.find("sensor.other.lane_invasion")
         lane_invasion_detector = carla_world.spawn_actor(
-            lane_invasion_detector_bp, carla.Transform(), attach_to=self.vehicle,
+            lane_invasion_detector_bp,
+            carla.Transform(),
+            attach_to=self.vehicle,
         )
         assert isinstance(lane_invasion_detector, carla.Sensor)
         lane_invasion_detector.listen(_lane_invasion)  # type: ignore
@@ -143,7 +145,9 @@ class EgoVehicle:
         blueprints = carla_world.get_blueprint_library()
         collision_detector_bp = blueprints.find("sensor.other.collision")
         collision_detector = carla_world.spawn_actor(
-            collision_detector_bp, carla.Transform(), attach_to=self.vehicle,
+            collision_detector_bp,
+            carla.Transform(),
+            attach_to=self.vehicle,
         )
         assert isinstance(collision_detector, carla.Sensor)
         collision_detector.listen(_collision)  # type: ignore
@@ -373,7 +377,10 @@ class ManagedEpisode:
 
         logger.debug("Spawning vehicles.")
         self._spawn_vehicles(
-            self._carla_world, carla_map, 30, [start_pose.location],
+            self._carla_world,
+            carla_map,
+            30,
+            [start_pose.location],
         )
 
         logger.debug("Spawning pedestrians.")
