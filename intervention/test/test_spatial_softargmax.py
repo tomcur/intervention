@@ -103,6 +103,8 @@ class TestGradients(unittest.TestCase):
 
         self.assertTrue(torch.all(expected_positive_gradient.eq(tensor.grad > 0)))
 
+        # TODO: test ssam.temperature gradient
+
         # Make a small step in direction of negative loss.
         with torch.no_grad():
             tensor -= 0.1 * tensor.grad
