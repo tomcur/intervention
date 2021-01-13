@@ -293,6 +293,7 @@ def _intervention_data_loaders(
 
 
 def _predicted_locations_to_one_hot_heatmap(predicted_locations, img_size):
+    # TODO: unit test this function
     batch_size, coordinate_steps, _ = predicted_locations.shape
     assert Image.COORDINATE_STEPS == coordinate_steps
 
