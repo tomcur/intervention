@@ -48,7 +48,9 @@ class Datapoint(TypedDict):
     next_locations_image_coordinates: List[Any]
 
 
-def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoint]:
+def datapoints_from_dictionaries(
+    dictionaries: List[FrameData],
+) -> List[Datapoint]:
     datapoints = []
     for (idx, dictionary) in enumerate(
         dictionaries[: -LOCATIONS_NUM_STEPS * LOCATIONS_STEP_INTERVAL]
@@ -257,7 +259,9 @@ class InterventionDatasets:
     imitation: torch.utils.data.Dataset
 
 
-def intervention_data(data_directory,) -> InterventionDatasets:
+def intervention_data(
+    data_directory,
+) -> InterventionDatasets:
     """
     Load an (on-policy) intervention dataset. This consists of three separate datasets.
     """
