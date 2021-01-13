@@ -193,7 +193,7 @@ class _Dataset(torch.utils.data.Dataset):
 
             return (
                 self._transforms(img),
-                img,
+                np.moveaxis(img, [2], [0]),
                 student_image_targets,
                 student_image_heatmaps,
                 datapoint,
