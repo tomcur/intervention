@@ -87,6 +87,7 @@ class Image(nn.Module):
                         Image.HEATMAP_HEIGHT,
                         Image.HEATMAP_WIDTH,
                         Image.COORDINATE_STEPS,
+                        # temperature=1.0,
                     ),
                 )
                 for _ in range(Image.OUTPUTS)
