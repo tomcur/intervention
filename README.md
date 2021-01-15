@@ -7,7 +7,7 @@ To collect imitation-learning data from an expert driver, first download the exp
 $ wget http://www.cs.utexas.edu/~dchen/lbc_release/ckpts/privileged/model-128.th
 ```
 
-Then run:
+Run the Carla simulator. Then run:
 
 ```shell
 $ intervention-learning collect-teacher-examples \
