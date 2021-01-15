@@ -54,7 +54,7 @@ def manual():
 )
 @click.option(
     "-n",
-    "--num_episodes",
+    "--num-episodes",
     default=1,
     type=int,
     help="The number of episodes to collect. Terminated episodes also count.",
@@ -120,7 +120,7 @@ def collect_teacher_examples(
 )
 @click.option(
     "-n",
-    "--num_episodes",
+    "--num-episodes",
     default=1,
     type=int,
     help="The number of episodes to collect. Terminated episodes also count.",
