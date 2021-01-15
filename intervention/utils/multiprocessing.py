@@ -1,5 +1,8 @@
 import multiprocessing
+import traceback
 from typing import Callable, Tuple, TypeVar, Union
+
+from loguru import logger
 
 T = TypeVar("T")
 
@@ -25,8 +28,8 @@ def process_wrapper(target: Callable[..., T], *args, **kwargs) -> T:
         try:
             value = target(*args, **kwargs)
             queue.put((True, value))
-        except Exception as e:
-            queue.put((False, e))
+        except Exception:
+            queue.put((False, traceback.format_exc()))
 
     process = multiprocessing.Process(
         target=_wrapper, args=(target, queue) + args, kwargs=kwargs
@@ -36,4 +39,5 @@ def process_wrapper(target: Callable[..., T], *args, **kwargs) -> T:
     if success:
         return value  # type: ignore
     else:
-        raise value  # type: ignore
+        logger.error(f"Child process raised the following exception: {value}")
+        raise Exception("Child process raised an exception")
