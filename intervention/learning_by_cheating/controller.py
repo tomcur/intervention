@@ -2,8 +2,6 @@ from collections import deque
 
 import numpy as np
 
-from scipy.special import comb
-from scipy import interpolate
 
 def ls_circle(points):
     '''
