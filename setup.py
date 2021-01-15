@@ -25,7 +25,7 @@ setup(
         "tensorboard~=2.4",
         "torch~=1.5",
         "torchvision~=0.7",
-        "opencv-python~=4",
+        "opencv-python~=4.0",
         "pygame~=1.9",
         "pillow~=8.1",
         # Computation:
