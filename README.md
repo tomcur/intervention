@@ -7,7 +7,7 @@ To collect imitation-learning data from an expert driver, first download the exp
 $ wget http://www.cs.utexas.edu/~dchen/lbc_release/ckpts/privileged/model-128.th
 ```
 
-Run the Carla simulator. Then run:
+Run CARLA Simulator. Then run:
 
 ```shell
 $ intervention-learning collect-teacher-examples \
@@ -39,9 +39,9 @@ $ python3 -m pip install -r requirements.txt
 $ python3 -m pip install -e .
 ```
 
-### Carla
-You will need to have Carla's Python client API package installed, matching the Carla version you'll be using.
-To install using the Carla-provided eggs, perform e.g.:
+### CARLA
+You will need to have CARLA's Python client API package installed, matching the CARLA version you'll be using.
+To install using the CARLA-provided eggs, perform e.g.:
 
 ```shell
 $ wget https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.10.1_RSS.tar.gz
