@@ -4,33 +4,30 @@ import numpy as np
 
 
 def ls_circle(points):
-    '''
+    """
     Input: Nx2 points
     Output: cx, cy, r
-    '''
-    xs = points[:,0]
-    ys = points[:,1]
+    """
+    xs = points[:, 0]
+    ys = points[:, 1]
 
     us = xs - np.mean(xs)
     vs = ys - np.mean(ys)
 
-    Suu = np.sum(us**2)
-    Suv = np.sum(us*vs)
-    Svv = np.sum(vs**2)
-    Suuu = np.sum(us**3)
-    Suvv = np.sum(us*vs*vs)
-    Svvv = np.sum(vs**3)
-    Svuu = np.sum(vs*us*us)
+    Suu = np.sum(us ** 2)
+    Suv = np.sum(us * vs)
+    Svv = np.sum(vs ** 2)
+    Suuu = np.sum(us ** 3)
+    Suvv = np.sum(us * vs * vs)
+    Svvv = np.sum(vs ** 3)
+    Svuu = np.sum(vs * us * us)
 
-    A = np.array([
-        [Suu, Suv],
-        [Suv, Svv]
-    ])
+    A = np.array([[Suu, Suv], [Suv, Svv]])
 
-    b = np.array([1/2.*Suuu+1/2.*Suvv, 1/2.*Svvv+1/2.*Svuu])
+    b = np.array([1 / 2.0 * Suuu + 1 / 2.0 * Suvv, 1 / 2.0 * Svvv + 1 / 2.0 * Svuu])
 
     cx, cy = np.linalg.solve(A, b)
-    r = np.sqrt(cx*cx+cy*cy+(Suu+Svv)/len(xs))
+    r = np.sqrt(cx * cx + cy * cy + (Suu + Svv) / len(xs))
 
     cx += np.mean(xs)
     cy += np.mean(ys)
@@ -66,7 +63,7 @@ class PIDController(object):
         return control
 
 
-class CustomController():
+class CustomController:
     def __init__(self, controller_args, k=0.5, n=2, wheelbase=2.89, dt=0.1):
         self._wheelbase = wheelbase
         self._k = k
@@ -78,11 +75,10 @@ class CustomController():
         self._controller_args = controller_args
 
         self._e_buffer = deque(maxlen=10)
-        
 
     def run_step(self, alpha, cmd):
         self._e_buffer.append(alpha)
-        
+
         if len(self._e_buffer) >= 2:
             _de = (self._e_buffer[-1] - self._e_buffer[-2]) / self._dt
             _ie = sum(self._e_buffer) * self._dt
