@@ -301,7 +301,9 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
     from .train import dataset
     from . import coordinates
 
-    visualizer = visualization.Visualizer()
+    visualizer = visualization.Visualizer(
+        event_processor=visualization.dataset_explorer_event_processor
+    )
     data = dataset.off_policy_data(episode_path)
 
     idx = 0
@@ -316,7 +318,7 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
             )
 
         with visualizer as painter:
-            painter.add_rgb(image)
+            painter.add_rgb(np.moveaxis(image, [0], [2]))
             painter.add_waypoints(next_waypoints)
 
         actions = visualizer.get_actions()
