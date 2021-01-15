@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from io import BytesIO
 from typing import Deque, List, Optional, TextIO, Tuple, Union
 
+import carla
 import dataclass_csv
 import numpy as np
+from PIL import Image
 from typing_extensions import Literal
-
-import carla
 
 from .carla_utils import ManagedEpisode, TickState
 
@@ -169,8 +169,8 @@ class ZipStore(Store):
             self._teacher_in_control = False
             self._store_teacher_driving(reason="engagement")
 
-        rgb_filename = f"{tick:05d}-rgb-student.bin"
-        self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+        rgb_filename = f"{tick:05d}-rgb-student.png"
+        self._add_rgb_image(rgb_filename, state.rgb)
 
         model_image_targets_filename = f"{tick:05d}-image-targets-student.npy"
         buffer = BytesIO()
@@ -219,8 +219,8 @@ class ZipStore(Store):
             self._teacher_in_control = True
             self._store_student_driving(reason="intervention")
 
-        rgb_filename = f"{tick:05d}-rgb-teacher.bin"
-        self._add_file(rgb_filename, state.rgb.tobytes(order="C"))
+        rgb_filename = f"{tick:05d}-rgb-teacher.png"
+        self._add_rgb_image(rgb_filename, state.rgb)
 
         orientation = state.rotation.get_forward_vector()
 
@@ -250,6 +250,12 @@ class ZipStore(Store):
             orientation_z=orientation.z,
         )
         self._frame_data_queue.append((tick, frame_data))
+
+    def _add_rgb_image(self, filename: str, rgb: np.ndarray) -> None:
+        buffer = BytesIO()
+        im = Image.fromarray(rgb)
+        im.save(buffer, format="PNG")
+        self._add_file(filename, buffer.getvalue())
 
     def _add_file(self, filename: str, data: bytes) -> None:
         self._archive.writestr(filename, data)

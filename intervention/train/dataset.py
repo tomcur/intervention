@@ -48,9 +48,7 @@ class Datapoint(TypedDict):
     next_locations_image_coordinates: np.ndarray
 
 
-def datapoints_from_dictionaries(
-    dictionaries: List[FrameData],
-) -> List[Datapoint]:
+def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoint]:
     datapoints = []
     for (idx, dictionary) in enumerate(
         dictionaries[: -LOCATIONS_NUM_STEPS * LOCATIONS_STEP_INTERVAL]
@@ -179,8 +177,14 @@ class _Dataset(torch.utils.data.Dataset):
         """
         (datapoint, zip_file) = self._datapoints[idx]
 
-        img_bytes = zip_file.read(datapoint["rgb_filename"])
-        img = image.buffer_to_np(img_bytes)
+        rgb_filename = Path(datapoint["rgb_filename"])
+        if rgb_filename.suffix == ".png":
+            with zip_file.open(str(rgb_filename), mode="r") as file:
+                img = image.image_file_to_np(file)
+        else:
+            # Read the image as raw bytes
+            img_bytes = zip_file.read(datapoint["rgb_filename"])
+            img = image.buffer_to_np(img_bytes)
 
         if datapoint["student_image_targets_filename"] != "":
             assert datapoint["student_image_heatmaps_filename"] != ""
@@ -259,9 +263,7 @@ class InterventionDatasets:
     imitation: torch.utils.data.Dataset
 
 
-def intervention_data(
-    data_directory,
-) -> InterventionDatasets:
+def intervention_data(data_directory,) -> InterventionDatasets:
     """
     Load an (on-policy) intervention dataset. This consists of three separate datasets.
     """

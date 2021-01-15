@@ -14,7 +14,7 @@ scipy~=1.4
 scikit-image~=0.15
 numpy~=1.19
 pandas~=0.23
-pillow~=7.1
+pillow~=8.1
 # matplotlib
 opencv-python~=4.2.0
 # imgaug==0.4.0
