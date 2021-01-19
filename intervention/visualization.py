@@ -1,6 +1,7 @@
 from collections import deque
 from enum import Enum
 from typing import Callable, Deque, Dict, Iterable, List, Optional, Tuple, Union
+import math
 
 import numpy as np
 import pygame
@@ -172,9 +173,12 @@ class FramePainter:
         step_size = 0.25
 
         ys = np.arange(step_size, max_y, step_size)
-        xs = radius - np.sqrt(-(ys ** 2) + radius ** 2)
-        if direction == "LEFT":
-            xs *= -1
+        if math.isfinite(radius):
+            xs = radius - np.sqrt(-(ys ** 2) + radius ** 2)
+            if direction == "LEFT":
+                xs *= -1
+        else:
+            xs = np.repeat(0.0, len(ys))
 
         prev_im_location_x, prev_im_location_y = ego_coordinate_to_image_coordinate(
             0, 0, forward_offset=0.0
