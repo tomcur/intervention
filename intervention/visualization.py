@@ -98,7 +98,10 @@ class FramePainter:
     BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH + PADDING
 
     def __init__(
-        self, size: Tuple[int, int], font: pygame.font.Font, control_difference: Deque[float]
+        self,
+        size: Tuple[int, int],
+        font: pygame.font.Font,
+        control_difference: Deque[float],
     ):
         self._surface = pygame.Surface(size)
         self._font = font
@@ -213,7 +216,10 @@ class FramePainter:
     ) -> None:
         self._surface.blit(
             self._font.render(name, True, (240, 240, 240)),
-            (FramePainter.CONTROL_X, self._next_control_y,),
+            (
+                FramePainter.CONTROL_X,
+                self._next_control_y,
+            ),
         )
         control_surf = _render_control(control, self._font)
 
@@ -226,7 +232,11 @@ class FramePainter:
             control_surf.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
         self._surface.blit(
-            control_surf, (FramePainter.CONTROL_X, self._next_control_y + 25,),
+            control_surf,
+            (
+                FramePainter.CONTROL_X,
+                self._next_control_y + 25,
+            ),
         )
 
         self._next_control_y += FramePainter.CONTROL_GROUP_HEIGHT + FramePainter.PADDING
