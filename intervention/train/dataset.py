@@ -46,6 +46,7 @@ class Datapoint(TypedDict):
     current_location: Location
     next_locations: List[Location]
     next_locations_image_coordinates: np.ndarray
+    ticks_to_intervention: int
 
 
 def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoint]:
@@ -107,6 +108,9 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData],) -> List[Datapoi
             current_location=current_location,
             next_locations=next_locations,
             next_locations_image_coordinates=np.array(next_locations_image_coordinates),
+            ticks_to_intervention=dictionary["ticks_to_intervention"]
+            if dictionary["ticks_to_intervention"] is not None
+            else -1,
         )
         datapoints.append(datapoint)
     return datapoints
