@@ -355,7 +355,14 @@ def intervention(
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
+    writer = SummaryWriter(
+        log_dir=Path("logs") / "intervention" / PurePath(output_checkpoint_path).name,
+        purge_step=initial_epoch,
+    )
+
     for epoch in range(initial_epoch, initial_epoch + epochs):
+        epoch_total_train_loss = 0.0
+
         out_path = output_checkpoint_path / f"{epoch}.pth"
         if out_path.exists():
             raise Exception(
@@ -380,19 +387,19 @@ def intervention(
         ):
             (
                 negative_rgb_images,
-                _,
+                untransformed_negative_rgb_images,
                 _negative_image_targets_output,
                 negative_image_heatmaps_output,
                 negative_datapoint,
             ) = negative_batch
             (
                 recovery_imitation_rgb_images,
-                _,
+                untransformed_recovery_imitation_rgb_images,
                 recovery_imitation_datapoint,
             ) = recovery_imitation_batch
             (
                 regular_imitation_rgb_images,
-                _,
+                untransformed_regular_imitation_rgb_images,
                 regular_imitation_datapoint,
             ) = regular_imitation_batch
 
@@ -418,6 +425,36 @@ def intervention(
                     regular_imitation_datapoint["speed"].float(),
                 )
             ).to(process.torch_device)
+
+            # At start of every epoch, store some data in TensorBoard for sanity
+            # checks.
+            if batch_number == 0:
+                writer.add_text("progress", f"start of epoinfch {epoch}", total_batches)
+
+                untransformed_rgb_images = torch.cat(
+                    (
+                        untransformed_negative_rgb_images,
+                        untransformed_recovery_imitation_rgb_images,
+                        untransformed_regular_imitation_rgb_images,
+                    )
+                )
+
+                image_grid = torchvision.utils.make_grid(
+                    untransformed_rgb_images,
+                    nrow=5,
+                )
+                writer.add_image(
+                    "images-rgb-untransformed", image_grid, global_step=total_batches
+                )
+
+                image_grid = torchvision.utils.make_grid(
+                    rgb_images, nrow=5, normalize=True
+                )
+                writer.add_image(
+                    "images-rgb-transformed", image_grid, global_step=total_batches
+                )
+
+                writer.add_graph(model, (rgb_images, speeds))
 
             all_branch_predictions, all_branch_heatmaps = model.forward(
                 rgb_images, speeds
@@ -520,7 +557,12 @@ def intervention(
             )
             del targets, pred_heatmaps
 
+            writer.add_histogram("loss", loss, global_step=total_batches)
+
             loss_mean = (meta_learning_rates * loss).mean()
+            del loss
+
+            writer.add_scalar("loss-mean", loss_mean, global_step=total_batches)
 
             optimizer.zero_grad()
             loss_mean.backward()
@@ -533,9 +575,20 @@ def intervention(
                 f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
                 f"Mean loss: {loss_mean}."
             )
+            epoch_total_train_loss += loss_mean.item()
             del loss_mean
 
             total_batches += 1
+
+        writer.add_hparams(
+            {
+                "learning_rate": LEARNING_RATE,
+                "gradient_norm_clipping": GRADIENT_NORM_CLIPPING,
+                "batch_size": batch_size,
+                "epoch": epoch,
+            },
+            {"hparam/epoch_mean_train_loss": epoch_total_train_loss / num_batches},
+        )
 
         torch.save(
             {
