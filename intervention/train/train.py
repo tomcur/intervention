@@ -63,6 +63,7 @@ def imitation(
     initial_checkpoint_path: Optional[Path] = None,
     epochs: int = 5,
 ) -> None:
+    #: Global learning rate multiplier
     LEARNING_RATE = 0.001
     GRADIENT_NORM_CLIPPING = 0.1
 
@@ -325,6 +326,7 @@ def intervention(
     initial_checkpoint_path: Optional[Path] = None,
     epochs: int = 5,
 ) -> None:
+    #: Global learning rate multiplier
     LEARNING_RATE = 0.001
     GRADIENT_NORM_CLIPPING = 0.1
 
