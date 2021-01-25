@@ -328,6 +328,13 @@ def intervention(
     LEARNING_RATE = 0.001
     GRADIENT_NORM_CLIPPING = 0.1
 
+    #: The exponential decay time constant of negative learning, unit: number of frames
+    # until intervention
+    NEGATIVE_LEARNING_DECAY_TIME = 10.0
+
+    #: Initial learning rate (at the frame right before intervention)
+    NEGATIVE_LEARNING_DECAY_INITIAL = 1.0
+
     (
         negative_generator,
         recovery_imitation_generator,
@@ -547,9 +554,10 @@ def intervention(
             meta_learning_rates = torch.cat(
                 (
                     -(
-                        1.0
+                        NEGATIVE_LEARNING_DECAY_INITIAL
                         * torch.exp(
-                            -negative_datapoint["ticks_to_intervention"].float() / 10.0
+                            -negative_datapoint["ticks_to_intervention"].float()
+                            / NEGATIVE_LEARNING_DECAY_TIME
                         )
                     ),
                     torch.ones(recovery_imitation_len),
