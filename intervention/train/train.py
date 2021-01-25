@@ -599,6 +599,8 @@ def intervention(
             {
                 "learning_rate": LEARNING_RATE,
                 "gradient_norm_clipping": GRADIENT_NORM_CLIPPING,
+                "negative_learning_decay_initial": NEGATIVE_LEARNING_DECAY_INITIAL,
+                "negative_learning_decay_time": NEGATIVE_LEARNING_DECAY_TIME,
                 "batch_size": batch_size,
                 "epoch": epoch,
             },
