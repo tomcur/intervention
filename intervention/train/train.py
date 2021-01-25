@@ -547,8 +547,10 @@ def intervention(
             meta_learning_rates = torch.cat(
                 (
                     -(
-                        0.65
-                        ** (negative_datapoint["ticks_to_intervention"].float() / 10.0)
+                        1.0
+                        * torch.exp(
+                            -negative_datapoint["ticks_to_intervention"].float() / 10.0
+                        )
                     ),
                     torch.ones(recovery_imitation_len),
                     torch.ones(regular_imitation_len),
