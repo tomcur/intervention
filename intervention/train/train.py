@@ -416,6 +416,17 @@ def intervention(
             recovery_imitation_len = len(recovery_imitation_rgb_images)
             regular_imitation_len = len(regular_imitation_rgb_images)
 
+            negative_indices = list(range(0, negative_len))
+            recovery_imitation_indices = list(
+                range(negative_len, negative_len + recovery_imitation_len)
+            )
+            regular_imitation_indices = list(
+                range(
+                    negative_len + recovery_imitation_len,
+                    negative_len + recovery_imitation_len + regular_imitation_len,
+                )
+            )
+
             rgb_images = torch.cat(
                 (
                     negative_rgb_images.float(),
@@ -553,6 +564,11 @@ def intervention(
             ).to(process.torch_device)
             del original_negative_heatmaps_output, target_four_hot
 
+            loss = torch.mean(
+                -targets * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
+            )
+            del targets, pred_heatmaps
+
             meta_learning_rates = torch.cat(
                 (
                     -(
@@ -566,15 +582,41 @@ def intervention(
                     torch.ones(regular_imitation_len),
                 )
             ).to(process.torch_device)
-
-            loss = torch.mean(
-                -targets * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
-            )
-            del targets, pred_heatmaps
+            loss *= meta_learning_rates
+            del meta_learning_rates
 
             writer.add_histogram("loss", loss, global_step=total_batches)
+            writer.add_histogram(
+                "loss-negative", loss[negative_indices], global_step=total_batches
+            )
+            writer.add_histogram(
+                "loss-recovery-imitation",
+                loss[recovery_imitation_indices],
+                global_step=total_batches,
+            )
+            writer.add_histogram(
+                "loss-regular-imitation",
+                loss[regular_imitation_indices],
+                global_step=total_batches,
+            )
 
-            loss_mean = (meta_learning_rates * loss).mean()
+            writer.add_scalar(
+                "loss-mean-negative",
+                loss[negative_indices].mean(),
+                global_step=total_batches,
+            )
+            writer.add_scalar(
+                "loss-mean-recovery-imitation",
+                loss[recovery_imitation_indices].mean(),
+                global_step=total_batches,
+            )
+            writer.add_scalar(
+                "loss-mean-regular-imitation",
+                loss[regular_imitation_indices].mean(),
+                global_step=total_batches,
+            )
+
+            loss_mean = loss.mean()
             del loss
 
             writer.add_scalar("loss-mean", loss_mean, global_step=total_batches)
