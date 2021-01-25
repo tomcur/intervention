@@ -1,4 +1,5 @@
 import math
+import os
 from pathlib import Path, PurePath
 from typing import List, Optional, Tuple
 
@@ -332,10 +333,24 @@ def intervention(
 
     #: The exponential decay time constant of negative learning, unit: number of frames
     # until intervention
-    NEGATIVE_LEARNING_DECAY_TIME = 10.0
+    NEGATIVE_LEARNING_DECAY_TIME = float(
+        os.environ.get("INTERVENTION_NEGATIVE_LEARNING_DECAY_TIME", 10.0)
+    )
 
     #: Initial learning rate (at the frame right before intervention)
-    NEGATIVE_LEARNING_DECAY_INITIAL = 1.0
+    NEGATIVE_LEARNING_DECAY_INITIAL = float(
+        os.environ.get("INTERVENTION_NEGATIVE_LEARNING_DECAY_INITIAL", 1.0)
+    )
+
+    logger.info("Hyper-parameter: LEARNING_RATE {}", LEARNING_RATE)
+    logger.info("Hyper-parameter: GRADIENT_NORM_CLIPPING {}", GRADIENT_NORM_CLIPPING)
+    logger.info(
+        "Hyper-parameter: NEGATIVE_LEARNING_DECAY_TIME {}", NEGATIVE_LEARNING_DECAY_TIME
+    )
+    logger.info(
+        "Hyper-parameter: NEGATIVE_LEARNING_DECAY_INITIAL {}",
+        NEGATIVE_LEARNING_DECAY_INITIAL,
+    )
 
     (
         negative_generator,
