@@ -464,7 +464,7 @@ def intervention(
             # At start of every epoch, store some data in TensorBoard for sanity
             # checks.
             if batch_number == 0:
-                writer.add_text("progress", f"start of epoinfch {epoch}", total_batches)
+                writer.add_text("progress", f"start of epoch {epoch}", total_batches)
 
                 untransformed_rgb_images = torch.cat(
                     (
