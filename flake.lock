@@ -3,11 +3,11 @@
     "flake-compat": {
       "flake": false,
       "locked": {
-        "lastModified": 1603796912,
-        "narHash": "sha256-6ayqpH/4XiEXylNdWI3AghubqS6XuiPg3Y60jY8RTo4=",
+        "lastModified": 1606424373,
+        "narHash": "sha256-oq8d4//CJOrVj+EcOaSXvMebvuTkmBJuT5tzlfewUnQ=",
         "owner": "edolstra",
         "repo": "flake-compat",
-        "rev": "19576c2aea7f074ff0da818b21a8b0950ff6ec86",
+        "rev": "99f1c2157fba4bfe6211a321fd0ee43199025dbf",
         "type": "github"
       },
       "original": {
@@ -18,11 +18,11 @@
     },
     "flake-utils": {
       "locked": {
-        "lastModified": 1601282935,
-        "narHash": "sha256-WQAFV6sGGQxrRs3a+/Yj9xUYvhTpukQJIcMbIi7LCJ4=",
+        "lastModified": 1610051610,
+        "narHash": "sha256-U9rPz/usA1/Aohhk7Cmc2gBrEEKRzcW4nwPWMPwja4Y=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "588973065fce51f4763287f0fda87a174d78bf48",
+        "rev": "3982c9903e93927c2164caa727cd3f6a0e6d14cc",
         "type": "github"
       },
       "original": {
@@ -34,7 +34,7 @@
     "libjpeg": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-srMHF8CBTwPPO9a5D3JmYY7N6punFHNAHahuNintC1U=",
+        "narHash": "sha256-sr6mRDhcWck6fyCwYm3TjZ5uTnI6IBbOOYHZLpDQi0E=",
         "type": "tarball",
         "url": "http://www.ijg.org/files/jpegsrc.v8d.tar.gz"
       },
@@ -57,11 +57,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1604300544,
-        "narHash": "sha256-xBWYKInp/RblScv+UlNlZlk962+a9NeWbA+AHErhpBg=",
+        "lastModified": 1611592684,
+        "narHash": "sha256-Oj8lnGFHB+WIki8FhJidSqgbBF6gqePzvfumyZgTjUY=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "2c931312ce6c7baf91ec98e164bef0241fc20aa6",
+        "rev": "67fabbc7c3371ecfa4c32d9160976a5f129b4ede",
         "type": "github"
       },
       "original": {
