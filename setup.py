@@ -26,7 +26,7 @@ setup(
         "torch~=1.5",
         "torchvision~=0.7",
         "opencv-python~=4.0",
-        "pygame~=1.9",
+        "pygame >=1.9, <3.0a0",
         "pillow~=8.1",
         # Computation:
         "numpy~=1.19",
