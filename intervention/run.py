@@ -236,7 +236,7 @@ def run_image_agent(store: data.Store) -> None:
         model = Image()
         agent = Agent(model)
         vehicle_controller = controller.VehicleController()
-        checkpoint = torch.load("../checkpoints-intervention/2020-10-03/24.pth")
+        checkpoint = torch.load("../checkpoints-intervention/2020-10-03/24.pth", map_location=process.torch_device)
         model.load_state_dict(checkpoint["model_state_dict"])
 
         for step in itertools.count():
@@ -448,10 +448,11 @@ def run_on_policy_episode(
         vehicle_controller = controller.VehicleController(vehicle_geometry)
 
         logger.debug("Creating student agent.")
-        student_model = Image()
+        student_model = Image().to(process.torch_device)
         student_agent = Agent(student_model)
-        student_checkpoint = torch.load(student_checkpoint_path)
+        student_checkpoint = torch.load(student_checkpoint_path, map_location=process.torch_device)
         student_model.load_state_dict(student_checkpoint["model_state_dict"])
+        student_model.eval()
 
         logger.debug("Creating teacher agent.")
         teacher = _prepare_teacher_agent(teacher_checkpoint_path)

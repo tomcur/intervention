@@ -6,6 +6,7 @@ import torchvision
 from torch import nn
 
 from .. import coordinates
+from .. import process
 from ..carla_utils.manager import TickState
 from .spatial_softargmax import SpatialSoftargmax
 
@@ -146,8 +147,8 @@ class Agent:
               Image.COORDINATE_STEPS, Image.HEATMAP_HEIGHT, Image.HEATMAP_WIDTH]`).
 
         """
-        image = torch.unsqueeze(self._transforms(state.rgb.copy()), 0)
-        speed = torch.tensor([state.speed]).float()
+        image = torch.unsqueeze(self._transforms(state.rgb.copy()).to(process.torch_device), 0)
+        speed = torch.tensor([state.speed], device=process.torch_device).float()
         with torch.no_grad():
             predictions, heatmaps = self._model.forward(image, speed)
 
