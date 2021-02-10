@@ -396,6 +396,22 @@ def explore_off_policy_dataset(dataset_directory: str,):
 
     intervention.run.explore_off_policy_dataset(dataset_path)
 
+@cli.command()
+@click.option(
+    "-d",
+    "--dataset-directory",
+    type=click.Path(
+        exists=True, file_okay=False, dir_okay=True, writable=False, readable=True
+    ),
+    help="The directory of the dataset to calculate metrics for",
+)
+def on_policy_metrics(dataset_directory: str,):
+    import intervention.metrics
+
+    dataset_path = Path(dataset_directory)
+
+    intervention.metrics.on_policy_metrics(sys.stdout, dataset_path)
+
 
 if __name__ == "__main__":
     logger.remove(handler_id=0)  # Remove default handler.
