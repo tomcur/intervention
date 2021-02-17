@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+
+"""
+Tests whether we can communicate with the CARLA simulator server.
+
+Reports tick benchmarking on stdout.
+"""
+
+from typing import Optional, Tuple, TypeVar
+
+from loguru import logger
+
+from datetime import datetime
+import random
+from queue import Queue
+
+import numpy as np
+
+import carla
+
+
+def add_rgb_camera(carla_world: carla.World, actor: carla.Actor) -> Tuple['Queue[carla.Image]', carla.Sensor]:
+    """
+    Attach a camera to `actor` on `carla_world`.
+    :return: A tuple `(queue, rgb_camera)`, where `queue` receives the produced images.
+    """
+    queue = Queue()
+    def _enqueue_image(image):
+        queue.put(image)
+
+    blueprints = carla_world.get_blueprint_library()
+    rgb_camera_bp = blueprints.find("sensor.camera.rgb")
+    rgb_camera_bp.set_attribute("image_size_x", "384")
+    rgb_camera_bp.set_attribute("image_size_y", "160")
+    rgb_camera_bp.set_attribute("fov", "90")
+    rgb_camera = carla_world.spawn_actor(
+        rgb_camera_bp,
+        carla.Transform(carla.Location(x=2.0, z=1.4), carla.Rotation(pitch=0)),
+        attach_to=actor,
+    )
+    assert isinstance(rgb_camera, carla.Sensor)
+    rgb_camera.listen(_enqueue_image)
+
+    return queue, rgb_camera
+
+def add_lane_invasion_detector(carla_world: carla.World, actor: carla.Actor) -> Tuple['Queue[carla.LaneInvasionEvent]', carla.Sensor]:
+        """
+        Attach a lane invasion sensor to `actor` on `carla_world`.
+        :return: A tuple `(queue, lane_invasion_detector)`, where `queue` receives produced lane invasion events.
+        """
+        queue = Queue()
+        def _lane_invasion(event: carla.LaneInvasionEvent) -> None:
+            logger.warning("Lane invasion: {}", event)
+            queue.put(event)
+
+        blueprints = carla_world.get_blueprint_library()
+        lane_invasion_detector_bp = blueprints.find("sensor.other.lane_invasion")
+        lane_invasion_detector = carla_world.spawn_actor(
+            lane_invasion_detector_bp,
+            carla.Transform(),
+            attach_to=actor,
+        )
+        assert isinstance(lane_invasion_detector, carla.Sensor)
+        lane_invasion_detector.listen(_lane_invasion)
+           
+        return queue, lane_invasion_detector
+
+def add_collision_detector(carla_world: carla.World, actor: carla.Actor) -> Tuple['Queue[carla.CollisionEvent]', carla.Sensor]:
+    queue = Queue()
+    def _collision(event: carla.CollisionEvent) -> None:
+        logger.warning("Collision: {}", event)
+        queue.put(event)
+
+    blueprints = carla_world.get_blueprint_library()
+    collision_detector_bp = blueprints.find("sensor.other.collision")
+    collision_detector = carla_world.spawn_actor(
+        collision_detector_bp,
+        carla.Transform(),
+        attach_to=actor,
+    )
+    assert isinstance(collision_detector, carla.Sensor)
+    collision_detector.listen(_collision)  # type: ignore
+
+    return queue, collision_detector
+
+
+T = TypeVar('T')
+
+def wait_for_latest(queue: 'Queue[T]') -> T:
+    item = None
+    while item is None or not queue.empty():
+        item = queue.get()
+    return item
+
+def get_latest(queue: 'Queue[T]') -> Optional[T]:
+    item = None
+    while not queue.empty():
+        item = queue.get()
+    return item
+
+def current_speed_and_velocity(actor: carla.Actor) -> Tuple[float, carla.Vector3D]:
+    velocity = actor.get_velocity()
+    return (np.linalg.norm([velocity.x, velocity.y, velocity.z]), velocity)
+
+
+if __name__ == "__main__":
+    client = carla.Client("localhost", 2000)
+    client.set_timeout(30.0)
+    client_version = client.get_client_version()
+    server_version = client.get_server_version()
+    logger.info(f"Carla client version: {client_version}.")
+    logger.info(f"Carla server version: {server_version}.")
+
+    world = client.load_world("Town01")
+    world_settings = world.get_settings()
+    world_settings.synchronous_mode = True
+    world_settings.fixed_delta_seconds = 0.1
+    world.apply_settings(world_settings)
+
+    carla_map = world.get_map()
+
+    traffic_manager = client.get_trafficmanager()
+    traffic_manager.set_synchronous_mode(True)
+
+    blueprints = world.get_blueprint_library()
+
+    # Spawn ego vehicle
+    blueprint = random.choice(blueprints.filter("vehicle.mustang.mustang"))
+    blueprint.set_attribute("role_name", "hero")
+
+    spawn_point = random.choice(carla_map.get_spawn_points())
+    player = world.spawn_actor(blueprint, spawn_point)
+
+    rgb_queue, rgb_camera = add_rgb_camera(world, player)
+    lane_invasion_queue, lane_invasion_detector = add_lane_invasion_detector(world, player)
+    collision_detection_queue, collision_detector = add_collision_detector(world, player)
+
+    start_time = datetime.now()
+
+    ticks = 0
+    while True:
+        world.tick()
+
+        rgb = wait_for_latest(rgb_queue)
+        lane_invasion = get_latest(lane_invasion_queue)
+        collision = get_latest(collision_detection_queue)
+        
+        (speed, velocity) = current_speed_and_velocity(player)
+        location = player.get_transform().location
+        rotation = player.get_transform().rotation
+
+        ticks += 1
+        player.apply_control(carla.VehicleControl(
+            throttle = 0.5,    
+        ))
+
+        current_time = datetime.now()
+        duration = (current_time - start_time).total_seconds()
+        print(f"average tps {ticks / duration:.2f} @ Tick {ticks}")
