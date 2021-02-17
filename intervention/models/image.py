@@ -117,14 +117,11 @@ class Image(nn.Module):
 
 class Agent:
     def __init__(self, model: nn.Module):
-        self._transforms = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.ToTensor(),
-                torchvision.transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
+        self._transform_to_tensor = torchvision.transforms.ToTensor()
+        self._transform_normalize = torchvision.transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], inplace=True
         )
+
         self._model = model
 
         self._img_size = torch.tensor([384, 160])
@@ -147,15 +144,21 @@ class Agent:
               Image.COORDINATE_STEPS, Image.HEATMAP_HEIGHT, Image.HEATMAP_WIDTH]`).
 
         """
-        image = torch.unsqueeze(self._transforms(state.rgb.copy()).to(process.torch_device), 0)
-        speed = torch.tensor([state.speed], device=process.torch_device).float()
+        image = self._transform_normalize(
+            self._transform_to_tensor(state.rgb.copy()).to(process.torch_device)
+        ).unsqueeze(0)
+        speed = torch.tensor(
+            [state.speed], device=process.torch_device, dtype=torch.float32
+        )
         with torch.no_grad():
             predictions, heatmaps = self._model.forward(image, speed)
+            predictions = [prediction.cpu().detach() for prediction in predictions]
+            heatmaps = [heatmap.cpu().detach() for heatmap in heatmaps]
 
         # Get the singular heatmap and prediction based on the commanded action and
         # taking only the first minibatch result (the agent runs with a minibatch of
         # size 1).
-        heatmap_out = heatmaps[int(state.command) - 1][0, ...].cpu().detach().numpy()
+        heatmap_out = heatmaps[int(state.command) - 1][0, ...].numpy()
         command_out = predictions[int(state.command) - 1][0, ...]
         locations = command_out + 1
         locations[..., 0] = locations[..., 0] * 0.5 * self._img_size[0]
@@ -172,11 +175,11 @@ class Agent:
             targets[idx] = [ego_x, ego_y]
 
         flattened_image_targets = np.array(
-            [prediction[0, ...].cpu().detach().numpy() for prediction in predictions]
+            [prediction[0, ...].numpy() for prediction in predictions]
         )
 
         flattened_image_heatmaps = np.array(
-            [heatmap[0, ...].cpu().detach().numpy() for heatmap in heatmaps]
+            [heatmap[0, ...].numpy() for heatmap in heatmaps]
         )
 
         return targets, heatmap_out, flattened_image_targets, flattened_image_heatmaps

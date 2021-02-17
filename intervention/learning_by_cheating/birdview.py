@@ -110,7 +110,7 @@ class BirdViewAgent(Agent):
 
         with torch.no_grad():
             _birdview = self.transform(birdview).to(self.device).unsqueeze(0)
-            _speed = torch.FloatTensor([speed]).to(self.device)
+            _speed = torch.tensor([speed], device=self.device, dtype=torch.float32)
             _command = command.to(self.device).unsqueeze(0)
             
             if self.model.all_branch:
