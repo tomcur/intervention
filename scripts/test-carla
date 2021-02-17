@@ -6,17 +6,14 @@ Tests whether we can communicate with the CARLA simulator server.
 Reports tick benchmarking on stdout.
 """
 
+import random
+from datetime import datetime
+from queue import Queue
 from typing import Optional, Tuple, TypeVar
 
-from loguru import logger
-
-from datetime import datetime
-import random
-from queue import Queue
-
-import numpy as np
-
 import carla
+import numpy as np
+from loguru import logger
 
 
 def add_rgb_camera(carla_world: carla.World, actor: carla.Actor) -> Tuple['Queue[carla.Image]', carla.Sensor]:
