@@ -1,4 +1,5 @@
 import itertools
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -183,6 +184,29 @@ def _prepare_teacher_agent(teacher_checkpoint: Path):
     teacher_agent = birdview.BirdViewAgent(**teacher_agent_args)
 
     return teacher_agent
+
+
+def benchmark() -> None:
+    visualizer = visualization.Visualizer()
+
+    managed_episode = connect(
+        carla_host=process.carla_host, carla_world_port=process.carla_world_port
+    )
+    with managed_episode as episode:
+        start_time = datetime.now()
+        for step in itertools.count():
+            state = episode.tick()
+
+            control = carla.VehicleControl(throttle=0.2)
+            episode.apply_control(control)
+
+            current_time = datetime.now()
+            seconds = (current_time - start_time).total_seconds()
+
+            print(f"average tps {step / seconds:.2f} @ Tick {step}")
+
+            if state.route_completed:
+                break
 
 
 def run_manual() -> None:

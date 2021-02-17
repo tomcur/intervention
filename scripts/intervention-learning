@@ -45,6 +45,16 @@ def manual():
 
 
 @cli.command()
+def benchmark():
+    """
+    Test CARLA connectivity and report benchmarking information.
+    """
+    import intervention.run
+
+    intervention.run.benchmark()
+
+
+@cli.command()
 @click.option(
     "-t",
     "--teacher-checkpoint",
