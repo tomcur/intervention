@@ -481,6 +481,8 @@ def run_on_policy_episode(
         logger.debug("Creating teacher agent.")
         teacher = _prepare_teacher_agent(teacher_checkpoint_path)
 
+        start_time = datetime.now()
+
         for step in itertools.count():
             state = episode.tick()
             summary.distance_travelled = state.distance_travelled
@@ -571,6 +573,9 @@ def run_on_policy_episode(
 
                 birdview_render = episode.render_birdview()
                 painter.add_birdview(birdview_render)
+            current_time = datetime.now()
+            seconds = (current_time - start_time).total_seconds()
+            logger.debug(f"average tps {step / seconds:.2f} @ Tick {step}")
 
             if state.probably_stuck:
                 summary.end_status = "stuck"
