@@ -35,6 +35,7 @@ def cli(
 ):
     intervention.process.carla_host = carla_host
     intervention.process.carla_world_port = carla_world_port
+    intervention.process.init()
 
 
 @cli.command()
