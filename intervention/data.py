@@ -1,7 +1,9 @@
 import abc
 import csv
 import dataclasses
+import queue
 import sys
+import threading
 import zipfile
 from collections import deque
 from datetime import datetime, timezone
@@ -135,8 +137,10 @@ class BlackHoleStore(Store):
         pass
 
 
-class ZipStore(Store):
-    """Episode store backed by zip-file."""
+class ZipStoreBackend(Store):
+    """
+    Episode store backed by zip-file.
+    """
 
     STORE_NUM_TICKS_BEFORE_INTERVENTION = (5 * 5) + 15
 
@@ -151,7 +155,8 @@ class ZipStore(Store):
 
         self._csv_file = csv_file
         self._csv_writer = csv.DictWriter(
-            csv_file, fieldnames=list(FrameData.__annotations__.keys()),
+            csv_file,
+            fieldnames=list(FrameData.__annotations__.keys()),
         )
         self._csv_writer.writeheader()
         self._csv_file.flush()
@@ -297,3 +302,56 @@ class ZipStore(Store):
             self._store_teacher_driving(reason="end")
         else:
             self._store_student_driving(reason="end")
+
+
+def _zip_store_worker(queue: queue.Queue, zip_store_backend: ZipStoreBackend):
+    while True:
+        method, data = queue.get()
+        if method == "push_student_driving":
+            zip_store_backend.push_student_driving(*data)
+        elif method == "push_teacher_driving":
+            zip_store_backend.push_teacher_driving(*data)
+        elif method == "stop":
+            zip_store_backend.stop()
+            break
+        else:
+            raise Exception("unknown method passed to _zip_store_worker")
+
+
+class ZipStore(Store):
+    """
+    Episode store backed by zip-file. This spins up a thread running a ZipStoreBackend
+    that proceses and stores the data.
+    """
+
+    def __init__(self, archive: zipfile.ZipFile, csv_file: TextIO):
+        self._queue = queue.Queue()
+        zip_store_backend = ZipStoreBackend(archive, csv_file)
+        self._worker_thread = threading.Thread(
+            target=_zip_store_worker, args=(self._queue, zip_store_backend)
+        )
+        self._worker_thread.start()
+
+    def push_student_driving(
+        self,
+        tick: int,
+        model_image_targets: np.ndarray,
+        model_image_heatmaps: np.ndarray,
+        control: carla.VehicleControl,
+        state: TickState,
+    ) -> None:
+        self._queue.put(
+            (
+                "push_student_driving",
+                (tick, model_image_targets, model_image_heatmaps, control, state),
+            )
+        )
+
+    def push_teacher_driving(
+        self, tick: int, control: carla.VehicleControl, state: TickState
+    ) -> None:
+        self._queue.put(("push_teacher_driving", (tick, control, state)))
+
+    def stop(self) -> None:
+        self._queue.put(("stop", None))
+        self._worker_thread.join()
