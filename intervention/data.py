@@ -73,7 +73,7 @@ class FrameData(TypedDict):
     tick: int
     command: int
     controller: str
-    rgb_filename: str
+    rgb_filename: Optional[str]
     student_image_targets_filename: Optional[str]
     student_image_heatmaps_filename: Optional[str]
     ticks_engaged: Optional[int]
@@ -144,9 +144,13 @@ class ZipStoreBackend(Store):
 
     STORE_NUM_TICKS_BEFORE_INTERVENTION = (5 * 5) + 15
 
-    def __init__(self, archive: zipfile.ZipFile, csv_file: TextIO):
+    def __init__(
+        self, archive: zipfile.ZipFile, csv_file: TextIO, metrics_only: bool = False
+    ):
         self._archive = archive
         self._csv = csv
+        self._metrics_only = metrics_only
+
         self._frame_data_queue: Deque[Tuple[int, FrameData]] = deque()
 
         self._teacher_in_control = True
@@ -174,18 +178,23 @@ class ZipStoreBackend(Store):
             self._teacher_in_control = False
             self._store_teacher_driving(reason="engagement")
 
-        rgb_filename = f"{tick:05d}-rgb-student.png"
-        self._add_rgb_image(rgb_filename, state.rgb)
+        rgb_filename = None
+        model_image_targets_filename = None
+        model_image_heatmaps_filename = None
 
-        model_image_targets_filename = f"{tick:05d}-image-targets-student.npy"
-        buffer = BytesIO()
-        np.save(buffer, model_image_targets)
-        self._add_file(model_image_targets_filename, buffer.getvalue())
+        if not self._metrics_only:
+            rgb_filename = f"{tick:05d}-rgb-student.png"
+            self._add_rgb_image(rgb_filename, state.rgb)
 
-        model_image_heatmaps_filename = f"{tick:05d}-image-heatmaps-student.npy"
-        buffer = BytesIO()
-        np.save(buffer, model_image_heatmaps)
-        self._add_file(model_image_heatmaps_filename, buffer.getvalue())
+            model_image_targets_filename = f"{tick:05d}-image-targets-student.npy"
+            buffer = BytesIO()
+            np.save(buffer, model_image_targets)
+            self._add_file(model_image_targets_filename, buffer.getvalue())
+
+            model_image_heatmaps_filename = f"{tick:05d}-image-heatmaps-student.npy"
+            buffer = BytesIO()
+            np.save(buffer, model_image_heatmaps)
+            self._add_file(model_image_heatmaps_filename, buffer.getvalue())
 
         orientation = state.rotation.get_forward_vector()
 
@@ -224,8 +233,10 @@ class ZipStoreBackend(Store):
             self._teacher_in_control = True
             self._store_student_driving(reason="intervention")
 
-        rgb_filename = f"{tick:05d}-rgb-teacher.png"
-        self._add_rgb_image(rgb_filename, state.rgb)
+        rgb_filename = None
+        if not self._metrics_only:
+            rgb_filename = f"{tick:05d}-rgb-teacher.png"
+            self._add_rgb_image(rgb_filename, state.rgb)
 
         orientation = state.rotation.get_forward_vector()
 
@@ -324,9 +335,13 @@ class ZipStore(Store):
     that proceses and stores the data.
     """
 
-    def __init__(self, archive: zipfile.ZipFile, csv_file: TextIO):
+    def __init__(
+        self, archive: zipfile.ZipFile, csv_file: TextIO, metrics_only: bool = False
+    ):
         self._queue = queue.Queue()
-        zip_store_backend = ZipStoreBackend(archive, csv_file)
+        zip_store_backend = ZipStoreBackend(
+            archive, csv_file, metrics_only=metrics_only
+        )
         self._worker_thread = threading.Thread(
             target=_zip_store_worker, args=(self._queue, zip_store_backend)
         )

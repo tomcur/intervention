@@ -67,12 +67,13 @@ def collect_on_policy_episode(
     teacher_checkpoint: Path,
     episode_dir: Path,
     seed_sequence: np.random.SeedSequence,
+    metrics_only: bool,
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
 
     with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
-            store = data.ZipStore(zip_archive, csv_file)
+            store = data.ZipStore(zip_archive, csv_file, metrics_only=metrics_only)
             summary = run.run_on_policy_episode(
                 store, student_checkpoint, teacher_checkpoint
             )
@@ -85,6 +86,7 @@ def collect_on_policy_episodes(
     teacher_checkpoint: Path,
     data_path: Path,
     num_episodes: int,
+    metrics_only: bool,
 ) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
@@ -113,6 +115,7 @@ def collect_on_policy_episodes(
                 teacher_checkpoint,
                 episode_dir,
                 seed_sequence,
+                metrics_only,
             )
             episode_summary.uuid = str(episode_id)
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())

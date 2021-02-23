@@ -31,7 +31,8 @@ import intervention.process
     help="The Carla simulator port to connect to.",
 )
 def cli(
-    carla_host: str, carla_world_port: int,
+    carla_host: str,
+    carla_world_port: int,
 ):
     intervention.process.carla_host = carla_host
     intervention.process.carla_world_port = carla_world_port
@@ -94,7 +95,10 @@ def benchmark():
     ),
 )
 def collect_teacher_examples(
-    teacher_checkpoint: str, num_episodes: int, directory: str, device_name: str,
+    teacher_checkpoint: str,
+    num_episodes: int,
+    directory: str,
+    device_name: str,
 ):
     """
     Collect examples of driving from a teacher agent.
@@ -110,7 +114,9 @@ def collect_teacher_examples(
     intervention.process.torch_device = torch.device(device_name)
 
     intervention.collect.collect_example_episodes(
-        teacher_checkpoint_path, data_path=data_path, num_episodes=num_episodes,
+        teacher_checkpoint_path,
+        data_path=data_path,
+        num_episodes=num_episodes,
     )
 
 
@@ -159,12 +165,19 @@ def collect_teacher_examples(
         "See torch's documentation on torch.device for more information."
     ),
 )
+@click.option(
+    "--metrics-only",
+    is_flag=True,
+    type=bool,
+    help=("Only store metrics (i.e. do not store images and model output)."),
+)
 def collect_on_policy(
     student_checkpoint: str,
     teacher_checkpoint: str,
     num_episodes: int,
     directory: str,
     device_name: str,
+    metrics_only: bool,
 ):
     """
     Collect student on-policy driving with interventions from a teacher.
@@ -186,6 +199,7 @@ def collect_on_policy(
         teacher_checkpoint_path,
         data_path=data_path,
         num_episodes=num_episodes,
+        metrics_only=metrics_only,
     )
 
 
@@ -215,7 +229,9 @@ def collect_on_policy(
     help="If set, the user provides route planning through keyboard arrow keys.",
 )
 def demo_teacher_agent(
-    teacher_checkpoint: str, device_name: str, user_input_planner: bool,
+    teacher_checkpoint: str,
+    device_name: str,
+    user_input_planner: bool,
 ):
     """
     Demo driving of a teacher agent.
@@ -400,12 +416,15 @@ def train_intervention(
     ),
     help="The directory of the dataset to view",
 )
-def explore_off_policy_dataset(dataset_directory: str,):
+def explore_off_policy_dataset(
+    dataset_directory: str,
+):
     import intervention.run
 
     dataset_path = Path(dataset_directory)
 
     intervention.run.explore_off_policy_dataset(dataset_path)
+
 
 @cli.command()
 @click.option(
@@ -416,7 +435,9 @@ def explore_off_policy_dataset(dataset_directory: str,):
     ),
     help="The directory of the dataset to calculate metrics for",
 )
-def on_policy_metrics(dataset_directory: str,):
+def on_policy_metrics(
+    dataset_directory: str,
+):
     import intervention.metrics
 
     dataset_path = Path(dataset_directory)
