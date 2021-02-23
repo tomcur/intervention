@@ -333,6 +333,7 @@ class ManagedEpisode:
         logger.trace(f"Setting up/connecting to traffic manager on port {port}.")
         self._traffic_manager = self._client.get_trafficmanager(port)
         self._traffic_manager.set_synchronous_mode(True)
+        self._traffic_manager.set_hybrid_physics_mode(True)
         self._traffic_manager_port = port
         return port
 
