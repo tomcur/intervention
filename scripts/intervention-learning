@@ -424,6 +424,22 @@ def on_policy_metrics(dataset_directory: str,):
     intervention.metrics.on_policy_metrics(sys.stdout, dataset_path)
 
 
+@cli.command()
+def test_pygame():
+    from intervention import visualization, process
+    import carla
+
+    v = visualization.Visualizer()
+    while True:
+        with v as painter:
+            c = carla.VehicleControl(
+                throttle=process.rng.uniform(0, 1.0),
+                brake=process.rng.uniform(0, 1.0),
+                steer=process.rng.uniform(-1.0, 1.0),
+            )
+            painter.add_control("test", c)
+
+
 if __name__ == "__main__":
     logger.remove(handler_id=0)  # Remove default handler.
     logger.add(
