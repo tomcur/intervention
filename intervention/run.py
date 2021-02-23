@@ -203,7 +203,7 @@ def benchmark() -> None:
             current_time = datetime.now()
             seconds = (current_time - start_time).total_seconds()
 
-            print(f"average tps {step / seconds:.2f} @ Tick {step}")
+            logger.info(f"average tps {step / seconds:.2f} @ Tick {step}")
 
             if state.route_completed:
                 break
