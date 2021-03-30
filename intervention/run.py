@@ -3,11 +3,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import carla
 import numpy as np
 import torch
 from loguru import logger
-
-import carla
 
 from . import controller, data, exceptions, process, visualization
 from .carla_utils import TickState, connect
@@ -246,7 +245,7 @@ def run_image_agent(store: data.Store) -> None:
     """
     param store: the store for the episode information.
     """
-    from .models.image import Image, Agent
+    from .models.image import Agent, Image
 
     visualizer = visualization.Visualizer()
 
@@ -261,7 +260,10 @@ def run_image_agent(store: data.Store) -> None:
         model = Image()
         agent = Agent(model)
         vehicle_controller = controller.VehicleController()
-        checkpoint = torch.load("../checkpoints-intervention/2020-10-03/24.pth", map_location=process.torch_device)
+        checkpoint = torch.load(
+            "../checkpoints-intervention/2020-10-03/24.pth",
+            map_location=process.torch_device,
+        )
         model.load_state_dict(checkpoint["model_state_dict"])
 
         for step in itertools.count():
@@ -323,8 +325,8 @@ def manual() -> None:
 
 
 def explore_off_policy_dataset(episode_path: Path) -> None:
-    from .train import dataset
     from . import coordinates
+    from .train import dataset
 
     visualizer = visualization.Visualizer(
         event_processor=visualization.dataset_explorer_event_processor
@@ -444,7 +446,9 @@ def explore_on_policy_dataset(episode_path: Path) -> None:
 
 
 def run_example_episode(
-    store: data.Store, teacher_checkpoint: Path, user_input_planner: bool = False,
+    store: data.Store,
+    teacher_checkpoint: Path,
+    user_input_planner: bool = False,
 ) -> data.EpisodeSummary:
     """
     :param store: the store for the episode information.
@@ -502,7 +506,8 @@ def run_example_episode(
                 teaching=True,
             )
             teacher_control, teacher_turn_radius = vehicle_controller.step(
-                state, teacher_target_waypoints,
+                state,
+                teacher_target_waypoints,
             )
 
             store.push_teacher_driving(step, teacher_control, state)
@@ -544,7 +549,7 @@ def run_on_policy_episode(
     """
     param store: the store for the episode information.
     """
-    from .models.image import Image, Agent
+    from .models.image import Agent, Image
 
     visualizer = visualization.Visualizer()
     comparer = Comparer()
@@ -565,7 +570,9 @@ def run_on_policy_episode(
         logger.debug("Creating student agent.")
         student_model = Image().to(process.torch_device)
         student_agent = Agent(student_model)
-        student_checkpoint = torch.load(student_checkpoint_path, map_location=process.torch_device)
+        student_checkpoint = torch.load(
+            student_checkpoint_path, map_location=process.torch_device
+        )
         student_model.load_state_dict(student_checkpoint["model_state_dict"])
         student_model.eval()
 
