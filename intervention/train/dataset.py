@@ -44,6 +44,8 @@ class Orientation(TypedDict):
 
 
 class Datapoint(TypedDict):
+    tick: int
+    controller: str
     rgb_filename: str
     student_image_targets_filename: str
     student_image_heatmaps_filename: str
@@ -102,6 +104,8 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData]) -> List[Datapoin
         ]
 
         datapoint = Datapoint(
+            tick=dictionary["tick"],
+            controller=dictionary["controller"],
             rgb_filename=dictionary["rgb_filename"],
             student_image_targets_filename=dictionary["student_image_targets_filename"]
             or "",
