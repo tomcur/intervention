@@ -24,7 +24,7 @@ else:
     from typing_extensions import TypedDict
 
 
-EndStatus = Union[Literal["success", "collision", "stuck", "unknown"]]
+EndStatus = Union[Literal["success", "collision", "stuck", "off_course", "unknown"]]
 
 
 @dataclasses.dataclass

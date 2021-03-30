@@ -298,6 +298,9 @@ def run_image_agent(store: data.Store) -> None:
             if state.probably_stuck:
                 raise exceptions.EpisodeStuck()
 
+            if state.probably_off_course:
+                raise exceptions.EpisodeOffCourse()
+
             if state.collision:
                 raise exceptions.CollisionInEpisode()
 
@@ -529,6 +532,10 @@ def run_example_episode(
                 summary.end_status = "stuck"
                 break
 
+            if state.probably_off_course:
+                summary.end_status = "off_course"
+                break
+
             if state.collision:
                 summary.collisions += 1
                 summary.end_status = "collision"
@@ -676,6 +683,10 @@ def run_on_policy_episode(
 
             if state.probably_stuck:
                 summary.end_status = "stuck"
+                break
+
+            if state.probably_off_course:
+                summary.end_status = "off_course"
                 break
 
             if state.collision:
