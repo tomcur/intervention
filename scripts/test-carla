@@ -11,10 +11,10 @@ from datetime import datetime
 from queue import Queue
 from typing import Optional, Tuple, TypeVar
 
-import carla
 import numpy as np
 from loguru import logger
 
+import carla
 
 def add_rgb_camera(
     carla_world: carla.World, actor: carla.Actor
@@ -167,7 +167,7 @@ if __name__ == "__main__":
         ticks += 1
         player.apply_control(
             carla.VehicleControl(
-                throttle=0.5,
+                throttle=0.2,
             )
         )
 
