@@ -109,6 +109,7 @@ class FramePainter:
         self._control_difference = control_difference
 
         self._next_control_y = 0
+        self._rgb_height = 0
 
     def add_command(self, command: RoadOption) -> None:
         label: Optional[str] = None
@@ -133,8 +134,30 @@ class FramePainter:
         """
         Add an RGB image. You should only add it once per frame.
         """
+        self._rgb_height = rgb.shape[0]
         surface = pygame.surfarray.make_surface(rgb.swapaxes(0, 1))
         self._surface.blit(surface, (FramePainter.IMAGE_X, FramePainter.IMAGE_Y))
+
+    def add_annotation(self, annotation: Iterable[str]) -> None:
+        """
+        Add an annotation. Each string in the list is printed on a new line.
+
+        If this method is used, it _MUST_ be called after the call to `add_rgb`.
+        """
+        cumulative_height = 0
+        for i, text in enumerate(annotation):
+            label = self._font.render(text, True, (220, 220, 220))
+            self._surface.blit(
+                label,
+                (
+                    FramePainter.IMAGE_X,
+                    FramePainter.IMAGE_Y
+                    + FramePainter.PADDING
+                    + self._rgb_height
+                    + cumulative_height,
+                ),
+            )
+            cumulative_height += label.get_height()
 
     def add_waypoints(
         self,
