@@ -18,6 +18,10 @@ from .map_utils import Renderer
 #: The number of ticks without movement after which we consider the vehicle to be stuck
 STUCK_TICKS: int = 90 * 10
 
+#: The distance in meters to the next checkpoint at which we consider the vehicle to be
+#: off course.
+OFF_COURSE_CHECKPOINT_DISTANCE: float = 15.0
+
 CarlaWeather = Union[
     Literal["Default"],
     Literal["ClearNoon"],
@@ -50,6 +54,7 @@ class TickState:
     location: carla.Location
     rotation: carla.Rotation
     distance_travelled: float
+    distance_to_next_checkpoint: float
     rgb: np.ndarray
     lane_invasion: Optional[carla.LaneInvasionEvent]
     collision: Optional[carla.CollisionEvent]
@@ -59,6 +64,7 @@ class TickState:
     birdview: np.ndarray
     route_completed: bool
     probably_stuck: bool
+    probably_off_course: bool
 
 
 class EgoVehicle:
@@ -244,6 +250,7 @@ class Episode:
         self._local_planner.run_step()
         if self._local_planner.is_done():
             self._route_completed = True
+        checkpoint_location = self._local_planner.checkpoint[0].transform.location
         command = self._local_planner.checkpoint[1]
         # node = self._local_planner.checkpoint[0].transform.location
         # next = self._local_planner.target[0].transform.location
@@ -260,6 +267,8 @@ class Episode:
         lane_invasion = self._ego_vehicle.latest_lane_invasion()
         collision = self._ego_vehicle.latest_collision()
 
+        distance_to_next_checkpoint = location.distance(checkpoint_location)
+
         self._distance_travelled += self._location.distance(location)
         self._location = location
 
@@ -272,6 +281,7 @@ class Episode:
             location=location,
             rotation=rotation,
             distance_travelled=self._distance_travelled,
+            distance_to_next_checkpoint=distance_to_next_checkpoint,
             rgb=rgb,
             lane_invasion=lane_invasion,
             collision=collision,
@@ -281,6 +291,8 @@ class Episode:
             birdview=self.get_birdview(),
             route_completed=self._route_completed,
             probably_stuck=self._unmoved_ticks > STUCK_TICKS,
+            probably_off_course=distance_to_next_checkpoint
+            > OFF_COURSE_CHECKPOINT_DISTANCE,
         )
 
     def render_birdview(self):
