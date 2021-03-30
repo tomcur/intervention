@@ -1,4 +1,5 @@
 import itertools
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -331,6 +332,9 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
     data = dataset.off_policy_data(episode_path)
 
     idx = 0
+    rendered = False
+    auto_next = False
+    auto_next_time = 0
     while True:
 
         _transformed_image, image, meta = data[idx]
@@ -341,15 +345,30 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
                 coordinates.image_coordinate_to_ego_coordinate(image_x, image_y)
             )
 
-        with visualizer as painter:
-            painter.add_rgb(np.moveaxis(image, [0], [2]))
-            painter.add_waypoints(next_waypoints)
+        if not rendered:
+            rendered = True
+            with visualizer as painter:
+                painter.add_rgb(np.moveaxis(image, [0], [2]))
+                painter.add_waypoints(next_waypoints)
 
         actions = visualizer.get_actions()
         if visualization.Action.NEXT in actions:
             idx += 1
+            auto_next = False
+            rendered = False
         elif visualization.Action.PREVIOUS in actions:
             idx -= 1
+            auto_next = False
+            rendered = False
+        elif visualization.Action.PLAY in actions:
+            auto_next = not auto_next
+            auto_next_time = time.time()
+
+        now = time.time()
+        if auto_next and now - auto_next_time > 0.1:
+            auto_next_time = now
+            idx += 1
+            rendered = False
 
 
 def run_example_episode(

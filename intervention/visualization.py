@@ -23,6 +23,7 @@ class Action(Enum):
     RIGHT = 13
     PREVIOUS = 20
     NEXT = 21
+    PLAY = 22
     GO_LEFT = 30
     GO_STRAIGHT = 31
     GO_RIGHT = 32
@@ -415,6 +416,9 @@ def dataset_explorer_event_processor(
         actions.append(Action.NEXT)
     elif pressed[pygame.K_RIGHT] and not modifier & pygame.KMOD_SHIFT:
         actions.append(Action.NEXT)
+
+    if pygame.K_SPACE in keydown:
+        actions.append(Action.PLAY)
 
     return actions
 
