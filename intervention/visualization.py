@@ -498,6 +498,8 @@ class Visualizer:
         self._actions.extend(self._event_processor(keydown_events, pressed, modifier))
 
     def get_actions(self) -> List[Action]:
+        self._process_events()
+
         actions = list(self._actions)
         self._actions.clear()
         return actions
