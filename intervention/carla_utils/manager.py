@@ -508,6 +508,7 @@ class ManagedEpisode:
         vehicles = carla_world.get_actors(spawned)
         for vehicle in vehicles:
             assert isinstance(vehicle, carla.Vehicle)
+            assert self._traffic_manager_port is not None
             vehicle.set_autopilot(True, self._traffic_manager_port)
 
         self._actor_dict["vehicle"] = list(vehicles)
