@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import BinaryIO, Tuple
+from typing import BinaryIO, Tuple, List
 
 from dataclass_csv import DataclassReader
 
