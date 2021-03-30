@@ -8,16 +8,16 @@
 
 """ This module contains a local planner to perform low-level waypoint following based on PID controllers. """
 
-from enum import Enum
 from collections import deque
+from enum import Enum
+from typing import Optional, Tuple
 
 import carla
-from .controller import VehiclePIDController
-from ..tools.misc import distance_vehicle, draw_waypoints
+import numpy as np
 
 from .... import process
-
-import numpy as np
+from ..tools.misc import distance_vehicle, draw_waypoints
+from .controller import VehiclePIDController
 
 
 class RoadOption(Enum):
@@ -318,7 +318,10 @@ class LocalPlannerNew(object):
         self._waypoints_queue = deque(maxlen=20000)
 
         self.target = (None, None)
-        self.checkpoint = (None, None)
+        self.checkpoint: Tuple[Optional[carla.Waypoint], Optional[RoadOption]] = (
+            None,
+            None,
+        )
         self.distance_to_goal = float("inf")
         self.distances = deque(maxlen=20000)
 
