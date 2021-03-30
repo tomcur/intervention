@@ -336,9 +336,8 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
     idx = 0
     rendered = False
     auto_next = False
-    auto_next_time = 0
+    auto_next_time = 0.0
     while True:
-
         _transformed_image, image, meta = data[idx]
 
         next_waypoints = []
@@ -385,7 +384,7 @@ def explore_on_policy_dataset(episode_path: Path) -> None:
     idx = 0
     rendered = False
     auto_next = False
-    auto_next_time = 0
+    auto_next_time = 0.0
     while True:
 
         (data_type, data_point) = data[idx]
