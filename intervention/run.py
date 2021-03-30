@@ -371,6 +371,78 @@ def explore_off_policy_dataset(episode_path: Path) -> None:
             rendered = False
 
 
+def explore_on_policy_dataset(episode_path: Path) -> None:
+    from . import coordinates
+    from .train import dataset
+
+    visualizer = visualization.Visualizer(
+        event_processor=visualization.dataset_explorer_event_processor
+    )
+    data = dataset.intervention_data(episode_path).combined
+
+    idx = 0
+    rendered = False
+    auto_next = False
+    auto_next_time = 0
+    while True:
+
+        (data_type, data_point) = data[idx]
+
+        if data_type in [
+            dataset.DataType.NEGATIVE,
+            dataset.DataType.SUPERVISION_SIGNAL,
+        ]:
+            (
+                _transformed_image,
+                image,
+                _student_model_targets,
+                _student_model_heatmaps,
+                meta,
+            ) = data_point
+        elif data_type is dataset.DataType.IMITATION:
+            _transformed_image, image, meta = data_point
+
+        next_waypoints = []
+        for [image_x, image_y] in meta["next_locations_image_coordinates"]:
+            next_waypoints.append(
+                coordinates.image_coordinate_to_ego_coordinate(image_x, image_y)
+            )
+
+        if not rendered:
+            rendered = True
+            with visualizer as painter:
+                painter.add_rgb(np.moveaxis(image, [0], [2]))
+                painter.add_annotation(
+                    [
+                        f"Episode:         x",
+                        f"Tick:            #{meta['tick']}",
+                        f"Speed:          {meta['speed'] / 1000 * 60 * 60:3.0f} km/h",
+                        f"Controller:      {meta['controller']}",
+                        f"Ticks to inter.: {meta['ticks_to_intervention']}",
+                    ]
+                )
+                painter.add_waypoints(next_waypoints)
+
+        actions = visualizer.get_actions()
+        if visualization.Action.NEXT in actions:
+            idx += 1
+            auto_next = False
+            rendered = False
+        elif visualization.Action.PREVIOUS in actions:
+            idx -= 1
+            auto_next = False
+            rendered = False
+        elif visualization.Action.PLAY in actions:
+            auto_next = not auto_next
+            auto_next_time = time.time()
+
+        now = time.time()
+        if auto_next and now - auto_next_time > 0.1:
+            auto_next_time = now
+            idx += 1
+            rendered = False
+
+
 def run_example_episode(
     store: data.Store, teacher_checkpoint: Path, user_input_planner: bool = False,
 ) -> data.EpisodeSummary:

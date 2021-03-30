@@ -433,6 +433,25 @@ def explore_off_policy_dataset(
     type=click.Path(
         exists=True, file_okay=False, dir_okay=True, writable=False, readable=True
     ),
+    help="The directory of the dataset to view",
+)
+def explore_on_policy_dataset(
+    dataset_directory: str,
+):
+    import intervention.run
+
+    dataset_path = Path(dataset_directory)
+
+    intervention.run.explore_on_policy_dataset(dataset_path)
+
+
+@cli.command()
+@click.option(
+    "-d",
+    "--dataset-directory",
+    type=click.Path(
+        exists=True, file_okay=False, dir_okay=True, writable=False, readable=True
+    ),
     help="The directory of the dataset to calculate metrics for",
 )
 def on_policy_metrics(
