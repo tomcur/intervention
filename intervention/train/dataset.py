@@ -1,6 +1,7 @@
 import sys
 from csv import DictReader
 from dataclasses import dataclass
+import enum
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 from zipfile import ZipFile
@@ -22,6 +23,12 @@ else:
 
 LOCATIONS_NUM_STEPS: int = 5
 LOCATIONS_STEP_INTERVAL: int = 5
+
+
+class DataType(enum.Enum):
+    NEGATIVE = enum.auto()
+    SUPERVISION_SIGNAL = enum.auto()
+    IMITATION = enum.auto()
 
 
 class Location(TypedDict):
@@ -219,14 +226,89 @@ class _DatasetBuilder:
     def __init__(self):
         self._datapoints: List[Tuple[Datapoint, ZipFile]] = []
 
-    def add_datapoint(self, zip_file: ZipFile, datapoint: Datapoint):
+    def add_datapoint(self, zip_file: ZipFile, datapoint: Datapoint) -> int:
+        """
+        Add a datapoint to the set.
+
+        :return: the index the datapoint is assigned.
+        """
+        idx = len(self._datapoints)
         self._datapoints.append((datapoint, zip_file))
+        return idx
 
     def build(self) -> _Dataset:
         """
         Consumes the dataset builder, returning a dataset.
         """
         d = _Dataset(self._datapoints)
+        self._datapoints = []
+        return d
+
+
+class _CombinedDataset(torch.utils.data.Dataset):
+    """
+    Combines negative, supervision and imitation datasets into one.
+    """
+
+    def __init__(
+        self,
+        datapoints: Sequence[Tuple[DataType, int]],
+        negative: torch.utils.data.Dataset,
+        supervision_signal: torch.utils.data.Dataset,
+        imitation: torch.utils.data.Dataset,
+    ):
+        self._datapoints = datapoints
+        self._negative = negative
+        self._supervision_signal = supervision_signal
+        self._imitation = imitation
+
+    def __len__(self):
+        return len(self._datapoints)
+
+    def __getitem__(self, idx) -> Any:
+        (data_type, idx_in_dataset) = self._datapoints[idx]
+        if data_type is DataType.NEGATIVE:
+            return (data_type, self._negative[idx_in_dataset])
+        elif data_type is DataType.SUPERVISION_SIGNAL:
+            return (data_type, self._supervision_signal[idx_in_dataset])
+        elif data_type is DataType.IMITATION:
+            return (data_type, self._imitation[idx_in_dataset])
+
+
+class _CombinedDatasetBuilder:
+    """
+    A combined dataset builder. It takes the indices of datapoints in intervention datasets.
+    It can be consumed, given references to intervention datasets, to create a combined dataset.
+    """
+
+    def __init__(self):
+        self._datapoints: List[Tuple[DataType, int]] = []
+
+    def add_datapoint(self, data_type: DataType, index_in_dataset: int) -> int:
+        """
+        Add a datapoint to the set.
+
+        :return: the index the datapoint is assigned.
+        """
+        idx = len(self._datapoints)
+        self._datapoints.append((data_type, index_in_dataset))
+        return idx
+
+    def build(
+        self,
+        negative: torch.utils.data.Dataset,
+        supervision_signal: torch.utils.data.Dataset,
+        imitation: torch.utils.data.Dataset,
+    ) -> _Dataset:
+        """
+        Consumes the dataset builder, returning a dataset.
+        """
+        d = _CombinedDataset(
+            self._datapoints,
+            negative=negative,
+            supervision_signal=supervision_signal,
+            imitation=imitation,
+        )
         self._datapoints = []
         return d
 
@@ -257,14 +339,15 @@ class InterventionDatasets:
         - `negative` consists of examples of student driving leading up to an
           intervention;
         - `supervision_signal` consists of examples of student driving that take
-          place more than 2.5 seconds before an intervention; and
-        - `imitation` consists of examples of teacher driving.
-
+          place more than 2.5 seconds before an intervention;
+        - `imitation` consists of examples of teacher driving; and
+        - `combined` all examples in original order.
     """
 
     negative: torch.utils.data.Dataset
     supervision_signal: torch.utils.data.Dataset
     imitation: torch.utils.data.Dataset
+    combined: torch.utils.data.Dataset
 
 
 def intervention_data(data_directory) -> InterventionDatasets:
@@ -282,6 +365,7 @@ def intervention_data(data_directory) -> InterventionDatasets:
     negative_dataset_builder = _DatasetBuilder()
     supervision_signal_dataset_builder = _DatasetBuilder()
     imitation_dataset_builder = _DatasetBuilder()
+    combined_dataset_builder = _CombinedDatasetBuilder()
 
     for episode in episode_summaries:
         # Note we do not explicitly close this zipfile, but as we're opening read-only
@@ -303,11 +387,17 @@ def intervention_data(data_directory) -> InterventionDatasets:
                         ticks_to_intervention = frame_data["ticks_to_end"]
 
                     if ticks_to_intervention is None or ticks_to_intervention > 25:
-                        supervision_signal_dataset_builder.add_datapoint(
+                        idx = supervision_signal_dataset_builder.add_datapoint(
                             zip_file, datapoint
                         )
+                        combined_dataset_builder.add_datapoint(
+                            DataType.SUPERVISION_SIGNAL, idx
+                        )
                     else:
-                        negative_dataset_builder.add_datapoint(zip_file, datapoint)
+                        idx = negative_dataset_builder.add_datapoint(
+                            zip_file, datapoint
+                        )
+                        combined_dataset_builder.add_datapoint(DataType.NEGATIVE, idx)
                 else:
                     assert frame_data["controller"] == "teacher"
                     if (
@@ -315,12 +405,24 @@ def intervention_data(data_directory) -> InterventionDatasets:
                         or frame_data["ticks_to_end"] <= 50
                         or episode.end_status == "success"
                     ):
-                        imitation_dataset_builder.add_datapoint(zip_file, datapoint)
+                        idx = imitation_dataset_builder.add_datapoint(
+                            zip_file, datapoint
+                        )
+                        combined_dataset_builder.add_datapoint(DataType.IMITATION, idx)
+
+    negative = negative_dataset_builder.build()
+    supervision_signal = supervision_signal_dataset_builder.build()
+    imitation = imitation_dataset_builder.build()
 
     return InterventionDatasets(
-        negative=negative_dataset_builder.build(),
-        supervision_signal=supervision_signal_dataset_builder.build(),
-        imitation=imitation_dataset_builder.build(),
+        negative=negative,
+        supervision_signal=supervision_signal,
+        imitation=imitation,
+        combined=combined_dataset_builder.build(
+            negative=negative,
+            supervision_signal=supervision_signal,
+            imitation=imitation,
+        ),
     )
 
 
