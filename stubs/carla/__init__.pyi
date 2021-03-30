@@ -212,6 +212,20 @@ class Sensor(Actor):
     def is_listening(self) -> bool:
         ...
 
+@dataclass
+class Waypoint:
+    id: int
+    transform: Transform
+    road_id: int
+    section_id: int
+    lane_id: int
+    s: float
+    is_junction: bool
+    lane_width: float
+    lane_type: Any
+    right_lane_marking: LaneMarking
+    left_lane_marking: LaneMarking
+
 
 class Walker(Actor):
     ...
