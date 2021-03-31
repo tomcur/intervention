@@ -43,10 +43,13 @@ def controls_differ(observation, supervisor_control, model_control) -> bool:
 
 
 def controls_difference(
-    state: TickState, supervisor_target_waypoints, supervisor_control, model_control
+    state: TickState,
+    supervisor_control,
+    model_control,
 ) -> float:
     """
-    Heuristically calculate the difference between two vehicle controls.
+    Heuristically calculate the difference between two vehicle controls, based on
+    throttle, braking, and steering commands.
 
     This difference can be used to calculate whether models' outputs agree with each
     other.
@@ -154,7 +157,7 @@ class Comparer:
         if self.student_in_control:
             self.difference_integral *= 0.9
             self.difference_integral += controls_difference(
-                state, teacher_target_waypoints, teacher_control, student_control
+                state, teacher_control, student_control
             )
             if self.difference_integral >= self.threshold:
                 logger.trace("switching to teacher control")
