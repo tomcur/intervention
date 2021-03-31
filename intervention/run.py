@@ -45,6 +45,12 @@ def controls_differ(observation, supervisor_control, model_control) -> bool:
 def controls_difference(
     state: TickState, supervisor_target_waypoints, supervisor_control, model_control
 ) -> float:
+    """
+    Heuristically calculate the difference between two vehicle controls.
+
+    This difference can be used to calculate whether models' outputs agree with each
+    other.
+    """
     diff = 0
 
     if supervisor_control.hand_brake != model_control.hand_brake:
