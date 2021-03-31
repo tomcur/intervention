@@ -126,6 +126,26 @@ def controls_difference(
     return diff
 
 
+def waypoints_difference(
+    state: TickState,
+    supervisor_target_waypoints,
+    model_target_waypoints,
+) -> float:
+    """
+    Heuristically calculate the difference between two vehicle controls, based on target
+    waypoints.
+
+    This difference can be used to calculate whether models' outputs agree with each
+    other.
+    """
+    supervisor_wp = supervisor_target_waypoints[1]
+    model_wp = model_target_waypoints[1]
+
+    x_diff = max(np.abs(supervisor_wp[0] - model_wp[0]) - 0.2, 0.0)
+    y_diff = max(np.abs(supervisor_wp[1] - model_wp[1]) - 2.0, 0.0)
+    return min(x_diff * 0.4 + y_diff * 0.3, 2.0)
+
+
 def control_stable(control) -> bool:
     """Determines whether a control is "stable". When a control is stable for a while,
     the controller is assumed to be comfortable handing back control to the model.
@@ -152,12 +172,20 @@ class Comparer:
         state: TickState,
         teacher_target_waypoints: np.ndarray,
         teacher_control: carla.VehicleControl,
+        student_target_waypoints: np.ndarray,
         student_control: carla.VehicleControl,
     ) -> None:
         if self.student_in_control:
-            self.difference_integral *= 0.9
-            self.difference_integral += controls_difference(
-                state, teacher_control, student_control
+            self.difference_integral *= 0.92
+            # self.difference_integral += controls_difference(
+            #     state,
+            #     teacher_control,
+            #     student_control,
+            # )
+            self.difference_integral += waypoints_difference(
+                state,
+                teacher_target_waypoints,
+                student_target_waypoints,
             )
             if self.difference_integral >= self.threshold:
                 logger.trace("switching to teacher control")
@@ -646,7 +674,11 @@ def run_on_policy_episode(
                 )
 
             comparer.evaluate_and_compare(
-                state, teacher_target_waypoints, teacher_control, student_control
+                state,
+                teacher_target_waypoints,
+                teacher_control,
+                student_target_waypoints,
+                student_control,
             )
 
             with visualizer as painter:
