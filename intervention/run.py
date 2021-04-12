@@ -590,6 +590,9 @@ def run_on_policy_episode(
     store: data.Store, student_checkpoint_path: Path, teacher_checkpoint_path: Path
 ) -> data.EpisodeSummary:
     """
+    Run an episode of on-policy student driving with teacher supervision and
+    intervention.
+
     param store: the store for the episode information.
     """
     from .models.image import Agent, Image
