@@ -119,3 +119,59 @@ def collect_on_policy_episodes(
             )
             episode_summary.uuid = str(episode_id)
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
+
+
+def collect_student_episode(
+    student_checkpoint: Path,
+    episode_dir: Path,
+    seed_sequence: np.random.SeedSequence,
+    metrics_only: bool,
+) -> data.EpisodeSummary:
+    process.rng = np.random.default_rng(seed_sequence)
+
+    with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
+        with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
+            store = data.ZipStore(zip_archive, csv_file, metrics_only=metrics_only)
+            summary = run.run_student_episode(
+                store, student_checkpoint,
+            )
+            store.stop()
+            return summary
+
+
+def collect_student_episodes(
+    student_checkpoint: Path,
+    data_path: Path,
+    num_episodes: int,
+    metrics_only: bool,
+) -> None:
+    parent_seed_sequence = np.random.SeedSequence()
+
+    episode_summaries_path = data_path / "episodes.csv"
+    file_exists = os.path.isfile(episode_summaries_path)
+    with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
+        episode_summaries_writer = csv.DictWriter(
+            episode_summaries,
+            fieldnames=data.EpisodeSummary.__dataclass_fields__.keys(),
+        )
+        if not file_exists:
+            episode_summaries_writer.writeheader()
+
+        for episode in range(num_episodes):
+            [seed_sequence] = parent_seed_sequence.spawn(1)
+
+            episode_id = uuid.uuid4()
+            logger.info(f"Collecting episode {episode+1}/{num_episodes}: {episode_id}.")
+            episode_dir = data_path / str(episode_id)
+            episode_dir.mkdir(parents=True, exist_ok=False)
+
+            # Run in process to circumvent Carla bug
+            episode_summary = utils_process.process_wrapper(
+                collect_student_episode,
+                student_checkpoint,
+                episode_dir,
+                seed_sequence,
+                metrics_only,
+            )
+            episode_summary.uuid = str(episode_id)
+            episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
