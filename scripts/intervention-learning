@@ -205,6 +205,79 @@ def collect_on_policy(
 
 @cli.command()
 @click.option(
+    "-s",
+    "--student-checkpoint",
+    required=True,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+    help=("The checkpoint to use for the student."),
+)
+@click.option(
+    "-n",
+    "--num-episodes",
+    default=1,
+    type=int,
+    help="The number of episodes to collect. Terminated episodes also count.",
+)
+@click.option(
+    "-d",
+    "--directory",
+    default=".",
+    type=click.Path(
+        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
+    ),
+    help=(
+        "The directory to write the episodes to. This directory will contain a "
+        "top-level file to which summary information is written. If the file exists, "
+        "will be appended to. Per-episode data is written to their own subdirectories."
+    ),
+)
+@click.option(
+    "device_name",
+    "--device",
+    default="cuda",
+    type=str,
+    help=(
+        "The device to run on. "
+        "See torch's documentation on torch.device for more information."
+    ),
+)
+@click.option(
+    "--metrics-only",
+    is_flag=True,
+    type=bool,
+    help=("Only store metrics (i.e. do not store images and model output)."),
+)
+def collect_student(
+    student_checkpoint: str,
+    num_episodes: int,
+    directory: str,
+    device_name: str,
+    metrics_only: bool,
+):
+    """
+    Collect student driving (without interventions from a teacher).
+    """
+    import torch
+
+    import intervention.collect
+
+    data_path = Path(directory)
+    data_path.mkdir(parents=True, exist_ok=True)
+
+    student_checkpoint_path = Path(student_checkpoint)
+
+    intervention.process.torch_device = torch.device(device_name)
+
+    intervention.collect.collect_student_episodes(
+        student_checkpoint_path,
+        data_path=data_path,
+        num_episodes=num_episodes,
+        metrics_only=metrics_only,
+    )
+
+
+@cli.command()
+@click.option(
     "-t",
     "--teacher-checkpoint",
     required=True,
@@ -245,13 +318,6 @@ def demo_teacher_agent(
     intervention.process.torch_device = torch.device(device_name)
 
     intervention.run.demo_teacher_agent(teacher_checkpoint_path, user_input_planner)
-
-
-@cli.command()
-def demo_image_agent():
-    import intervention.run
-
-    intervention.run.demo_image_agent()
 
 
 @cli.command()
