@@ -278,8 +278,13 @@ def run_manual() -> None:
                 break
 
 
-def run_image_agent(store: data.Store) -> None:
+def run_student_episode(
+    store: data.Store,
+    student_checkpoint_path: Path,
+) -> None:
     """
+    Run an episode of on-policy student driving (without teacher supervision).
+
     param store: the store for the episode information.
     """
     from .models.image import Agent, Image
@@ -289,62 +294,93 @@ def run_image_agent(store: data.Store) -> None:
     managed_episode = connect(
         carla_host=process.carla_host, carla_world_port=process.carla_world_port
     )
+    managed_episode.town = process.rng.choice(["Town01", "Town02"])
+    managed_episode.weather = process.rng.choice(
+        ["Default", "ClearNoon", "MidRainSunset"]
+    )
+
+    summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
         vehicle_geometry = episode.get_vehicle_geometry()
         vehicle_controller = controller.VehicleController(vehicle_geometry)
 
-        logger.debug("Creating agent.")
-        model = Image()
-        agent = Agent(model)
-        vehicle_controller = controller.VehicleController()
-        checkpoint = torch.load(
-            "../checkpoints-intervention/2020-10-03/24.pth",
-            map_location=process.torch_device,
+        logger.debug("Creating student agent.")
+        student_model = Image().to(process.torch_device)
+        student_agent = Agent(student_model)
+        student_checkpoint = torch.load(
+            student_checkpoint_path, map_location=process.torch_device
         )
-        model.load_state_dict(checkpoint["model_state_dict"])
+        student_model.load_state_dict(student_checkpoint["model_state_dict"])
+        student_model.eval()
+
+        start_time = datetime.now()
 
         for step in itertools.count():
             state = episode.tick()
-
-            logger.trace("command {}", state.command)
-            logger.trace("distance travelled {}", state.distance_travelled)
+            summary.distance_travelled = state.distance_travelled
+            summary.ticks += 1
 
             (
-                target_waypoints,
-                target_heatmap,
-                _predicted_locations,
-                _predicted_heatmaps,
-            ) = agent.step(state)
-            control, turn_radius = vehicle_controller.step(state, target_waypoints)
-
-            episode.apply_control(control)
-
-            birdview_render = episode.render_birdview()
+                student_target_waypoints,
+                _student_target_heatmap,
+                model_image_targets,
+                model_image_heatmaps,
+            ) = student_agent.step(state)
+            student_control, student_turn_radius = vehicle_controller.step(
+                state,
+                student_target_waypoints,
+            )
+            episode.apply_control(student_control)
+            store.push_student_driving(
+                step,
+                model_image_targets,
+                model_image_heatmaps,
+                student_control,
+                state,
+            )
 
             with visualizer as painter:
+                painter.add_command(state.command)
                 painter.add_rgb(state.rgb)
-                painter.add_waypoints(target_waypoints)
-                painter.add_turn_radius(
-                    turn_radius,
-                    "LEFT" if control.steer < 0 else "RIGHT",
+                painter.add_waypoints(
+                    student_target_waypoints,
                     color=(255, 145, 0),
                 )
-                painter.add_control("student", control)
+                painter.add_turn_radius(
+                    student_turn_radius,
+                    "LEFT" if student_control.steer < 0 else "RIGHT",
+                    color=(255, 145, 0),
+                )
+                painter.add_control(
+                    "student",
+                    student_control,
+                )
+
+                birdview_render = episode.render_birdview()
                 painter.add_birdview(birdview_render)
+            current_time = datetime.now()
+            seconds = (current_time - start_time).total_seconds()
+            logger.debug(f"average tps {step / seconds:.2f} @ Tick {step}")
 
             if state.probably_stuck:
-                raise exceptions.EpisodeStuck()
-
-            if state.probably_off_course:
-                raise exceptions.EpisodeOffCourse()
-
-            if state.collision:
-                raise exceptions.CollisionInEpisode()
-
-            if state.route_completed:
+                summary.end_status = "stuck"
                 break
 
-            # prev_state = state
+            if state.probably_off_course:
+                summary.end_status = "off_course"
+                break
+
+            if state.collision:
+                summary.collisions += 1
+                summary.end_status = "collision"
+                break
+
+            if state.route_completed:
+                summary.end_status = "success"
+                break
+
+    summary.end()
+    return summary
 
 
 def demo_teacher_agent(teacher_checkpoint: Path, user_input_planner: bool) -> None:
@@ -356,8 +392,8 @@ def demo_teacher_agent(teacher_checkpoint: Path, user_input_planner: bool) -> No
     )
 
 
-def demo_image_agent() -> None:
-    run_image_agent(data.BlackHoleStore())
+def demo_student_agent() -> None:
+    run_student_agent(data.BlackHoleStore())
 
 
 def manual() -> None:
