@@ -42,6 +42,8 @@ class EpisodeSummary:
     end_status: str = "unknown"
     collisions: int = 0
     distance_travelled: float = 0.0
+    student_distance_travelled: float = 0.0
+    teacher_distance_travelled: float = 0.0
     interventions: int = 0
     ticks: int = 0
     ticks_per_second: float = 0.0

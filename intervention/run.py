@@ -317,8 +317,11 @@ def run_student_episode(
 
         for step in itertools.count():
             state = episode.tick()
-            summary.distance_travelled = state.distance_travelled
             summary.ticks += 1
+
+            distance_delta = state.distance_travelled - summary.distance_travelled
+            summary.student_distance_travelled += distance_delta
+            summary.distance_travelled = state.distance_travelled
 
             (
                 student_target_waypoints,
@@ -563,8 +566,11 @@ def run_example_episode(
                 elif visualization.Action.GO_STRAIGHT in actions:
                     state.command = RoadOption.STRAIGHT
 
-            summary.distance_travelled = state.distance_travelled
             summary.ticks += 1
+
+            distance_delta = state.distance_travelled - summary.distance_travelled
+            summary.teacher_distance_travelled += distance_delta
+            summary.distance_travelled = state.distance_travelled
 
             teacher_target_waypoints = teacher.run_step(
                 {
@@ -665,8 +671,14 @@ def run_on_policy_episode(
 
         for step in itertools.count():
             state = episode.tick()
-            summary.distance_travelled = state.distance_travelled
             summary.ticks += 1
+
+            distance_delta = state.distance_travelled - summary.distance_travelled
+            if comparer.student_in_control:
+                summary.student_distance_travelled += distance_delta
+            else:
+                summary.teacher_distance_travelled += distance_delta
+            summary.distance_travelled = state.distance_travelled
 
             teacher_target_waypoints = teacher.run_step(
                 {
