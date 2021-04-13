@@ -75,6 +75,8 @@ def imitation(
     LEARNING_RATE = 0.001
     GRADIENT_NORM_CLIPPING = 0.1
 
+    logger.info(f"Training using loss type {loss_type}.")
+
     training_dataset = dataset.off_policy_data(dataset_path)
     training_generator = torch.utils.data.DataLoader(
         training_dataset, batch_size=batch_size, shuffle=True
@@ -226,6 +228,7 @@ def imitation(
                 "gradient_norm_clipping": GRADIENT_NORM_CLIPPING,
                 "batch_size": batch_size,
                 "epoch": epoch,
+                "loss_type": "CE" if loss_type is LossType.CROSS_ENTROPY else "EV",
             },
             {"hparam/epoch_mean_train_loss": epoch_total_train_loss / num_batches},
         )
