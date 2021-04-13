@@ -1,5 +1,6 @@
 import math
 import os
+from enum import Enum
 from pathlib import Path, PurePath
 from typing import List, Optional, Tuple
 
@@ -14,6 +15,11 @@ from ..models.image import Image
 from . import dataset
 
 EPSILON = 1e-8
+
+
+class LossType(Enum):
+    CROSS_ENTROPY = 0
+    EXPECTED_VALUE = 1
 
 
 def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Tensor:
@@ -60,6 +66,7 @@ def cross_entropy_four_hot(x: float, y: float, width: int, height: int) -> torch
 def imitation(
     dataset_path: Path,
     output_checkpoint_path: Path,
+    loss_type: LossType,
     batch_size: int = 30,
     initial_checkpoint_path: Optional[Path] = None,
     epochs: int = 5,
@@ -140,14 +147,10 @@ def imitation(
                 writer.add_graph(model, (rgb_image, speed))
             del untransformed_rgb_image
 
-            _all_branch_predictions, all_branch_heatmaps = model.forward(
+            all_branch_predictions, all_branch_heatmaps = model.forward(
                 rgb_image, speed
             )
-            del _all_branch_predictions, rgb_image, speed
-
-            pred_heatmaps = select_branch(
-                all_branch_heatmaps, list(map(int, datapoint_meta["command"]))
-            )
+            del rgb_image, speed
 
             locations = datapoint_meta["next_locations_image_coordinates"].to(
                 process.torch_device
@@ -160,25 +163,39 @@ def imitation(
                 0.25 * img_size[1]
             ) - 1
 
-            heatmaps_size = pred_heatmaps.size()
-            target_four_hot = torch.zeros(*heatmaps_size)
+            if loss_type is LossType.CROSS_ENTROPY:
+                pred_heatmaps = select_branch(
+                    all_branch_heatmaps, list(map(int, datapoint_meta["command"]))
+                )
 
-            for batch in range(this_batch_size):
-                for step in range(heatmaps_size[1]):
-                    target_four_hot[batch, step, ...] = cross_entropy_four_hot(
-                        locations[batch, step, 0],
-                        locations[batch, step, 1],
-                        heatmaps_size[3],
-                        heatmaps_size[2],
-                    )
-            del locations
+                heatmaps_size = pred_heatmaps.size()
+                target_four_hot = torch.zeros(*heatmaps_size)
 
-            target_four_hot = target_four_hot.to(process.torch_device)
+                for batch in range(this_batch_size):
+                    for step in range(heatmaps_size[1]):
+                        target_four_hot[batch, step, ...] = cross_entropy_four_hot(
+                            locations[batch, step, 0],
+                            locations[batch, step, 1],
+                            heatmaps_size[3],
+                            heatmaps_size[2],
+                        )
 
-            loss = torch.mean(
-                -target_four_hot * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
-            )
-            del target_four_hot, pred_heatmaps
+                target_four_hot = target_four_hot.to(process.torch_device)
+
+                loss = torch.mean(
+                    -target_four_hot * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
+                )
+                del target_four_hot, pred_heatmaps
+            elif loss_type is LossType.EXPECTED_VALUE:
+                pred_locations = select_branch(
+                    all_branch_predictions, list(map(int, datapoint_meta["command"]))
+                )
+
+                loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
+                del pred_locations
+            else:
+                raise Exception("unexpected loss kind")
+            del all_branch_predictions, all_branch_heatmaps, locations
 
             writer.add_histogram("loss", loss, global_step=total_batches)
 

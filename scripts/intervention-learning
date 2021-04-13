@@ -339,6 +339,16 @@ def demo_teacher_agent(
     help=("The directory to write the output checkpoints to."),
 )
 @click.option(
+    "-l",
+    "--loss-type",
+    type=click.Choice(["CE", "EV"], case_sensitive=False),
+    required=True,
+    help=(
+        "The type of loss to use. "
+        "Set to `CE` for cross-entropy log loss or `EV` for expected-value loss."
+    ),
+)
+@click.option(
     "-i",
     "--initial-checkpoint",
     required=False,
@@ -366,13 +376,14 @@ def demo_teacher_agent(
 def train_imitation(
     dataset_directory: str,
     output_directory: str,
+    loss_type: str,
     initial_checkpoint: Optional[str],
     device_name: str,
     num_epochs: int,
 ):
     import torch
 
-    import intervention.train.train
+    from intervention.train import train
 
     dataset_path = Path(dataset_directory)
 
@@ -383,9 +394,16 @@ def train_imitation(
 
     intervention.process.torch_device = torch.device(device_name)
 
-    intervention.train.train.imitation(
+    loss_type_ = (
+        train.LossType.CROSS_ENTROPY
+        if loss_type == "CE"
+        else train.LossType.EXPECTED_VALUE
+    )
+
+    train.imitation(
         dataset_path,
         output_path,
+        loss_type_,
         initial_checkpoint_path=initial_checkpoint_path,
         epochs=num_epochs,
     )
