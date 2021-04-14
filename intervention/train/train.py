@@ -72,7 +72,13 @@ def imitation(
     epochs: int = 5,
 ) -> None:
     #: Global learning rate multiplier
-    LEARNING_RATE = 0.001
+
+    if loss_type is LossType.CROSS_ENTROPY:
+        LEARNING_RATE = 0.001 * 50
+    elif loss_type is LossType.EXPECTED_VALUE:
+        LEARNING_RATE = 0.001
+    else:
+        raise Exception("unexpected loss kind")
     GRADIENT_NORM_CLIPPING = 0.1
 
     logger.info(f"Training using loss type {loss_type}.")
