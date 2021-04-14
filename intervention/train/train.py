@@ -171,6 +171,15 @@ def imitation(
                 0.25 * img_size[1]
             ) - 1
 
+            pred_locations = select_branch(
+                all_branch_predictions, list(map(int, datapoint_meta["command"]))
+            )
+
+            expected_value_error = torch.mean(
+                torch.abs(pred_locations - locations), dim=(1, 2)
+            )
+            del pred_locations
+
             if loss_type is LossType.CROSS_ENTROPY:
                 pred_heatmaps = select_branch(
                     all_branch_heatmaps, list(map(int, datapoint_meta["command"]))
@@ -195,12 +204,7 @@ def imitation(
                 )
                 del target_four_hot, pred_heatmaps
             elif loss_type is LossType.EXPECTED_VALUE:
-                pred_locations = select_branch(
-                    all_branch_predictions, list(map(int, datapoint_meta["command"]))
-                )
-
-                loss = torch.mean(torch.abs(pred_locations - locations), dim=(1, 2))
-                del pred_locations
+                loss = expected_value_error
             else:
                 raise Exception("unexpected loss kind")
             del all_branch_predictions, all_branch_heatmaps, locations
@@ -211,6 +215,12 @@ def imitation(
             del loss
 
             writer.add_scalar("loss-mean", loss_mean, global_step=total_batches)
+            writer.add_scalar(
+                "expected-value-error-mean",
+                expected_value_error.mean(),
+                global_step=total_batches,
+            )
+            del expected_value_error
 
             optimizer.zero_grad()
             loss_mean.backward()
