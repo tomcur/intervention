@@ -390,7 +390,7 @@ def demo_teacher_agent(teacher_checkpoint: Path, user_input_planner: bool) -> No
     """
     :param user_input_planner: whether to use user input for the route planner.
     """
-    run_example_episode(
+    run_teacher_episode(
         data.BlackHoleStore(), teacher_checkpoint, user_input_planner=user_input_planner
     )
 
@@ -523,7 +523,7 @@ def explore_on_policy_dataset(episode_path: Path) -> None:
             rendered = False
 
 
-def run_example_episode(
+def run_teacher_episode(
     store: data.Store,
     teacher_checkpoint: Path,
     user_input_planner: bool = False,
@@ -628,7 +628,7 @@ def run_example_episode(
     return summary
 
 
-def run_on_policy_episode(
+def run_intervention_episode(
     store: data.Store, student_checkpoint_path: Path, teacher_checkpoint_path: Path
 ) -> data.EpisodeSummary:
     """
