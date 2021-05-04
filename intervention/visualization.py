@@ -1,15 +1,14 @@
+import math
 from collections import deque
 from enum import Enum
 from typing import Callable, Deque, Dict, Iterable, List, Optional, Tuple, Union
-import math
 
+import carla
 import numpy as np
 import pygame
 import pygame.locals as pglocals
 from pygame import gfxdraw
 from typing_extensions import Literal
-
-import carla
 
 from .carla_utils.agents.navigation.local_planner import RoadOption
 from .coordinates import ego_coordinate_to_image_coordinate
