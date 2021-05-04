@@ -2,6 +2,7 @@ import itertools
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import carla
 import numpy as np
@@ -336,6 +337,8 @@ def run_student_episode(
             episode.apply_control(student_control)
             store.push_student_driving(
                 step,
+                None,
+                student_target_waypoints,
                 model_image_targets,
                 model_image_heatmaps,
                 student_control,
@@ -591,7 +594,13 @@ def run_teacher_episode(
                 teacher_target_waypoints,
             )
 
-            store.push_teacher_driving(step, teacher_control, state)
+            store.push_teacher_driving(
+                step,
+                teacher_target_waypoints,
+                None,
+                teacher_control,
+                state,
+            )
             episode.apply_control(teacher_control)
 
             birdview_render = episode.render_birdview()
@@ -699,16 +708,23 @@ def run_intervention_episode(
                 teacher_target_waypoints,
                 update_pids=not comparer.student_in_control,
             )
-            if not comparer.student_in_control:
-                episode.apply_control(teacher_control)
-                store.push_teacher_driving(step, teacher_control, state)
-
             (
                 student_target_waypoints,
                 _student_target_heatmap,
                 model_image_targets,
                 model_image_heatmaps,
             ) = student_agent.step(state)
+
+            if not comparer.student_in_control:
+                episode.apply_control(teacher_control)
+                store.push_teacher_driving(
+                    step,
+                    teacher_target_waypoints,
+                    student_target_waypoints,
+                    teacher_control,
+                    state,
+                )
+
             student_control, student_turn_radius = vehicle_controller.step(
                 state,
                 student_target_waypoints,
@@ -718,6 +734,8 @@ def run_intervention_episode(
                 episode.apply_control(student_control)
                 store.push_student_driving(
                     step,
+                    teacher_target_waypoints,
+                    student_target_waypoints,
                     model_image_targets,
                     model_image_heatmaps,
                     student_control,

@@ -76,6 +76,8 @@ class FrameData(TypedDict):
     command: int
     controller: str
     rgb_filename: Optional[str]
+    teacher_waypoints_filename: Optional[str]
+    student_waypoints_filename: Optional[str]
     student_image_targets_filename: Optional[str]
     student_image_heatmaps_filename: Optional[str]
     ticks_engaged: Optional[int]
@@ -104,6 +106,8 @@ class Store:
     def push_student_driving(
         self,
         step: int,
+        teacher_waypoints: Optional[np.ndarray],
+        student_waypoints: np.ndarray,
         model_image_targets: np.ndarray,
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
@@ -114,7 +118,12 @@ class Store:
 
     @abc.abstractmethod
     def push_teacher_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
+        self,
+        step: int,
+        teacher_waypoints: np.ndarray,
+        student_waypoints: Optional[np.ndarray],
+        control: carla.VehicleControl,
+        state: TickState,
     ) -> None:
         """Add one example of teacher driving to the store."""
         raise NotImplementedError
@@ -126,6 +135,8 @@ class BlackHoleStore(Store):
     def push_student_driving(
         self,
         step: int,
+        teacher_waypoints: Optional[np.ndarray],
+        student_waypoints: np.ndarray,
         model_image_targets: np.ndarray,
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
@@ -134,7 +145,12 @@ class BlackHoleStore(Store):
         pass
 
     def push_teacher_driving(
-        self, step: int, control: carla.VehicleControl, state: TickState
+        self,
+        step: int,
+        teacher_waypoints: np.ndarray,
+        student_waypoints: Optional[np.ndarray],
+        control: carla.VehicleControl,
+        state: TickState,
     ) -> None:
         pass
 
@@ -170,6 +186,8 @@ class ZipStoreBackend(Store):
     def push_student_driving(
         self,
         tick: int,
+        teacher_waypoints: Optional[np.ndarray],
+        student_waypoints: np.ndarray,
         model_image_targets: np.ndarray,
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
@@ -181,6 +199,8 @@ class ZipStoreBackend(Store):
             self._store_teacher_driving(reason="engagement")
 
         rgb_filename = None
+        teacher_waypoints_filename = None
+        student_waypoints_filename = None
         model_image_targets_filename = None
         model_image_heatmaps_filename = None
 
@@ -188,12 +208,24 @@ class ZipStoreBackend(Store):
             rgb_filename = f"{tick:05d}-rgb-student.png"
             self._add_rgb_image(rgb_filename, state.rgb)
 
+            if teacher_waypoints is not None:
+                teacher_waypoints_filename = f"{tick:05d}-teacher-waypoints.npy"
+                buffer = BytesIO()
+                np.save(buffer, teacher_waypoints)
+                self._add_file(teacher_waypoints_filename, buffer.getvalue())
+
+            student_waypoints_filename = f"{tick:05d}-student-waypoints.npy"
             model_image_targets_filename = f"{tick:05d}-image-targets-student.npy"
+            model_image_heatmaps_filename = f"{tick:05d}-image-heatmaps-student.npy"
+
+            buffer = BytesIO()
+            np.save(buffer, student_waypoints)
+            self._add_file(student_waypoints_filename, buffer.getvalue())
+
             buffer = BytesIO()
             np.save(buffer, model_image_targets)
             self._add_file(model_image_targets_filename, buffer.getvalue())
 
-            model_image_heatmaps_filename = f"{tick:05d}-image-heatmaps-student.npy"
             buffer = BytesIO()
             np.save(buffer, model_image_heatmaps)
             self._add_file(model_image_heatmaps_filename, buffer.getvalue())
@@ -205,6 +237,8 @@ class ZipStoreBackend(Store):
             command=int(state.command),
             controller="student",
             rgb_filename=rgb_filename,
+            teacher_waypoints_filename=teacher_waypoints_filename,
+            student_waypoints_filename=student_waypoints_filename,
             student_image_targets_filename=model_image_targets_filename,
             student_image_heatmaps_filename=model_image_heatmaps_filename,
             ticks_engaged=tick - self._engagement_tick,
@@ -228,7 +262,12 @@ class ZipStoreBackend(Store):
         self._frame_data_queue.append((tick, frame_data))
 
     def push_teacher_driving(
-        self, tick: int, control: carla.VehicleControl, state: TickState
+        self,
+        tick: int,
+        teacher_waypoints: np.ndarray,
+        student_waypoints: Optional[np.ndarray],
+        control: carla.VehicleControl,
+        state: TickState,
     ) -> None:
         if not self._teacher_in_control:
             self._intervention_tick = tick
@@ -236,9 +275,25 @@ class ZipStoreBackend(Store):
             self._store_student_driving(reason="intervention")
 
         rgb_filename = None
+        teacher_waypoints_filename = None
+        student_waypoints_filename = None
+
         if not self._metrics_only:
             rgb_filename = f"{tick:05d}-rgb-teacher.png"
             self._add_rgb_image(rgb_filename, state.rgb)
+
+            teacher_waypoints_filename = f"{tick:05d}-teacher-waypoints.npy"
+
+            buffer = BytesIO()
+            np.save(buffer, teacher_waypoints)
+            self._add_file(teacher_waypoints_filename, buffer.getvalue())
+
+            if student_waypoints is not None:
+                student_waypoints_filename = f"{tick:05d}-student-waypoints.npy"
+
+                buffer = BytesIO()
+                np.save(buffer, student_waypoints)
+                self._add_file(student_waypoints_filename, buffer.getvalue())
 
         orientation = state.rotation.get_forward_vector()
 
@@ -247,6 +302,8 @@ class ZipStoreBackend(Store):
             command=int(state.command),
             controller="teacher",
             rgb_filename=rgb_filename,
+            teacher_waypoints_filename=teacher_waypoints_filename,
+            student_waypoints_filename=student_waypoints_filename,
             student_image_targets_filename=None,
             student_image_heatmaps_filename=None,
             ticks_engaged=None,
@@ -352,6 +409,8 @@ class ZipStore(Store):
     def push_student_driving(
         self,
         tick: int,
+        teacher_waypoints: Optional[np.ndarray],
+        student_waypoints: np.ndarray,
         model_image_targets: np.ndarray,
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
@@ -360,14 +419,32 @@ class ZipStore(Store):
         self._queue.put(
             (
                 "push_student_driving",
-                (tick, model_image_targets, model_image_heatmaps, control, state),
+                (
+                    tick,
+                    teacher_waypoints,
+                    student_waypoints,
+                    model_image_targets,
+                    model_image_heatmaps,
+                    control,
+                    state,
+                ),
             )
         )
 
     def push_teacher_driving(
-        self, tick: int, control: carla.VehicleControl, state: TickState
+        self,
+        tick: int,
+        teacher_waypoints: np.ndarray,
+        student_waypoints: Optional[np.ndarray],
+        control: carla.VehicleControl,
+        state: TickState,
     ) -> None:
-        self._queue.put(("push_teacher_driving", (tick, control, state)))
+        self._queue.put(
+            (
+                "push_teacher_driving",
+                (tick, teacher_waypoints, student_waypoints, control, state),
+            )
+        )
 
     def stop(self) -> None:
         self._queue.put(("stop", None))

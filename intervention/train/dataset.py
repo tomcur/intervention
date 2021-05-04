@@ -47,6 +47,8 @@ class Datapoint(TypedDict):
     tick: int
     controller: str
     rgb_filename: str
+    teacher_waypoints_filename: str
+    student_waypoints_filename: str
     student_image_targets_filename: str
     student_image_heatmaps_filename: str
     command: int
@@ -107,6 +109,8 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData]) -> List[Datapoin
             tick=dictionary["tick"],
             controller=dictionary["controller"],
             rgb_filename=dictionary["rgb_filename"],
+            teacher_waypoints_filename=dictionary["teacher_waypoints_filename"] or "",
+            student_waypoints_filename=dictionary["student_waypoints_filename"] or "",
             student_image_targets_filename=dictionary["student_image_targets_filename"]
             or "",
             student_image_heatmaps_filename=dictionary[
@@ -133,6 +137,12 @@ def _parse_frame_data(r: Dict[str, str]) -> FrameData:
         command=int(r["command"]),
         controller=r["controller"],
         rgb_filename=r["rgb_filename"],
+        teacher_waypoints_filename=r["teacher_waypoints_filename"]
+        if "teacher_waypoints_filename" in r and r["teacher_waypoints_filename"]
+        else None,
+        student_waypoints_filename=r["student_waypoints_filename"]
+        if "student_waypoints_filename" in r and r["student_waypoints_filename"]
+        else None,
         student_image_targets_filename=r["student_image_targets_filename"]
         if "student_image_targets_filename" in r and r["student_image_targets_filename"]
         else None,
@@ -201,6 +211,9 @@ class _Dataset(torch.utils.data.Dataset):
             img_bytes = zip_file.read(datapoint["rgb_filename"])
             img = image.buffer_to_np(img_bytes)
 
+        with zip_file.open(datapoint["teacher_waypoints_filename"]) as f:
+            teacher_waypoints = np.load(f)
+
         if datapoint["student_image_targets_filename"] != "":
             assert datapoint["student_image_heatmaps_filename"] != ""
 
@@ -213,12 +226,18 @@ class _Dataset(torch.utils.data.Dataset):
             return (
                 self._transforms(img),
                 np.moveaxis(img, [2], [0]),
+                teacher_waypoints,
                 student_image_targets,
                 student_image_heatmaps,
                 datapoint,
             )
         else:
-            return self._transforms(img), np.moveaxis(img, [2], [0]), datapoint
+            return (
+                self._transforms(img),
+                np.moveaxis(img, [2], [0]),
+                teacher_waypoints,
+                datapoint,
+            )
 
 
 class _DatasetBuilder:

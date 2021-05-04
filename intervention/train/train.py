@@ -125,7 +125,7 @@ def imitation(
         logger.info(f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{epochs}).")
         for (
             batch_number,
-            (rgb_image, untransformed_rgb_image, datapoint_meta),
+            (rgb_image, untransformed_rgb_image, teacher_waypoint, datapoint_meta),
         ) in enumerate(training_generator):
             this_batch_size = len(rgb_image)
 
@@ -448,6 +448,7 @@ def intervention(
             (
                 negative_rgb_images,
                 untransformed_negative_rgb_images,
+                teacher_waypoints,
                 _negative_image_targets_output,
                 negative_image_heatmaps_output,
                 negative_datapoint,
@@ -455,11 +456,13 @@ def intervention(
             (
                 recovery_imitation_rgb_images,
                 untransformed_recovery_imitation_rgb_images,
+                teacher_waypoints,
                 recovery_imitation_datapoint,
             ) = recovery_imitation_batch
             (
                 regular_imitation_rgb_images,
                 untransformed_regular_imitation_rgb_images,
+                teacher_waypoints,
                 regular_imitation_datapoint,
             ) = regular_imitation_batch
 
