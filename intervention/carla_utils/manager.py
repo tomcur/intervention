@@ -22,30 +22,30 @@ STUCK_TICKS: int = 90 * 10
 #: off course.
 OFF_COURSE_CHECKPOINT_DISTANCE: float = 15.0
 
-CarlaWeather = Union[
-    Literal["Default"],
-    Literal["ClearNoon"],
-    Literal["CloudyNoon"],
-    Literal["WetNoon"],
-    Literal["WetCloudyNoon"],
-    Literal["SoftRainNoon"],
-    Literal["MidRainyNoon"],
-    Literal["HardRainNoon"],
-    Literal["ClearSunset"],
-    Literal["CloudySunset"],
-    Literal["WetSunset"],
-    Literal["WetCloudySunset"],
-    Literal["SoftRainSunset"],
-    Literal["MidRainSunset"],
-    Literal["HardRainSunset"],
+CarlaWeather = Literal[
+    "Default",
+    "ClearNoon",
+    "CloudyNoon",
+    "WetNoon",
+    "WetCloudyNoon",
+    "SoftRainNoon",
+    "MidRainyNoon",
+    "HardRainNoon",
+    "ClearSunset",
+    "CloudySunset",
+    "WetSunset",
+    "WetCloudySunset",
+    "SoftRainSunset",
+    "MidRainSunset",
+    "HardRainSunset",
 ]
 
-CarlaTown = Union[
-    Literal["Town01"],
-    Literal["Town02"],
-    Literal["Town03"],
-    Literal["Town04"],
-    Literal["Town05"],
+CarlaTown = Literal[
+    "Town01",
+    "Town02",
+    "Town03",
+    "Town04",
+    "Town05",
 ]
 
 
