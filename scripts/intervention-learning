@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Intervention learning entrypoints."""
 
+import functools
+import sys
+from pathlib import Path
 from typing import Optional
 
 import click
-from pathlib import Path
 from loguru import logger
-import sys
 
 import intervention.process
 
@@ -30,12 +31,28 @@ import intervention.process
     type=int,
     help="The Carla simulator port to connect to.",
 )
+@click.option(
+    "device_name",
+    "--device",
+    default="cuda",
+    type=str,
+    help=(
+        "The device to run Torch on. "
+        "See torch's documentation on torch.device for more information."
+    ),
+)
 def cli(
     carla_host: str,
     carla_world_port: int,
+    device_name: str,
 ):
+    import torch
+
     intervention.process.carla_host = carla_host
     intervention.process.carla_world_port = carla_world_port
+
+    intervention.process.torch_device = torch.device(device_name)
+
     intervention.process.init()
 
 
@@ -56,6 +73,44 @@ def benchmark():
     intervention.run.benchmark()
 
 
+def cli_collect_params(func):
+    """
+    A decorator to add cli parameters common to all the data collection types
+    (collect-teacher, collect-student, collect-intervention).
+    """
+
+    @click.option(
+        "-n",
+        "--num-episodes",
+        default=1,
+        type=int,
+        help="The number of episodes to collect. Terminated episodes also count.",
+    )
+    @click.option(
+        "-d",
+        "--directory",
+        default=".",
+        type=click.Path(
+            exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
+        ),
+        help=(
+            "The directory to write the episodes to. This directory will contain a "
+            "top-level file to which summary information is written. If the file exists, "
+            "will be appended to. Per-episode data is written to their own subdirectories."
+        ),
+    )
+    @functools.wraps(func)
+    def wrapper(*args, num_episodes: int, directory: str, **kwargs):
+        intervention.process.num_episodes = num_episodes  # kwargs["num_episodes"]
+
+        intervention.process.data_path = Path(directory)  # kwargs["directory"])
+        intervention.process.data_path.mkdir(parents=True, exist_ok=True)
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 @cli.command()
 @click.option(
     "-t",
@@ -64,60 +119,16 @@ def benchmark():
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
     help=("The checkpoint to use for the teacher."),
 )
-@click.option(
-    "-n",
-    "--num-episodes",
-    default=1,
-    type=int,
-    help="The number of episodes to collect. Terminated episodes also count.",
-)
-@click.option(
-    "-d",
-    "--directory",
-    default=".",
-    type=click.Path(
-        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
-    ),
-    help=(
-        "The directory to write the episodes to. This directory will contain a "
-        "top-level file to which summary information is written. If the file exists, "
-        "will be appended to. Per-episode data is written to their own subdirectories."
-    ),
-)
-@click.option(
-    "device_name",
-    "--device",
-    default="cuda",
-    type=str,
-    help=(
-        "The device to run on. "
-        "See torch's documentation on torch.device for more information."
-    ),
-)
-def collect_teacher(
-    teacher_checkpoint: str,
-    num_episodes: int,
-    directory: str,
-    device_name: str,
-):
+@cli_collect_params
+def collect_teacher(teacher_checkpoint: str, **kwargs):
     """
     Collect examples of driving from a teacher agent.
     """
-    import torch
-
     import intervention.collect
 
-    data_path = Path(directory)
-    data_path.mkdir(parents=True, exist_ok=True)
     teacher_checkpoint_path = Path(teacher_checkpoint)
 
-    intervention.process.torch_device = torch.device(device_name)
-
-    intervention.collect.collect_teacher_episodes(
-        teacher_checkpoint_path,
-        data_path=data_path,
-        num_episodes=num_episodes,
-    )
+    intervention.collect.collect_teacher_episodes(teacher_checkpoint_path)
 
 
 @cli.command()
@@ -127,16 +138,6 @@ def collect_teacher(
     required=True,
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
     help=("The checkpoint to use for the teacher."),
-)
-@click.option(
-    "device_name",
-    "--device",
-    default="cuda",
-    type=str,
-    help=(
-        "The device to run on. "
-        "See torch's documentation on torch.device for more information."
-    ),
 )
 @click.option(
     "-u",
@@ -147,19 +148,14 @@ def collect_teacher(
 )
 def demo_teacher_agent(
     teacher_checkpoint: str,
-    device_name: str,
     user_input_planner: bool,
 ):
     """
     Demo driving of a teacher agent.
     """
-    import torch
-
     import intervention.run
 
     teacher_checkpoint_path = Path(teacher_checkpoint)
-
-    intervention.process.torch_device = torch.device(device_name)
 
     intervention.run.demo_teacher_agent(teacher_checkpoint_path, user_input_planner)
 
@@ -173,66 +169,22 @@ def demo_teacher_agent(
     help=("The checkpoint to use for the student."),
 )
 @click.option(
-    "-n",
-    "--num-episodes",
-    default=1,
-    type=int,
-    help="The number of episodes to collect. Terminated episodes also count.",
-)
-@click.option(
-    "-d",
-    "--directory",
-    default=".",
-    type=click.Path(
-        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
-    ),
-    help=(
-        "The directory to write the episodes to. This directory will contain a "
-        "top-level file to which summary information is written. If the file exists, "
-        "will be appended to. Per-episode data is written to their own subdirectories."
-    ),
-)
-@click.option(
-    "device_name",
-    "--device",
-    default="cuda",
-    type=str,
-    help=(
-        "The device to run on. "
-        "See torch's documentation on torch.device for more information."
-    ),
-)
-@click.option(
     "--metrics-only",
     is_flag=True,
     type=bool,
     help=("Only store metrics (i.e. do not store images and model output)."),
 )
-def collect_student(
-    student_checkpoint: str,
-    num_episodes: int,
-    directory: str,
-    device_name: str,
-    metrics_only: bool,
-):
+@cli_collect_params
+def collect_student(student_checkpoint: str, metrics_only: bool):
     """
     Collect student driving (without interventions from a teacher).
     """
-    import torch
-
     import intervention.collect
-
-    data_path = Path(directory)
-    data_path.mkdir(parents=True, exist_ok=True)
 
     student_checkpoint_path = Path(student_checkpoint)
 
-    intervention.process.torch_device = torch.device(device_name)
-
     intervention.collect.collect_student_episodes(
         student_checkpoint_path,
-        data_path=data_path,
-        num_episodes=num_episodes,
         metrics_only=metrics_only,
     )
 
@@ -253,69 +205,28 @@ def collect_student(
     help=("The checkpoint to use for the teacher."),
 )
 @click.option(
-    "-n",
-    "--num-episodes",
-    default=1,
-    type=int,
-    help="The number of episodes to collect. Terminated episodes also count.",
-)
-@click.option(
-    "-d",
-    "--directory",
-    default=".",
-    type=click.Path(
-        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
-    ),
-    help=(
-        "The directory to write the episodes to. This directory will contain a "
-        "top-level file to which summary information is written. If the file exists, "
-        "will be appended to. Per-episode data is written to their own subdirectories."
-    ),
-)
-@click.option(
-    "device_name",
-    "--device",
-    default="cuda",
-    type=str,
-    help=(
-        "The device to run on. "
-        "See torch's documentation on torch.device for more information."
-    ),
-)
-@click.option(
     "--metrics-only",
     is_flag=True,
     type=bool,
     help=("Only store metrics (i.e. do not store images and model output)."),
 )
+@cli_collect_params
 def collect_intervention(
     student_checkpoint: str,
     teacher_checkpoint: str,
-    num_episodes: int,
-    directory: str,
-    device_name: str,
     metrics_only: bool,
 ):
     """
     Collect student on-policy driving with interventions from a teacher.
     """
-    import torch
-
     import intervention.collect
-
-    data_path = Path(directory)
-    data_path.mkdir(parents=True, exist_ok=True)
 
     student_checkpoint_path = Path(student_checkpoint)
     teacher_checkpoint_path = Path(teacher_checkpoint)
 
-    intervention.process.torch_device = torch.device(device_name)
-
-    intervention.collect.collect_on_policy_episodes(
+    intervention.collect.collect_intervention_episodes(
         student_checkpoint_path,
         teacher_checkpoint_path,
-        data_path=data_path,
-        num_episodes=num_episodes,
         metrics_only=metrics_only,
     )
 
@@ -363,26 +274,13 @@ def collect_intervention(
     required=False,
     help=("The number of training epochs"),
 )
-@click.option(
-    "device_name",
-    "--device",
-    default="cuda",
-    type=str,
-    help=(
-        "The device to run on. "
-        "See torch's documentation on torch.device for more information."
-    ),
-)
 def train_imitation(
     dataset_directory: str,
     output_directory: str,
     loss_type: str,
     initial_checkpoint: Optional[str],
-    device_name: str,
     num_epochs: int,
 ):
-    import torch
-
     from intervention.train import train
 
     dataset_path = Path(dataset_directory)
@@ -391,8 +289,6 @@ def train_imitation(
     output_path.mkdir(parents=True, exist_ok=True)
 
     initial_checkpoint_path = Path(initial_checkpoint) if initial_checkpoint else None
-
-    intervention.process.torch_device = torch.device(device_name)
 
     loss_type_ = (
         train.LossType.CROSS_ENTROPY
@@ -450,26 +346,13 @@ def train_imitation(
     required=False,
     help=("The number of training epochs"),
 )
-@click.option(
-    "device_name",
-    "--device",
-    default="cuda",
-    type=str,
-    help=(
-        "The device to run on. "
-        "See torch's documentation on torch.device for more information."
-    ),
-)
 def train_intervention(
     intervention_dataset_directory: str,
     imitation_dataset_directory: str,
     output_directory: str,
     initial_checkpoint: Optional[str],
-    device_name: str,
     num_epochs: int,
 ):
-    import torch
-
     import intervention.train.train
 
     intervention_dataset_path = Path(intervention_dataset_directory)
@@ -479,8 +362,6 @@ def train_intervention(
     output_path.mkdir(parents=True, exist_ok=True)
 
     initial_checkpoint_path = Path(initial_checkpoint) if initial_checkpoint else None
-
-    intervention.process.torch_device = torch.device(device_name)
 
     intervention.train.train.intervention(
         intervention_dataset_path,

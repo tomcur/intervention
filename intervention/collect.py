@@ -26,14 +26,10 @@ def collect_teacher_episode(
             return summary
 
 
-def collect_teacher_episodes(
-    teacher_checkpoint: Path,
-    data_path: Path,
-    num_episodes: int,
-) -> None:
+def collect_teacher_episodes(teacher_checkpoint: Path) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
-    episode_summaries_path = data_path / "episodes.csv"
+    episode_summaries_path = process.data_path / "episodes.csv"
     file_exists = os.path.isfile(episode_summaries_path)
     with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
         episode_summaries_writer = csv.DictWriter(
@@ -43,12 +39,14 @@ def collect_teacher_episodes(
         if not file_exists:
             episode_summaries_writer.writeheader()
 
-        for episode in range(num_episodes):
+        for episode in range(process.num_episodes):
             [seed_sequence] = parent_seed_sequence.spawn(1)
 
             episode_id = uuid.uuid4()
-            logger.info(f"Collecting episode {episode+1}/{num_episodes}: {episode_id}.")
-            episode_dir = data_path / str(episode_id)
+            logger.info(
+                f"Collecting episode {episode+1}/{process.num_episodes}: {episode_id}."
+            )
+            episode_dir = process.data_path / str(episode_id)
             episode_dir.mkdir(parents=True, exist_ok=False)
 
             # Run in process to circumvent Carla bug
@@ -88,15 +86,10 @@ def collect_student_episode(
             return summary
 
 
-def collect_student_episodes(
-    student_checkpoint: Path,
-    data_path: Path,
-    num_episodes: int,
-    metrics_only: bool,
-) -> None:
+def collect_student_episodes(student_checkpoint: Path, metrics_only: bool) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
-    episode_summaries_path = data_path / "episodes.csv"
+    episode_summaries_path = process.data_path / "episodes.csv"
     file_exists = os.path.isfile(episode_summaries_path)
     with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
         episode_summaries_writer = csv.DictWriter(
@@ -106,12 +99,14 @@ def collect_student_episodes(
         if not file_exists:
             episode_summaries_writer.writeheader()
 
-        for episode in range(num_episodes):
+        for episode in range(process.num_episodes):
             [seed_sequence] = parent_seed_sequence.spawn(1)
 
             episode_id = uuid.uuid4()
-            logger.info(f"Collecting episode {episode+1}/{num_episodes}: {episode_id}.")
-            episode_dir = data_path / str(episode_id)
+            logger.info(
+                f"Collecting episode {episode+1}/{process.num_episodes}: {episode_id}."
+            )
+            episode_dir = process.data_path / str(episode_id)
             episode_dir.mkdir(parents=True, exist_ok=False)
 
             # Run in process to circumvent Carla bug
@@ -148,13 +143,11 @@ def collect_intervention_episode(
 def collect_intervention_episodes(
     student_checkpoint: Path,
     teacher_checkpoint: Path,
-    data_path: Path,
-    num_episodes: int,
     metrics_only: bool,
 ) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
-    episode_summaries_path = data_path / "episodes.csv"
+    episode_summaries_path = process.data_path / "episodes.csv"
     file_exists = os.path.isfile(episode_summaries_path)
     with open(episode_summaries_path, mode="a", newline="") as episode_summaries:
         episode_summaries_writer = csv.DictWriter(
@@ -164,12 +157,14 @@ def collect_intervention_episodes(
         if not file_exists:
             episode_summaries_writer.writeheader()
 
-        for episode in range(num_episodes):
+        for episode in range(process.num_episodes):
             [seed_sequence] = parent_seed_sequence.spawn(1)
 
             episode_id = uuid.uuid4()
-            logger.info(f"Collecting episode {episode+1}/{num_episodes}: {episode_id}.")
-            episode_dir = data_path / str(episode_id)
+            logger.info(
+                f"Collecting episode {episode+1}/{process.num_episodes}: {episode_id}."
+            )
+            episode_dir = process.data_path / str(episode_id)
             episode_dir.mkdir(parents=True, exist_ok=False)
 
             # Run in process to circumvent Carla bug
