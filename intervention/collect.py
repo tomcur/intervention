@@ -21,8 +21,10 @@ def collect_teacher_episode(
     with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = data.ZipStore(zip_archive, csv_file)
-            summary = run.run_teacher_episode(store, teacher_checkpoint)
-            store.stop()
+            try:
+                summary = run.run_teacher_episode(store, teacher_checkpoint)
+            finally:
+                store.stop()
             return summary
 
 
@@ -78,11 +80,10 @@ def collect_student_episode(
     with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = data.ZipStore(zip_archive, csv_file, metrics_only=metrics_only)
-            summary = run.run_student_episode(
-                store,
-                student_checkpoint,
-            )
-            store.stop()
+            try:
+                summary = run.run_student_episode(store, student_checkpoint)
+            finally:
+                store.stop()
             return summary
 
 
@@ -133,10 +134,12 @@ def collect_intervention_episode(
     with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
             store = data.ZipStore(zip_archive, csv_file, metrics_only=metrics_only)
-            summary = run.run_intervention_episode(
-                store, student_checkpoint, teacher_checkpoint
-            )
-            store.stop()
+            try:
+                summary = run.run_intervention_episode(
+                    store, student_checkpoint, teacher_checkpoint
+                )
+            finally:
+                store.stop()
             return summary
 
 
