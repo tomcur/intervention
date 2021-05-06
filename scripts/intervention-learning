@@ -4,7 +4,7 @@
 import functools
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import click
 from loguru import logger
@@ -99,12 +99,52 @@ def cli_collect_params(func):
             "will be appended to. Per-episode data is written to their own subdirectories."
         ),
     )
+    @click.option(
+        "--town",
+        multiple=True,
+        default=["Town01"],
+        type=str,
+        help=(
+            "The town to set CARLA to. "
+            "Multiple towns can be specified by providing this option multiple times."
+        ),
+    )
+    @click.option(
+        "--weather",
+        multiple=True,
+        default=["ClearNoon"],
+        type=str,
+        help=(
+            "The weather to set CARLA to. "
+            "Multiple weathers can be specified by providing this option multiple times."
+        ),
+    )
     @functools.wraps(func)
-    def wrapper(*args, num_episodes: int, directory: str, **kwargs):
+    def wrapper(
+        *args,
+        num_episodes: int,
+        directory: str,
+        town: List[str],
+        weather: List[str],
+        **kwargs
+    ):
+        from intervention.carla_utils.manager import CARLA_TOWNS, CARLA_WEATHERS
+
+        if not all([t in CARLA_TOWNS for t in town]):
+            print(f"'--town' must be one of {CARLA_TOWNS}")
+            exit(1)
+
+        if not all([w in CARLA_WEATHERS for w in weather]):
+            print(f"'--weather' must be one of {CARLA_WEATHERS}")
+            exit(1)
+
         intervention.process.num_episodes = num_episodes  # kwargs["num_episodes"]
 
         intervention.process.data_path = Path(directory)  # kwargs["directory"])
         intervention.process.data_path.mkdir(parents=True, exist_ok=True)
+
+        intervention.process.towns = town
+        intervention.process.weathers = weather
 
         return func(*args, **kwargs)
 

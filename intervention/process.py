@@ -20,5 +20,9 @@ num_episodes: int = 1
 #: Episode data will be stored here
 data_path = Path()
 
+#: On running an episode, the town and weather are chosen randomly from these lists.
+towns = ["Town01"]
+weathers = ["ClearNoon"]
+
 def init():
     torch.set_num_threads(num_torch_threads)

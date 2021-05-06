@@ -49,6 +49,10 @@ CarlaTown = Literal[
 ]
 
 
+CARLA_WEATHERS = CarlaWeather.__args__
+CARLA_TOWNS = CarlaTown.__args__
+
+
 @dataclass
 class TickState:
     location: carla.Location
