@@ -436,13 +436,27 @@ class ManagedEpisode:
         self._carla_world.apply_settings(settings)
         self._carla_world.wait_for_tick()
 
-        # For some reason sensors cannot be destroyed in batch
+        # In addition to being destroyed, sensors must be told to stop listening.
+        # Calling the `destroy` method (not in batch) does this for us.
         for sensor in self._actor_dict["sensor"]:
             sensor.destroy()
         self._actor_dict["sensor"] = []
 
-        for actors in self._actor_dict.values():
-            self._client.apply_batch([carla.command.DestroyActor(x) for x in actors])
+        # Destroy the actors in order (destroy attached actors first)
+        for actor_type in [
+            "vehicle",
+            "player",
+            "pedestrian_controller",
+            "pedestrian",
+        ]:
+            if actor_type in self._actor_dict:
+                self._client.apply_batch(
+                    [
+                        carla.command.DestroyActor(x)
+                        for x in self._actor_dict[actor_type]
+                    ]
+                )
+                self._actor_dict[actor_type] = []
 
         logger.info("Cleanup done.")
 
@@ -580,7 +594,7 @@ class ManagedEpisode:
             f"Spawned {len(controllers)} pedestrians, after accounting for "
             f"{spawn_collisions} spawn collisions."
         )
-        self._actor_dict["pedestrians"] = list(carla_world.get_actors(walkers))
+        self._actor_dict["pedestrian"] = list(carla_world.get_actors(walkers))
         self._actor_dict["pedestrian_controllers"] = list(
             carla_world.get_actors(controllers)
         )
