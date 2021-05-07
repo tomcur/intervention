@@ -331,6 +331,7 @@ class ManagedEpisode:
         self._carla_world: Optional[carla.World] = None
         self._traffic_manager: Optional[carla.TrafficManager] = None
         self._traffic_manager_port: Optional[int] = None
+        self._sensors: List[carla.Sensor] = []
         self._pedestrian_controllers: List[carla.WalkerAIController] = []
         self._actor_dict: Dict[str, List[carla.Actor]] = collections.defaultdict(list)
 
@@ -424,9 +425,31 @@ class ManagedEpisode:
             self._carla_world, start_pose.location, ego_vehicle, local_planner, renderer
         )
 
+    def _destroy_actors(self) -> None:
+        logger.debug("Destroying actors.")
+
+        # In addition to being destroyed, sensors and pedestrians must be told to stop.
+        for sensor in self._sensors:
+            sensor.stop()
+
+        for controller in self._pedestrian_controllers:
+            controller.stop()
+
+        actors = [actor for actors in self._actor_dict.values() for actor in actors]
+        self._client.apply_batch_sync(
+            [carla.command.DestroyActor(actor.id) for actor in actors]
+        )
+        self._actor_dict = {}
+        self._sensors = []
+        self._pedestrian_controllers = []
+
+        logger.debug("Destroyed actors.")
+
     def _clean_up(self) -> None:
         assert self._carla_world is not None
         assert self._traffic_manager is not None
+
+        self._destroy_actors()
 
         self._traffic_manager.set_synchronous_mode(False)
 
@@ -435,28 +458,6 @@ class ManagedEpisode:
         settings.fixed_delta_seconds = 0.0
         self._carla_world.apply_settings(settings)
         self._carla_world.wait_for_tick()
-
-        # In addition to being destroyed, sensors must be told to stop listening.
-        # Calling the `destroy` method (not in batch) does this for us.
-        for sensor in self._actor_dict["sensor"]:
-            sensor.destroy()
-        self._actor_dict["sensor"] = []
-
-        # Destroy the actors in order (destroy attached actors first)
-        for actor_type in [
-            "vehicle",
-            "player",
-            "pedestrian_controller",
-            "pedestrian",
-        ]:
-            if actor_type in self._actor_dict:
-                self._client.apply_batch(
-                    [
-                        carla.command.DestroyActor(x)
-                        for x in self._actor_dict[actor_type]
-                    ]
-                )
-                self._actor_dict[actor_type] = []
 
         logger.info("Cleanup done.")
 
@@ -595,11 +596,11 @@ class ManagedEpisode:
             f"{spawn_collisions} spawn collisions."
         )
         self._actor_dict["pedestrian"] = list(carla_world.get_actors(walkers))
-        self._actor_dict["pedestrian_controllers"] = list(
+        self._actor_dict["pedestrian_controller"] = list(
             carla_world.get_actors(controllers)
         )
         self._pedestrian_controllers = cast(
-            List[carla.WalkerAIController], self._actor_dict["pedestrian_controllers"]
+            List[carla.WalkerAIController], self._actor_dict["pedestrian_controller"]
         )
 
     def _spawn_ego_vehicle(
@@ -634,12 +635,15 @@ class ManagedEpisode:
 
         rgb_camera = ego_vehicle.add_rgb_camera(carla_world)
         self._actor_dict["sensor"].append(rgb_camera)
+        self._sensors.append(rgb_camera)
 
         lane_invasion_detector = ego_vehicle.add_lane_invasion_detector(carla_world)
         self._actor_dict["sensor"].append(lane_invasion_detector)
+        self._sensors.append(lane_invasion_detector)
 
         collision_detector = ego_vehicle.add_collision_detector(carla_world)
         self._actor_dict["sensor"].append(collision_detector)
+        self._sensors.append(collision_detector)
 
         return ego_vehicle
 
