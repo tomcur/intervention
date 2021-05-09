@@ -21,6 +21,15 @@ class LossType(Enum):
     CROSS_ENTROPY = 0
     EXPECTED_VALUE = 1
 
+    @classmethod
+    def from_str(cls, s):
+        if s.lower() in ("cross_entropy", "cross-entropy"):
+            return cls.CROSS_ENTROPY
+        elif s.lower() in ("expected_value", "expected-value"):
+            return cls.EXPECTED_VALUE
+        else:
+            raise ValueError
+
 
 def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Tensor:
     size = branches[0].size()

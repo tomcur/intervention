@@ -292,11 +292,12 @@ def collect_intervention(
 @click.option(
     "-l",
     "--loss-type",
-    type=click.Choice(["CE", "EV"], case_sensitive=False),
+    type=click.Choice(["cross-entropy", "expected-value"], case_sensitive=False),
     required=True,
     help=(
         "The type of loss to use. "
-        "Set to `CE` for cross-entropy log loss or `EV` for expected-value loss."
+        "Set to `cross-entropy` for cross-entropy log loss or `expected-value` for "
+        "expected-value loss."
     ),
 )
 @click.option(
@@ -330,11 +331,7 @@ def train_imitation(
 
     initial_checkpoint_path = Path(initial_checkpoint) if initial_checkpoint else None
 
-    loss_type_ = (
-        train.LossType.CROSS_ENTROPY
-        if loss_type == "CE"
-        else train.LossType.EXPECTED_VALUE
-    )
+    loss_type_ = train.LossType.from_str(loss_type)
 
     train.imitation(
         dataset_path,
