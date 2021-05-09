@@ -105,6 +105,7 @@ def imitation(
         raise Exception("unexpected loss kind")
     GRADIENT_NORM_CLIPPING = 0.1
 
+    logger.info(f"Training using target source {target_source}.")
     logger.info(f"Training using loss type {loss_type}.")
 
     training_dataset = dataset.off_policy_data(dataset_path)
