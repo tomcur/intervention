@@ -30,6 +30,12 @@ class TargetSource(Enum):
         else:
             raise ValueError
 
+    def to_str(self) -> str:
+        if self is TargetSource.TEACHER_PREDICTION:
+            return "teacher-prediction"
+        elif self is TargetSource.LOCATION:
+            return "location"
+
 
 class LossType(Enum):
     CROSS_ENTROPY = 0
@@ -43,6 +49,12 @@ class LossType(Enum):
             return cls.EXPECTED_VALUE
         else:
             raise ValueError
+
+    def to_str(self) -> str:
+        if self is LossType.CROSS_ENTROPY:
+            return "cross-entropy"
+        elif self is LossType.EXPECTED_VALUE:
+            return "expected-value"
 
 
 def select_branch(branches: List[torch.Tensor], commands: List[int]) -> torch.Tensor:
@@ -270,7 +282,8 @@ def imitation(
                 "gradient_norm_clipping": GRADIENT_NORM_CLIPPING,
                 "batch_size": batch_size,
                 "epoch": epoch,
-                "loss_type": "CE" if loss_type is LossType.CROSS_ENTROPY else "EV",
+                "target_source": target_source.to_str(),
+                "loss_type": loss_type.to_str(),
             },
             {"hparam/epoch_mean_train_loss": epoch_total_train_loss / num_batches},
         )
