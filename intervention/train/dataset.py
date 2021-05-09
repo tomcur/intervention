@@ -214,6 +214,14 @@ class _Dataset(torch.utils.data.Dataset):
         with zip_file.open(datapoint["teacher_waypoints_filename"]) as f:
             teacher_waypoints = np.load(f)
 
+        teacher_waypoints_image_coordinates = np.array([
+            coordinates.ego_coordinate_to_image_coordinate(
+                float(waypoint[0]),
+                float(waypoint[1]),
+            )
+            for waypoint in teacher_waypoints
+        ])
+
         if datapoint["student_image_targets_filename"] != "":
             assert datapoint["student_image_heatmaps_filename"] != ""
 
@@ -226,7 +234,8 @@ class _Dataset(torch.utils.data.Dataset):
             return {
                 "rgb_image": self._transforms(img),
                 "untransformed_rgb_image": np.moveaxis(img, [2], [0]),
-                "teacher_waypoint": teacher_waypoints,
+                "teacher_waypoints": teacher_waypoints,
+                "teacher_image_targets": teacher_waypoints_image_coordinates,
                 "datapoint": datapoint,
                 "student_image_targets": student_image_targets,
                 "student_image_heatmaps": student_image_heatmaps,
@@ -235,7 +244,8 @@ class _Dataset(torch.utils.data.Dataset):
             return {
                 "rgb_image": self._transforms(img),
                 "untransformed_rgb_image": np.moveaxis(img, [2], [0]),
-                "teacher_waypoint": teacher_waypoints,
+                "teacher_waypoints": teacher_waypoints,
+                "teacher_image_targets": teacher_waypoints_image_coordinates,
                 "datapoint": datapoint,
             }
 

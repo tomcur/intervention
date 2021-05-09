@@ -17,6 +17,20 @@ from . import dataset
 EPSILON = 1e-8
 
 
+class TargetSource(Enum):
+    TEACHER_PREDICTION = 0
+    LOCATION = 1
+
+    @classmethod
+    def from_str(cls, s):
+        if s.lower() in ("teacher_prediction", "teacher-prediction"):
+            return cls.TEACHER_PREDICTION
+        elif s.lower() in ("location",):
+            return cls.LOCATION
+        else:
+            raise ValueError
+
+
 class LossType(Enum):
     CROSS_ENTROPY = 0
     EXPECTED_VALUE = 1
@@ -75,6 +89,7 @@ def cross_entropy_four_hot(x: float, y: float, width: int, height: int) -> torch
 def imitation(
     dataset_path: Path,
     output_checkpoint_path: Path,
+    target_source: TargetSource,
     loss_type: LossType,
     batch_size: int = 30,
     initial_checkpoint_path: Optional[Path] = None,
@@ -165,9 +180,14 @@ def imitation(
             )
             del rgb_image, speed
 
-            locations = batch["datapoint"]["next_locations_image_coordinates"].to(
-                process.torch_device
-            )
+            if target_source is TargetSource.TEACHER_PREDICTION:
+                locations = batch["teacher_image_targets"].to(process.torch_device)
+            elif target_source is TargetSource.LOCATION:
+                locations = batch["datapoint"]["next_locations_image_coordinates"].to(
+                    process.torch_device
+                )
+            else:
+                raise Exception("unexpected target source")
 
             # Transform X and Y differently; we can never have a waypoint above the
             # horizon (i.e. above the vertical middle of the camera frame).
@@ -450,7 +470,6 @@ def intervention(
                 iter(regular_imitation_generator),
             )
         ):
-
             negative_len = len(negative_batch["rgb_image"])
             recovery_imitation_len = len(recovery_imitation_batch["rgb_image"])
             regular_imitation_len = len(regular_imitation_batch["rgb_image"])
@@ -610,7 +629,9 @@ def intervention(
                     -(
                         NEGATIVE_LEARNING_DECAY_INITIAL
                         * torch.exp(
-                            -negative_batch["datapoint"]["ticks_to_intervention"].float()
+                            -negative_batch["datapoint"][
+                                "ticks_to_intervention"
+                            ].float()
                             / NEGATIVE_LEARNING_DECAY_TIME
                         )
                     ),
