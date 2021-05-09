@@ -223,21 +223,21 @@ class _Dataset(torch.utils.data.Dataset):
             with zip_file.open(datapoint["student_image_heatmaps_filename"]) as f:
                 student_image_heatmaps = np.load(f)
 
-            return (
-                self._transforms(img),
-                np.moveaxis(img, [2], [0]),
-                teacher_waypoints,
-                student_image_targets,
-                student_image_heatmaps,
-                datapoint,
-            )
+            return {
+                "rgb_image": self._transforms(img),
+                "untransformed_rgb_image": np.moveaxis(img, [2], [0]),
+                "teacher_waypoint": teacher_waypoints,
+                "datapoint": datapoint,
+                "student_image_targets": student_image_targets,
+                "student_image_heatmaps": student_image_heatmaps,
+            }
         else:
-            return (
-                self._transforms(img),
-                np.moveaxis(img, [2], [0]),
-                teacher_waypoints,
-                datapoint,
-            )
+            return {
+                "rgb_image": self._transforms(img),
+                "untransformed_rgb_image": np.moveaxis(img, [2], [0]),
+                "teacher_waypoint": teacher_waypoints,
+                "datapoint": datapoint,
+            }
 
 
 class _DatasetBuilder:

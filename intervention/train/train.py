@@ -132,14 +132,11 @@ def imitation(
 
         num_batches = len(training_generator)
         logger.info(f"Performing Epoch {epoch} ({epoch+1-initial_epoch}/{epochs}).")
-        for (
-            batch_number,
-            (rgb_image, untransformed_rgb_image, teacher_waypoint, datapoint_meta),
-        ) in enumerate(training_generator):
-            this_batch_size = len(rgb_image)
+        for (batch_number, batch) in enumerate(training_generator):
+            this_batch_size = len(batch["rgb_image"])
 
-            rgb_image = rgb_image.float().to(process.torch_device)
-            speed = datapoint_meta["speed"].float().to(process.torch_device)
+            rgb_image = batch["rgb_image"].float().to(process.torch_device)
+            speed = batch["datapoint"]["speed"].float().to(process.torch_device)
 
             # At start of every epoch, store some data in TensorBoard for sanity
             # checks.
@@ -147,7 +144,7 @@ def imitation(
                 writer.add_text("progress", f"start of epoch {epoch}", total_batches)
 
                 image_grid = torchvision.utils.make_grid(
-                    untransformed_rgb_image,
+                    batch["untransformed_rgb_image"],
                     nrow=5,
                 )
                 writer.add_image(
@@ -162,14 +159,13 @@ def imitation(
                 )
 
                 writer.add_graph(model, (rgb_image, speed))
-            del untransformed_rgb_image
 
             all_branch_predictions, all_branch_heatmaps = model.forward(
                 rgb_image, speed
             )
             del rgb_image, speed
 
-            locations = datapoint_meta["next_locations_image_coordinates"].to(
+            locations = batch["datapoint"]["next_locations_image_coordinates"].to(
                 process.torch_device
             )
 
@@ -181,7 +177,7 @@ def imitation(
             ) - 1
 
             pred_locations = select_branch(
-                all_branch_predictions, list(map(int, datapoint_meta["command"]))
+                all_branch_predictions, list(map(int, batch["datapoint"]["command"]))
             )
 
             expected_value_error = torch.mean(
@@ -191,7 +187,7 @@ def imitation(
 
             if loss_type is LossType.CROSS_ENTROPY:
                 pred_heatmaps = select_branch(
-                    all_branch_heatmaps, list(map(int, datapoint_meta["command"]))
+                    all_branch_heatmaps, list(map(int, batch["datapoint"]["command"]))
                 )
 
                 heatmaps_size = pred_heatmaps.size()
@@ -454,30 +450,10 @@ def intervention(
                 iter(regular_imitation_generator),
             )
         ):
-            (
-                negative_rgb_images,
-                untransformed_negative_rgb_images,
-                teacher_waypoints,
-                _negative_image_targets_output,
-                negative_image_heatmaps_output,
-                negative_datapoint,
-            ) = negative_batch
-            (
-                recovery_imitation_rgb_images,
-                untransformed_recovery_imitation_rgb_images,
-                teacher_waypoints,
-                recovery_imitation_datapoint,
-            ) = recovery_imitation_batch
-            (
-                regular_imitation_rgb_images,
-                untransformed_regular_imitation_rgb_images,
-                teacher_waypoints,
-                regular_imitation_datapoint,
-            ) = regular_imitation_batch
 
-            negative_len = len(negative_rgb_images)
-            recovery_imitation_len = len(recovery_imitation_rgb_images)
-            regular_imitation_len = len(regular_imitation_rgb_images)
+            negative_len = len(negative_batch["rgb_image"])
+            recovery_imitation_len = len(recovery_imitation_batch["rgb_image"])
+            regular_imitation_len = len(regular_imitation_batch["rgb_image"])
 
             negative_indices = list(range(0, negative_len))
             recovery_imitation_indices = list(
@@ -492,20 +468,17 @@ def intervention(
 
             rgb_images = torch.cat(
                 (
-                    negative_rgb_images.float(),
-                    recovery_imitation_rgb_images.float(),
-                    regular_imitation_rgb_images.float(),
+                    negative_batch["rgb_image"].float(),
+                    recovery_imitation_batch["rgb_image"].float(),
+                    regular_imitation_batch["rgb_image"].float(),
                 )
             ).to(process.torch_device)
-            del negative_rgb_images
-            del recovery_imitation_rgb_images
-            del regular_imitation_rgb_images
 
             speeds = torch.cat(
                 (
-                    negative_datapoint["speed"].float(),
-                    recovery_imitation_datapoint["speed"].float(),
-                    regular_imitation_datapoint["speed"].float(),
+                    negative_batch["datapoint"]["speed"].float(),
+                    recovery_imitation_batch["datapoint"]["speed"].float(),
+                    regular_imitation_batch["datapoint"]["speed"].float(),
                 )
             ).to(process.torch_device)
 
@@ -516,9 +489,9 @@ def intervention(
 
                 untransformed_rgb_images = torch.cat(
                     (
-                        untransformed_negative_rgb_images,
-                        untransformed_recovery_imitation_rgb_images,
-                        untransformed_regular_imitation_rgb_images,
+                        negative_batch["untransformed_rgb_image"],
+                        recovery_imitation_batch["untransformed_rgb_image"],
+                        regular_imitation_batch["untransformed_rgb_image"],
                     )
                 )
 
@@ -546,9 +519,9 @@ def intervention(
 
             commands = torch.cat(
                 (
-                    negative_datapoint["command"],
-                    recovery_imitation_datapoint["command"],
-                    regular_imitation_datapoint["command"],
+                    negative_batch["datapoint"]["command"],
+                    recovery_imitation_batch["datapoint"]["command"],
+                    regular_imitation_batch["datapoint"]["command"],
                 )
             )
 
@@ -564,7 +537,7 @@ def intervention(
             # Swap dimensions. Coming from the data loader, the first dimension are the
             # batch samples. We expect the first dimension to be the output heads...
             negative_image_heatmaps_output = torch.transpose(
-                negative_image_heatmaps_output, 0, 1
+                negative_batch["student_image_heatmaps"], 0, 1
             )
 
             # ... and we actually expect the output heads to be a list.
@@ -574,17 +547,17 @@ def intervention(
             # planner's command.
             original_negative_heatmaps_output = select_branch(
                 converted,
-                list(map(int, negative_datapoint["command"])),
+                list(map(int, negative_batch["datapoint"]["command"])),
             ).to(process.torch_device)
 
             meta_learning_rates = torch.ones(negative_len)
 
             locations = torch.cat(
                 (
-                    recovery_imitation_datapoint[
+                    recovery_imitation_batch["datapoint"][
                         "next_locations_image_coordinates"
                     ].float(),
-                    regular_imitation_datapoint[
+                    regular_imitation_batch["datapoint"][
                         "next_locations_image_coordinates"
                     ].float(),
                 )
@@ -637,7 +610,7 @@ def intervention(
                     -(
                         NEGATIVE_LEARNING_DECAY_INITIAL
                         * torch.exp(
-                            -negative_datapoint["ticks_to_intervention"].float()
+                            -negative_batch["datapoint"]["ticks_to_intervention"].float()
                             / NEGATIVE_LEARNING_DECAY_TIME
                         )
                     ),
