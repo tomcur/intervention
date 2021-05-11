@@ -470,14 +470,14 @@ def explore_on_policy_dataset(
     ),
     help="The directory of the dataset to calculate metrics for",
 )
-def on_policy_metrics(
+def intervention_metrics(
     dataset_directory: str,
 ):
     import intervention.metrics
 
     dataset_path = Path(dataset_directory)
 
-    intervention.metrics.on_policy_metrics(sys.stdout, dataset_path)
+    intervention.metrics.intervention_metrics(sys.stdout, dataset_path)
 
 
 @cli.command()

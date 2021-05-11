@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import BinaryIO, Tuple, List
+from typing import BinaryIO, List, Tuple
 
 from dataclass_csv import DataclassReader
 
@@ -30,7 +30,7 @@ def episode_metrics(episode_directory: Path) -> Tuple[float, float, int]:
     return total_distance, engaged_distance, interventions
 
 
-def on_policy_metrics(out: BinaryIO, data_directory: Path) -> None:
+def intervention_metrics(out: BinaryIO, data_directory: Path) -> None:
     with open(data_directory / "episodes.csv") as episode_summaries_file:
         episode_summaries_reader = DataclassReader(
             episode_summaries_file, EpisodeSummary
