@@ -2,6 +2,7 @@ import csv
 from pathlib import Path
 from typing import BinaryIO, List, Tuple
 
+import pandas as pd
 from dataclass_csv import DataclassReader
 
 from .data import EpisodeSummary, FrameData
@@ -94,3 +95,98 @@ def intervention_metrics(out: BinaryIO, data_directory: Path) -> None:
     # for episode in episode_summaries:
 
     pass
+
+
+def summarize(out: BinaryIO, data_directory: Path) -> None:
+    episodes = pd.read_csv(data_directory / "episodes.csv")
+
+    episodes[["time"]] = episodes[["ticks"]] / 10.0
+
+    print("dataset", file=out)
+    print("==============", file=out)
+    print(data_directory.name)
+
+    print(file=out)
+    print("total episodes", file=out)
+    print("==============", file=out)
+    print(len(episodes), file=out)
+
+    print(file=out)
+    print("total distance travelled (km)", file=out)
+    print("==============", file=out)
+    print(episodes["distance_travelled"].sum() / 1000.0, file=out)
+
+    print(file=out)
+    print("total teacher distance travelled (km)", file=out)
+    print("==============", file=out)
+    print(episodes["teacher_distance_travelled"].sum() / 1000.0, file=out)
+
+    print(file=out)
+    print("total student distance travelled (km)", file=out)
+    print("==============", file=out)
+    print(episodes["student_distance_travelled"].sum() / 1000.0, file=out)
+
+    print(file=out)
+    print("weather and town distribution", file=out)
+    print("==============", file=out)
+    print(episodes.groupby(["town", "weather"]).size().unstack(fill_value=0), file=out)
+
+    print(file=out)
+    print("end status distribution", file=out)
+    print("==============", file=out)
+    print(episodes[["end_status"]].value_counts(normalize=True).to_string())
+
+    print(file=out)
+    print("end status by town and weather", file=out)
+    print("==============", file=out)
+    print(
+        episodes.groupby(["town", "weather", "end_status"])
+        .size()
+        .unstack(fill_value=0)
+        .to_string(),
+        file=out,
+    )
+
+    print(file=out)
+    print("distance travelled per weather and town (km)", file=out)
+    print("==============", file=out)
+    print(
+        (
+            episodes.groupby(["town", "weather"])[["distance_travelled"]].sum() / 1000.0
+        ).to_string(),
+        file=out,
+    )
+
+    print(file=out)
+    print("simulated time per weather and town (h)", file=out)
+    print("==============", file=out)
+    print(
+        (
+            episodes.groupby(["town", "weather"])[["time"]].sum() / (60.0 * 60.0)
+        ).to_string(),
+        file=out,
+    )
+
+    print(file=out)
+    print("simulated time per weather and town (h)", file=out)
+    print("==============", file=out)
+    print(
+        (
+            episodes.groupby(["town", "weather"])[["time"]].sum() / (60.0 * 60.0)
+        ).to_string(),
+        file=out,
+    )
+
+    print(file=out)
+    print("interventions per episode", file=out)
+    print("==============", file=out)
+    print(episodes[["interventions"]].mean().to_string(), file=out)
+
+    print(file=out)
+    print("interventions per student distance travelled", file=out)
+    print("==============", file=out)
+    print(
+        (episodes["interventions"] / episodes["student_distance_travelled"])
+        .mean(),
+        file=out,
+    )

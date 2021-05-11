@@ -481,9 +481,32 @@ def intervention_metrics(
 
 
 @cli.command()
+@click.option(
+    "-d",
+    "--dataset-directory",
+    type=click.Path(
+        exists=True, file_okay=False, dir_okay=True, writable=False, readable=True
+    ),
+    help="The directory of the dataset to calculate metrics for",
+)
+def summarize(
+    dataset_directory: str,
+):
+    """
+    Calculate and report summary metrics of episodes in a dataset.
+    """
+    import intervention.metrics
+
+    dataset_path = Path(dataset_directory)
+
+    intervention.metrics.summarize(sys.stdout, dataset_path)
+
+
+@cli.command()
 def test_pygame():
-    from intervention import visualization, process
     import carla
+
+    from intervention import process, visualization
 
     v = visualization.Visualizer()
     while True:
