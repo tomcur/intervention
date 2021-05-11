@@ -102,34 +102,43 @@ def summarize(out: BinaryIO, data_directory: Path) -> None:
 
     episodes[["time"]] = episodes[["ticks"]] / 10.0
 
-    print("dataset", file=out)
-    print("==============", file=out)
-    print(data_directory.name)
-
-    print(file=out)
-    print("total episodes", file=out)
-    print("==============", file=out)
-    print(len(episodes), file=out)
-
-    print(file=out)
-    print("total distance travelled (km)", file=out)
-    print("==============", file=out)
-    print(episodes["distance_travelled"].sum() / 1000.0, file=out)
-
-    print(file=out)
-    print("total teacher distance travelled (km)", file=out)
-    print("==============", file=out)
-    print(episodes["teacher_distance_travelled"].sum() / 1000.0, file=out)
-
-    print(file=out)
-    print("total student distance travelled (km)", file=out)
-    print("==============", file=out)
-    print(episodes["student_distance_travelled"].sum() / 1000.0, file=out)
-
-    print(file=out)
-    print("weather and town distribution", file=out)
-    print("==============", file=out)
-    print(episodes.groupby(["town", "weather"]).size().unstack(fill_value=0), file=out)
+    print("dataset\t\t\t\t\t\t", data_directory.name, file=out)
+    print("total episodes\t\t\t\t\t", len(episodes), file=out)
+    print(
+        "total distance travelled (km)\t\t\t",
+        episodes["distance_travelled"].sum() / 1000.0,
+        file=out,
+    )
+    print(
+        "total teacher distance travelled (km)\t\t",
+        episodes["teacher_distance_travelled"].sum() / 1000.0,
+        file=out,
+    )
+    print(
+        "total student distance travelled (km)\t\t",
+        episodes["student_distance_travelled"].sum() / 1000.0,
+        file=out,
+    )
+    print(
+        "total simulated time (h)\t\t\t",
+        episodes["time"].sum() / (60.0 * 60.0),
+        file=out,
+    )
+    print(
+        "success rate\t\t\t\t\t",
+        (episodes["end_status"] == "success").mean(),
+        file=out,
+    )
+    print(
+        "interventions per episode\t\t\t",
+        episodes["interventions"].mean(),
+        file=out,
+    )
+    print(
+        "interventions per student distance travelled\t",
+        (episodes["interventions"] / episodes["student_distance_travelled"]).mean(),
+        file=out,
+    )
 
     print(file=out)
     print("end status distribution", file=out)
@@ -148,6 +157,11 @@ def summarize(out: BinaryIO, data_directory: Path) -> None:
     )
 
     print(file=out)
+    print("weather and town distribution", file=out)
+    print("==============", file=out)
+    print(episodes.groupby(["town", "weather"]).size().unstack(fill_value=0), file=out)
+
+    print(file=out)
     print("distance travelled per weather and town (km)", file=out)
     print("==============", file=out)
     print(
@@ -164,29 +178,5 @@ def summarize(out: BinaryIO, data_directory: Path) -> None:
         (
             episodes.groupby(["town", "weather"])[["time"]].sum() / (60.0 * 60.0)
         ).to_string(),
-        file=out,
-    )
-
-    print(file=out)
-    print("simulated time per weather and town (h)", file=out)
-    print("==============", file=out)
-    print(
-        (
-            episodes.groupby(["town", "weather"])[["time"]].sum() / (60.0 * 60.0)
-        ).to_string(),
-        file=out,
-    )
-
-    print(file=out)
-    print("interventions per episode", file=out)
-    print("==============", file=out)
-    print(episodes[["interventions"]].mean().to_string(), file=out)
-
-    print(file=out)
-    print("interventions per student distance travelled", file=out)
-    print("==============", file=out)
-    print(
-        (episodes["interventions"] / episodes["student_distance_travelled"])
-        .mean(),
         file=out,
     )
