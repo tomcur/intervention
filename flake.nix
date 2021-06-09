@@ -19,8 +19,8 @@
       in
       rec {
         packages.libjpeg = pkgs.callPackage
-          ({ stdenv, static ? false }:
-            with stdenv.lib;
+          ({ lib, stdenv, static ? false }:
+            with lib;
             stdenv.mkDerivation {
               name = "libjpeg-8d";
               src = libjpeg;
@@ -38,7 +38,7 @@
         packages.libproj = pkgs.stdenv.mkDerivation {
           name = "proj-4.9.1";
           src = libproj;
-          meta = with pkgs.stdenv.lib; {
+          meta = with pkgs.lib; {
             description = "Cartographic Projections Library";
             homepage = "http://trac.osgeo.org/proj/";
             license = licenses.mit;
@@ -87,7 +87,7 @@
               ];
             in
             "/run/opengl-driver/lib:"
-            + (pkgs.stdenv.lib.concatMapStringsSep ":" (pkg: "${pkg}/lib")
+            + (pkgs.lib.concatMapStringsSep ":" (pkg: "${pkg}/lib")
               libraries);
           postShellHook = ''
             PYTHONPATH=$PWD/$venvDir/${packages.pythonWithPackages.sitePackages}:$PYTHONPATH
