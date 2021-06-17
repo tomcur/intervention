@@ -223,6 +223,8 @@ def demo_teacher_agent(
     type=bool,
     help=(
         "Print per-frame data (camera image, model heatmaps) to PDF files. "
+        "This attaches an additional camera to the simulation for capturing "
+        "high-resolution images. "
         "When enabled, printing can be toggled on and off by pressing `p`."
     ),
 )
