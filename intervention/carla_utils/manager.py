@@ -60,6 +60,7 @@ class TickState:
     distance_travelled: float
     distance_to_next_checkpoint: float
     rgb: np.ndarray
+    high_resolution_rgb: Optional[np.ndarray]
     lane_invasion: Optional[carla.LaneInvasionEvent]
     collision: Optional[carla.CollisionEvent]
     speed: float
@@ -239,11 +240,13 @@ class Episode:
         rgb_camera: carla.Sensor,
         local_planner: LocalPlannerNew,
         renderer: Renderer,
+        high_resolution_rgb_camera: Optional[carla.Sensor] = None,
     ):
         self._carla_world: carla.World = carla_world
         self._location: carla.Location = start_location
         self._ego_vehicle: EgoVehicle = ego_vehicle
         self._rgb_camera: carla.Sensor = rgb_camera
+        self._high_res_rgb_camera: Optional[carla.Sensor] = high_resolution_rgb_camera
         self._local_planner: LocalPlannerNew = local_planner
         self._renderer: Renderer = renderer
         self._route_completed: bool = False
@@ -282,6 +285,11 @@ class Episode:
         location = self._ego_vehicle.current_location()
         rotation = self._ego_vehicle.current_rotation()
         rgb = self._ego_vehicle.latest_rgb(self._rgb_camera)
+        high_resolution_rgb = (
+            None
+            if self._high_res_rgb_camera is None
+            else self._ego_vehicle.latest_rgb(self._high_res_rgb_camera)
+        )
         lane_invasion = self._ego_vehicle.latest_lane_invasion()
         collision = self._ego_vehicle.latest_collision()
 
@@ -301,6 +309,7 @@ class Episode:
             distance_travelled=self._distance_travelled,
             distance_to_next_checkpoint=distance_to_next_checkpoint,
             rgb=rgb,
+            high_resolution_rgb=high_resolution_rgb,
             lane_invasion=lane_invasion,
             collision=collision,
             speed=speed,
@@ -339,6 +348,7 @@ class ManagedEpisode:
     weather: CarlaWeather = "Default"
     vehicle_name: str = "vehicle.mustang.mustang"
     minimal_route_distance: int = 250
+    attach_high_resolution_rgb_camera: bool = False
 
     def __init__(self, carla_client: carla.Client):
         self._client = carla_client
@@ -402,7 +412,7 @@ class ManagedEpisode:
         (local_planner, start_pose, _) = self._generate_route(carla_map)
 
         logger.debug("Spawning ego vehicle.")
-        ego_vehicle, rgb_camera = self._spawn_ego_vehicle(
+        ego_vehicle, rgb_camera, high_resolution_rgb_camera = self._spawn_ego_vehicle(
             self._carla_world, traffic_manager_port, start_pose
         )
         local_planner.set_vehicle(ego_vehicle.vehicle)
@@ -442,6 +452,7 @@ class ManagedEpisode:
             rgb_camera,
             local_planner,
             renderer,
+            high_resolution_rgb_camera=high_resolution_rgb_camera,
         )
 
     def _destroy_actors(self) -> None:
@@ -627,9 +638,10 @@ class ManagedEpisode:
         carla_world: carla.World,
         traffic_manager_port: int,
         start_pose: carla.Transform,
-    ) -> Tuple[EgoVehicle, carla.Sensor]:
+    ) -> Tuple[EgoVehicle, carla.Sensor, Optional[carla.Sensor]]:
         """
-        Returns a 2-tuple of the created vehicle and an attached RGB camera.
+        Returns a 3-tuple of the created vehicle, an attached RGB camera, and
+        (optionally) an attached high-resolution RGB camera.
         """
         blueprints = carla_world.get_blueprint_library()
         blueprint = process.rng.choice(blueprints.filter(self.vehicle_name))
@@ -659,6 +671,15 @@ class ManagedEpisode:
         self._actor_dict["sensor"].append(rgb_camera)
         self._sensors.append(rgb_camera)
 
+        if self.attach_high_resolution_rgb_camera:
+            high_resolution_rgb_camera = ego_vehicle.add_rgb_camera(
+                carla_world, image_size_x=1920, image_size_y=800
+            )
+            self._actor_dict["sensor"].append(high_resolution_rgb_camera)
+            self._sensors.append(high_resolution_rgb_camera)
+        else:
+            high_resolution_rgb_camera = None
+
         lane_invasion_detector = ego_vehicle.add_lane_invasion_detector(carla_world)
         self._actor_dict["sensor"].append(lane_invasion_detector)
         self._sensors.append(lane_invasion_detector)
@@ -667,7 +688,7 @@ class ManagedEpisode:
         self._actor_dict["sensor"].append(collision_detector)
         self._sensors.append(collision_detector)
 
-        return ego_vehicle, rgb_camera
+        return ego_vehicle, rgb_camera, high_resolution_rgb_camera
 
 
 def connect(
