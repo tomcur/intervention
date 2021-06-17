@@ -22,7 +22,7 @@ def print_multipage(path: Path, tick: int, rgb_image: np.ndarray, heatmaps: np.n
         ax.axis("off")
         ax.imshow(rgb_image)
         pdf.attach_note("RGB camera image")
-        pdf.savefig(fig)
+        pdf.savefig(fig, bbox_inches="tight")
         plt.close()
 
         rescaled_heatmaps = np.power(1.16, np.log(heatmaps))
@@ -39,7 +39,7 @@ def print_multipage(path: Path, tick: int, rgb_image: np.ndarray, heatmaps: np.n
                     interpolation="nearest",
                 )
                 pdf.attach_note(f"command {command} heatmap {waypoint}")
-                pdf.savefig(fig)
+                pdf.savefig(fig, bbox_inches="tight")
                 plt.close()
 
             fig = plt.figure()
@@ -51,7 +51,7 @@ def print_multipage(path: Path, tick: int, rgb_image: np.ndarray, heatmaps: np.n
                 interpolation="nearest",
             )
             pdf.attach_note(f"command {command} combined heatmap")
-            pdf.savefig()
+            pdf.savefig(fig, bbox_inches="tight")
             plt.close()
 
         d = pdf.infodict()
