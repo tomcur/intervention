@@ -503,8 +503,6 @@ class Visualizer:
         self._painter = None
 
     def _process_events(self) -> None:
-        pygame.event.pump()
-
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.VIDEORESIZE:
