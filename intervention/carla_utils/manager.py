@@ -74,7 +74,7 @@ class TickState:
 class EgoVehicle:
     def __init__(self, vehicle: carla.Vehicle):
         self.vehicle: carla.Vehicle = vehicle
-        self._rgb_queue: queue.Queue[np.ndarray] = queue.Queue()
+        self._rgb_queues: dict[carla.Sensor, queue.Queue[np.ndarray]] = {}
         self._lane_invasion_queue: queue.Queue[carla.LaneInvasionEvent] = queue.Queue()
         self._collision_queue: queue.Queue[carla.CollisionEvent] = queue.Queue()
 
@@ -91,11 +91,16 @@ class EgoVehicle:
     def current_rotation(self) -> carla.Rotation:
         return self.vehicle.get_transform().rotation
 
-    def latest_rgb(self) -> np.ndarray:
-        """Blocks until an image is available."""
+    def latest_rgb(self, camera_handle: carla.Sensor) -> np.ndarray:
+        """
+        Blocks until an image is available for the given camera handle.
+
+        :param camera_handle: MUST be a carla `Sensor` object, as returned by
+        `EgoVehicle.add_rgb_camera`.
+        """
         rgb = None
-        while rgb is None or not self._rgb_queue.empty():
-            rgb = self._rgb_queue.get()
+        while rgb is None or not self._rgb_queues[camera_handle].empty():
+            rgb = self._rgb_queues[camera_handle].get()
         return carla_image_to_np(rgb)
 
     def latest_lane_invasion(self) -> Optional[carla.LaneInvasionEvent]:
@@ -110,15 +115,20 @@ class EgoVehicle:
             event = self._collision_queue.get()
         return event
 
-    def add_rgb_camera(self, carla_world: carla.World) -> carla.Sensor:
-        def _enqueue_image(image):
-            logger.trace("Received image: {}", image)
-            self._rgb_queue.put(image)
+    def add_rgb_camera(
+        self, carla_world: carla.World, image_size_x: int = 384, image_size_y: int = 160
+    ) -> carla.Sensor:
+        def _create_listener(rgb_camera: carla.Sensor):
+            def _enqueue_image(image):
+                logger.trace("Received image: {}", image)
+                self._rgb_queues[rgb_camera].put(image)
+
+            return _enqueue_image
 
         blueprints = carla_world.get_blueprint_library()
         rgb_camera_bp = blueprints.find("sensor.camera.rgb")
-        rgb_camera_bp.set_attribute("image_size_x", "384")
-        rgb_camera_bp.set_attribute("image_size_y", "160")
+        rgb_camera_bp.set_attribute("image_size_x", f"{image_size_x}")
+        rgb_camera_bp.set_attribute("image_size_y", f"{image_size_y}")
         rgb_camera_bp.set_attribute("fov", "90")
         rgb_camera = carla_world.spawn_actor(
             rgb_camera_bp,
@@ -126,7 +136,9 @@ class EgoVehicle:
             attach_to=self.vehicle,
         )
         assert isinstance(rgb_camera, carla.Sensor)
-        rgb_camera.listen(_enqueue_image)
+
+        self._rgb_queues[rgb_camera] = queue.Queue()
+        rgb_camera.listen(_create_listener(rgb_camera))
 
         return rgb_camera
 
@@ -224,12 +236,14 @@ class Episode:
         carla_world: carla.World,
         start_location: carla.Location,
         ego_vehicle: EgoVehicle,
+        rgb_camera: carla.Sensor,
         local_planner: LocalPlannerNew,
         renderer: Renderer,
     ):
         self._carla_world: carla.World = carla_world
         self._location: carla.Location = start_location
         self._ego_vehicle: EgoVehicle = ego_vehicle
+        self._rgb_camera: carla.Sensor = rgb_camera
         self._local_planner: LocalPlannerNew = local_planner
         self._renderer: Renderer = renderer
         self._route_completed: bool = False
@@ -267,7 +281,7 @@ class Episode:
         (speed, velocity) = self._ego_vehicle.current_speed_and_velocity()
         location = self._ego_vehicle.current_location()
         rotation = self._ego_vehicle.current_rotation()
-        rgb = self._ego_vehicle.latest_rgb()
+        rgb = self._ego_vehicle.latest_rgb(self._rgb_camera)
         lane_invasion = self._ego_vehicle.latest_lane_invasion()
         collision = self._ego_vehicle.latest_collision()
 
@@ -388,7 +402,7 @@ class ManagedEpisode:
         (local_planner, start_pose, _) = self._generate_route(carla_map)
 
         logger.debug("Spawning ego vehicle.")
-        ego_vehicle = self._spawn_ego_vehicle(
+        ego_vehicle, rgb_camera = self._spawn_ego_vehicle(
             self._carla_world, traffic_manager_port, start_pose
         )
         local_planner.set_vehicle(ego_vehicle.vehicle)
@@ -422,7 +436,12 @@ class ManagedEpisode:
         renderer.start()
 
         return Episode(
-            self._carla_world, start_pose.location, ego_vehicle, local_planner, renderer
+            self._carla_world,
+            start_pose.location,
+            ego_vehicle,
+            rgb_camera,
+            local_planner,
+            renderer,
         )
 
     def _destroy_actors(self) -> None:
@@ -608,7 +627,10 @@ class ManagedEpisode:
         carla_world: carla.World,
         traffic_manager_port: int,
         start_pose: carla.Transform,
-    ) -> EgoVehicle:
+    ) -> Tuple[EgoVehicle, carla.Sensor]:
+        """
+        Returns a 2-tuple of the created vehicle and an attached RGB camera.
+        """
         blueprints = carla_world.get_blueprint_library()
         blueprint = process.rng.choice(blueprints.filter(self.vehicle_name))
         blueprint.set_attribute("role_name", "hero")
@@ -645,7 +667,7 @@ class ManagedEpisode:
         self._actor_dict["sensor"].append(collision_detector)
         self._sensors.append(collision_detector)
 
-        return ego_vehicle
+        return ego_vehicle, rgb_camera
 
 
 def connect(
