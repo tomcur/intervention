@@ -26,6 +26,7 @@ class Action(Enum):
     GO_LEFT = 30
     GO_STRAIGHT = 31
     GO_RIGHT = 32
+    TOGGLE_PRINT_TO_PDF = 40
 
 
 def _render_control(control: carla.VehicleControl, font: pygame.font.Font):
@@ -402,6 +403,10 @@ def drive_control_event_processor(
         actions.append(Action.LEFT)
     if pressed[pygame.K_d]:
         actions.append(Action.RIGHT)
+
+    if pygame.K_p in keydown:
+        actions.append(Action.TOGGLE_PRINT_TO_PDF)
+
     return actions
 
 
@@ -418,6 +423,10 @@ def drive_command_event_processor(
         actions.append(Action.GO_STRAIGHT)
     if pressed[pygame.K_RIGHT]:
         actions.append(Action.GO_RIGHT)
+
+    if pygame.K_p in keydown:
+        actions.append(Action.TOGGLE_PRINT_TO_PDF)
+
     return actions
 
 

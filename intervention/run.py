@@ -13,6 +13,7 @@ from . import controller, data, exceptions, process, visualization
 from .carla_utils import TickState, connect
 from .carla_utils.agents.navigation.local_planner import RoadOption
 from .learning_by_cheating import birdview
+from . import pdf
 
 
 def controls_differ(observation, supervisor_control, model_control) -> bool:
@@ -281,12 +282,15 @@ def run_manual() -> None:
 
 def run_student_episode(
     store: data.Store,
+    episode_dir: Path,
     student_checkpoint_path: Path,
+    print_to_pdf: bool,
 ) -> None:
     """
     Run an episode of on-policy student driving (without teacher supervision).
 
-    param store: the store for the episode information.
+    :param store: the store for the episode information.
+    :param episode_dir: a directory where additional episode data can be stored.
     """
     from .models.image import Agent, Image
 
@@ -297,6 +301,9 @@ def run_student_episode(
     )
     managed_episode.town = process.rng.choice(process.towns)
     managed_episode.weather = process.rng.choice(process.weathers)
+
+    managed_episode.attach_high_resolution_rgb_camera = print_to_pdf
+    printing_to_pdf: bool = print_to_pdf
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
@@ -315,6 +322,10 @@ def run_student_episode(
         start_time = datetime.now()
 
         for step in itertools.count():
+            actions = visualizer.get_actions()
+            if visualization.Action.TOGGLE_PRINT_TO_PDF in actions:
+                printing_to_pdf = (not printing_to_pdf) and print_to_pdf
+
             state = episode.tick()
             summary.ticks += 1
 
@@ -342,6 +353,14 @@ def run_student_episode(
                 student_control,
                 state,
             )
+
+            if printing_to_pdf:
+                pdf.print_multipage(
+                    episode_dir / f"test-{summary.ticks}.pdf",
+                    summary.ticks,
+                    state.high_resolution_rgb,
+                    model_image_heatmaps,
+                )
 
             with visualizer as painter:
                 painter.add_command(state.command)

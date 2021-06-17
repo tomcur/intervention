@@ -126,7 +126,7 @@ def cli_collect_params(func):
         directory: str,
         town: List[str],
         weather: List[str],
-        **kwargs
+        **kwargs,
     ):
         from intervention.carla_utils.manager import CARLA_TOWNS, CARLA_WEATHERS
 
@@ -212,10 +212,22 @@ def demo_teacher_agent(
     "--metrics-only",
     is_flag=True,
     type=bool,
-    help=("Only store metrics (i.e. do not store images and model output)."),
+    help=(
+        "Only store metrics (i.e. do not store images and model output). "
+        "Has no impact on the --pdf flag."
+    ),
+)
+@click.option(
+    "--pdf",
+    is_flag=True,
+    type=bool,
+    help=(
+        "Print per-frame data (camera image, model heatmaps) to PDF files. "
+        "When enabled, printing can be toggled on and off by pressing `p`."
+    ),
 )
 @cli_collect_params
-def collect_student(student_checkpoint: str, metrics_only: bool):
+def collect_student(student_checkpoint: str, metrics_only: bool, pdf: bool):
     """
     Collect student driving (without interventions from a teacher).
     """
@@ -226,6 +238,7 @@ def collect_student(student_checkpoint: str, metrics_only: bool):
     intervention.collect.collect_student_episodes(
         student_checkpoint_path,
         metrics_only=metrics_only,
+        print_to_pdf=pdf,
     )
 
 
