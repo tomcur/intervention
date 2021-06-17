@@ -344,6 +344,26 @@ class Episode:
 
 @dataclass
 class ManagedEpisode:
+    """
+    This class is an Episode context manager. It is used to configure and set up CARLA
+    episodes.
+
+    Configure the desired episode by changing the properties of this class. For example,
+    to change the default town and attach a high resolution camera, run:
+
+    ```
+    managed_episode = ManagedEpisode(carla_client)
+    managed_episode.town = "Town02"
+    managed_episode.attach_high_resolution_rgb_camera = True
+
+    with managed_episode as episode:
+        while True:
+            state = episode.tick()
+            # ...
+            episode.apply_control(...)
+    ```
+    """
+
     town: CarlaTown = "Town01"
     weather: CarlaWeather = "Default"
     vehicle_name: str = "vehicle.mustang.mustang"
