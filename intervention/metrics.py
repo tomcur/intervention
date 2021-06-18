@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import BinaryIO, List, Tuple
+from typing import BinaryIO, List, SupportsWrite, Tuple
 
 import pandas as pd
 from dataclass_csv import DataclassReader
@@ -97,7 +97,7 @@ def intervention_metrics(out: BinaryIO, data_directory: Path) -> None:
     pass
 
 
-def summarize(out: BinaryIO, data_directory: Path) -> None:
+def summarize(out: SupportsWrite[str], data_directory: Path) -> None:
     episodes = pd.read_csv(data_directory / "episodes.csv")
 
     episodes[["time"]] = episodes[["ticks"]] / 10.0
