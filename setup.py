@@ -28,6 +28,7 @@ setup(
         "opencv-python~=4.0",
         "pygame >=1.9, <3.0a0",
         "pillow~=8.1",
+        "matplotlib~=3.0",
         # Computation:
         "numpy~=1.19",
         "numpy-stubs",
