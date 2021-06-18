@@ -9,11 +9,10 @@ import numpy as np
 import torch
 from loguru import logger
 
-from . import controller, data, exceptions, process, visualization
+from . import controller, data, exceptions, pdf, process, visualization
 from .carla_utils import TickState, connect
 from .carla_utils.agents.navigation.local_planner import RoadOption
 from .learning_by_cheating import birdview
-from . import pdf
 
 
 def controls_differ(observation, supervisor_control, model_control) -> bool:
