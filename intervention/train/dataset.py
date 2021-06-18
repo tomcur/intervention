@@ -332,7 +332,7 @@ class _CombinedDatasetBuilder:
         negative: torch.utils.data.Dataset,
         supervision_signal: torch.utils.data.Dataset,
         imitation: torch.utils.data.Dataset,
-    ) -> _Dataset:
+    ) -> _CombinedDataset:
         """
         Consumes the dataset builder, returning a dataset.
         """
@@ -383,7 +383,9 @@ class InterventionDatasets:
     combined: torch.utils.data.Dataset
 
 
-def intervention_data(data_directory) -> InterventionDatasets:
+def intervention_data(
+    data_directory, skip_masked: bool = False
+) -> InterventionDatasets:
     """
     Load an (on-policy) intervention dataset. This consists of three separate datasets.
     """
