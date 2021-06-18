@@ -30,8 +30,7 @@ setup(
         "pillow~=8.1",
         "matplotlib~=3.0",
         # Computation:
-        "numpy~=1.19",
-        "numpy-stubs",
+        "numpy~=1.20",
         "networkx~=2.5",
     ],
     scripts=["scripts/intervention-learning"],

@@ -3,5 +3,3 @@ torch==1.7.1
 torchvision==0.8.2
 opencv-python~=4.2.0.32
 pygame==1.9.6
-
-git+https://github.com/numpy/numpy-stubs.git@c49d2d6875971a669a166ea93ef998911af283a1#egg=numpy-stubs
