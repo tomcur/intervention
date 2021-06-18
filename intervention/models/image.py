@@ -152,34 +152,34 @@ class Agent:
         )
         with torch.no_grad():
             predictions, heatmaps = self._model.forward(image, speed)
-            predictions = [prediction.cpu().detach() for prediction in predictions]
-            heatmaps = [heatmap.cpu().detach() for heatmap in heatmaps]
+            # Take only the first minibatch result (the agent runs with a minibatch of
+            # size 1).
+            predictions = torch.stack([p[0, ...].cpu().detach() for p in predictions])
+            heatmaps = torch.stack([h[0, ...].cpu().detach() for h in heatmaps])
 
-        # Get the singular heatmap and prediction based on the commanded action and
-        # taking only the first minibatch result (the agent runs with a minibatch of
-        # size 1).
-        heatmap_out = heatmaps[int(state.command) - 1][0, ...].numpy()
-        command_out = predictions[int(state.command) - 1][0, ...]
-        locations = command_out + 1
-        locations[..., 0] = locations[..., 0] * 0.5 * self._img_size[0]
-        locations[..., 1] = (
-            locations[..., 1] * 0.25 * self._img_size[1]
+        # Transform from [-1, +1] range to [0, img_size] for both axes.
+        transformed_predictions = predictions + 1
+        transformed_predictions[..., 0] = (
+            transformed_predictions[..., 0] * 0.5 * self._img_size[0]
+        )
+        transformed_predictions[..., 1] = (
+            transformed_predictions[..., 1] * 0.25 * self._img_size[1]
         ) + self._img_size[1] / 2.0
 
-        targets = np.zeros((5, 2))
+        # Get the singular heatmap and prediction based on the commanded action.
+        heatmap_out = heatmaps[int(state.command) - 1, ...].numpy()
+        locations = transformed_predictions[int(state.command) - 1, ...]
 
+        targets = np.zeros((5, 2))
         for idx, [image_x, image_y] in enumerate(locations.tolist()):
             ego_x, ego_y = coordinates.image_coordinate_to_ego_coordinate(
                 image_x, image_y
             )
             targets[idx] = [ego_x, ego_y]
 
-        flattened_image_targets = np.array(
-            [prediction[0, ...].numpy() for prediction in predictions]
+        return (
+            targets,
+            heatmap_out,
+            predictions.numpy(),
+            heatmaps.numpy(),
         )
-
-        flattened_image_heatmaps = np.array(
-            [heatmap[0, ...].numpy() for heatmap in heatmaps]
-        )
-
-        return targets, heatmap_out, flattened_image_targets, flattened_image_heatmaps
