@@ -108,7 +108,7 @@ def datapoints_from_dictionaries(dictionaries: List[FrameData]) -> List[Datapoin
         datapoint = Datapoint(
             tick=dictionary["tick"],
             controller=dictionary["controller"],
-            rgb_filename=dictionary["rgb_filename"],
+            rgb_filename=dictionary["rgb_filename"] or "",
             teacher_waypoints_filename=dictionary["teacher_waypoints_filename"] or "",
             student_waypoints_filename=dictionary["student_waypoints_filename"] or "",
             student_image_targets_filename=dictionary["student_image_targets_filename"]
