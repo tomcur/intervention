@@ -32,6 +32,7 @@ setup(
         # Computation:
         "numpy~=1.20",
         "networkx~=2.5",
+        "pandas~=1.2",
     ],
     scripts=["scripts/intervention-learning"],
 )
