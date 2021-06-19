@@ -5,6 +5,12 @@ from .command import Command, Response
 
 
 @dataclass
+class Vector2D:
+    x: float = 0.0
+    y: float = 0.0
+
+
+@dataclass
 class Vector3D:
     x: float = 0.0
     y: float = 0.0
@@ -128,6 +134,8 @@ class BlueprintLibrary(Sequence[ActorBlueprint]):
 
 
 class Actor:
+    id: Any
+
     def destroy(self) -> bool:
         ...
 
@@ -212,6 +220,7 @@ class Sensor(Actor):
     def is_listening(self) -> bool:
         ...
 
+
 @dataclass
 class Waypoint:
     id: int
@@ -246,6 +255,48 @@ class WalkerAIController(Actor):
 
 
 @dataclass
+class GearPhysicsControl:
+    ratio: float
+    down_ratio: float
+    up_ratio: float
+
+
+@dataclass
+class WheelPhysicsControl:
+    tire_friction: float
+    damping_rate: float
+    max_steer_angle: float
+    radius: float
+    max_brake_torque: float
+    max_handbrake_torque: float
+    position: Vector3D
+    long_stiff_value: float
+    lat_stiff_max_load: float
+    lat_stiff_value: float
+
+
+@dataclass
+class VehiclePhysicsControl:
+    torque_curve: List[Vector2D]
+    max_rpm: float
+    moi: float
+    damping_rate_full_throttle: float
+    damping_rate_zero_throttle_clutch_engaged: float
+    damping_rate_zero_throttle_clutch_disengaged: float
+    use_gear_autobox: bool
+    gear_switch_time: float
+    clutch_strength: float
+    final_ratio: float
+    forward_gears: List[GearPhysicsControl]
+    mass: float
+    drag_coefficient: float
+    center_of_mass: Vector3D
+    steering_curve: List[Vector2D]
+    use_sweep_wheel_collision: bool
+    wheels: List[WheelPhysicsControl]
+
+
+@dataclass
 class VehicleControl:
     throttle: float = 0.0
     steer: float = 0.0
@@ -258,6 +309,9 @@ class VehicleControl:
 
 class Vehicle(Actor):
     def apply_control(self, control: VehicleControl):
+        ...
+
+    def get_physics_control(self) -> VehiclePhysicsControl:
         ...
 
     def set_autopilot(self, enabled: bool = True, port: int = 8000) -> None:
