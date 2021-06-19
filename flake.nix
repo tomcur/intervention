@@ -62,7 +62,7 @@
             packages.pythonWithPackages
             cmake
             python37Packages.black
-            python37Packages.python-language-server
+            python37Packages.isort
             python37Packages.jupyter
             python37Packages.venvShellHook
           ];
