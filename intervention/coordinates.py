@@ -228,7 +228,7 @@ def image_coordinate_to_ego_coordinate(
     x = (image_x - central_x) / focal_length
     y = (image_y - central_y) / focal_length
 
-    world_z = 0.0
+    # world_z = 0.0
     world_y = CAMERA_Z_OFFSET / y
     world_x = world_y * x
 

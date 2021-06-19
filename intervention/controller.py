@@ -3,7 +3,6 @@ from collections import deque
 from typing import Deque, List, Tuple
 
 import numpy as np
-from loguru import logger
 
 import carla
 
@@ -300,8 +299,6 @@ class VehicleController:
         target_speed = deltas[:3].mean() / (self._waypoint_step_gap * self._dt)
 
         acceleration = target_speed - state.speed
-
-        logger.trace(f"Target speed {target_speed * 60 * 60 / 1000}")
 
         turn_waypoints = np.array(
             [

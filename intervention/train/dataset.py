@@ -3,7 +3,7 @@ from csv import DictReader
 from dataclasses import dataclass
 import enum
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 from zipfile import ZipFile
 
 import numpy as np

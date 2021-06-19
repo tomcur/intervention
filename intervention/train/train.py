@@ -4,7 +4,6 @@ from enum import Enum
 from pathlib import Path, PurePath
 from typing import List, Optional, Tuple
 
-import numpy as np
 import torch
 import torchvision
 from loguru import logger

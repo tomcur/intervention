@@ -8,7 +8,7 @@ import zipfile
 from collections import deque
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Any, Deque, List, Optional, TextIO, Tuple, Union
+from typing import Any, Deque, Optional, TextIO, Tuple, Union
 
 import carla
 import dataclass_csv

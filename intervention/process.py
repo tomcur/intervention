@@ -24,5 +24,6 @@ data_path = Path()
 towns = ["Town01"]
 weathers = ["ClearNoon"]
 
+
 def init():
     torch.set_num_threads(num_torch_threads)

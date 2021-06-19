@@ -2,14 +2,13 @@ import itertools
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import carla
 import numpy as np
 import torch
 from loguru import logger
 
-from . import controller, data, exceptions, pdf, process, visualization
+from . import controller, data, pdf, process, visualization
 from .carla_utils import TickState, connect
 from .carla_utils.agents.navigation.local_planner import RoadOption
 from .learning_by_cheating import birdview
