@@ -8,7 +8,7 @@ import zipfile
 from collections import deque
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Deque, List, Optional, TextIO, Tuple, Union
+from typing import Any, Deque, List, Optional, TextIO, Tuple, Union
 
 import carla
 import dataclass_csv
@@ -397,7 +397,7 @@ class ZipStore(Store):
     def __init__(
         self, archive: zipfile.ZipFile, csv_file: TextIO, metrics_only: bool = False
     ):
-        self._queue = queue.Queue()
+        self._queue: queue.Queue[Tuple[str, Any]] = queue.Queue()
         zip_store_backend = ZipStoreBackend(
             archive, csv_file, metrics_only=metrics_only
         )

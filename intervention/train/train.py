@@ -616,8 +616,8 @@ def intervention(
             for example_idx in range(recovery_imitation_len + regular_imitation_len):
                 for step in range(heatmaps_size[1]):
                     target_four_hot[example_idx, step, ...] = cross_entropy_four_hot(
-                        locations[example_idx, step, 0],
-                        locations[example_idx, step, 1],
+                        locations[example_idx, step, 0].item(),
+                        locations[example_idx, step, 1].item(),
                         heatmaps_size[3],
                         heatmaps_size[2],
                     )

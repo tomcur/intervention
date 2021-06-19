@@ -284,7 +284,7 @@ def run_student_episode(
     episode_dir: Path,
     student_checkpoint_path: Path,
     print_to_pdf: bool,
-) -> None:
+) -> data.EpisodeSummary:
     """
     Run an episode of on-policy student driving (without teacher supervision).
 
