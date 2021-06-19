@@ -49,8 +49,8 @@ CarlaTown = Literal[
 ]
 
 
-CARLA_WEATHERS = CarlaWeather.__args__
-CARLA_TOWNS = CarlaTown.__args__
+CARLA_WEATHERS = CarlaWeather.__args__  # type: ignore
+CARLA_TOWNS = CarlaTown.__args__  # type: ignore
 
 
 @dataclass
@@ -75,7 +75,7 @@ class TickState:
 class EgoVehicle:
     def __init__(self, vehicle: carla.Vehicle):
         self.vehicle: carla.Vehicle = vehicle
-        self._rgb_queues: dict[carla.Sensor, queue.Queue[np.ndarray]] = {}
+        self._rgb_queues: Dict[carla.Sensor, queue.Queue[np.ndarray]] = {}
         self._lane_invasion_queue: queue.Queue[carla.LaneInvasionEvent] = queue.Queue()
         self._collision_queue: queue.Queue[carla.CollisionEvent] = queue.Queue()
 
@@ -271,8 +271,13 @@ class Episode:
         self._local_planner.run_step()
         if self._local_planner.is_done():
             self._route_completed = True
+
+        assert self._local_planner.checkpoint[0] is not None
         checkpoint_location = self._local_planner.checkpoint[0].transform.location
+
+        assert self._local_planner.checkpoint[1] is not None
         command = self._local_planner.checkpoint[1]
+
         # node = self._local_planner.checkpoint[0].transform.location
         # next = self._local_planner.target[0].transform.location
 
@@ -691,14 +696,13 @@ class ManagedEpisode:
         self._actor_dict["sensor"].append(rgb_camera)
         self._sensors.append(rgb_camera)
 
+        high_resolution_rgb_camera: Optional[carla.Sensor] = None
         if self.attach_high_resolution_rgb_camera:
             high_resolution_rgb_camera = ego_vehicle.add_rgb_camera(
                 carla_world, image_size_x=1920, image_size_y=800
             )
             self._actor_dict["sensor"].append(high_resolution_rgb_camera)
             self._sensors.append(high_resolution_rgb_camera)
-        else:
-            high_resolution_rgb_camera = None
 
         lane_invasion_detector = ego_vehicle.add_lane_invasion_detector(carla_world)
         self._actor_dict["sensor"].append(lane_invasion_detector)

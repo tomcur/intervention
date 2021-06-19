@@ -85,14 +85,14 @@ def _unit_vector(vector: np.ndarray) -> np.ndarray:
     return vector / np.linalg.norm(vector)
 
 
-def _angle_between(vector1: np.ndarray, vector2: np.ndarray) -> np.float64:
+def _angle_between(vector1: np.ndarray, vector2: np.ndarray) -> np.float_:
     """
     Returns the angle in radians between vectors 'v1' and 'v2'.
     """
     v1_u = _unit_vector(vector1)
     v2_u = _unit_vector(vector2)
     angle = np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-    assert isinstance(angle, np.float64)
+    assert isinstance(angle, np.float_)
     return angle
 
 
@@ -159,7 +159,7 @@ def _interpolate_waypoint_n_meters_ahead(
     :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
     :param meters`: the distance from the origin along the trajectory
     """
-    total_dist = np.float(0.0)
+    total_dist = np.float_(0.0)
     prev_pos = np.array([0, 0])
     cur_pos = np.array([0, 0])
 
@@ -192,7 +192,7 @@ def _lookahead_trajectory_n_meters_ahead(
 
     prev_pos = np.array([0, 0])
 
-    x, y = np.float(0), np.float(0)
+    x, y = np.float_(0), np.float_(0)
 
     for waypoint in waypoints[:]:
         max_dist = np.linalg.norm(waypoint)
