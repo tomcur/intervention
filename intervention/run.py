@@ -414,10 +414,6 @@ def demo_teacher_agent(teacher_checkpoint: Path, user_input_planner: bool) -> No
     )
 
 
-def demo_student_agent() -> None:
-    run_student_agent(data.BlackHoleStore())
-
-
 def manual() -> None:
     run_manual()
 
