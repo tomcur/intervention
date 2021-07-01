@@ -104,6 +104,10 @@ class BirdViewAgent(Agent):
         self.gap = gap
 
     def run_step(self, observations, teaching=False):
+        """
+        Returns a Numpy array with dimensionality [5, 2] containing [X, Y] world
+        coordinates of the predicted future locations.
+        """
         birdview = common.crop_birdview(observations['birdview'], dx=-10)
         speed = np.linalg.norm(observations['velocity'])
         command = self.one_hot[int(observations['command']) - 1]
