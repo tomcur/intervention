@@ -57,24 +57,24 @@ def _project_point_on_circle(
     return point_on_circle
 
 
-def _turning_radius_to(x: float, y: float) -> float:
-    """
-    Calculates the turning radius assuming we're driving a circle from (0, 0) to (x, y),
-    with a line crossing points (0, 0) to (0, 1) being on a tangent with this circle.
-    """
-    # The circle is defined by
-    # (x - h)^2 + (y - k)^2 = r^2
-    # with k = 0
-    # so, h^2 = r^2
-    # and thus r^2 = (x - r)^2 + y^2
-    # => r^2 = x^2 - 2xr + r^2 + y^2
-    # => 0 = x^2 - 2xr + y^2
-    # => 2xr = x^2 + y^2
-    # => r = (x^2 + y^2) / (2x)
-    if x == 0:
-        return math.inf
-    radius = (x ** 2 + y ** 2) / (2 * abs(x))
-    return radius
+# def _turning_radius_to(x: float, y: float) -> float:
+#     """
+#     Calculates the turning radius assuming we're driving a circle from (0, 0) to (x, y),
+#     with a line crossing points (0, 0) to (0, 1) being on a tangent with this circle.
+#     """
+#     # The circle is defined by
+#     # (x - h)^2 + (y - k)^2 = r^2
+#     # with k = 0
+#     # so, h^2 = r^2
+#     # and thus r^2 = (x - r)^2 + y^2
+#     # => r^2 = x^2 - 2xr + r^2 + y^2
+#     # => 0 = x^2 - 2xr + y^2
+#     # => 2xr = x^2 + y^2
+#     # => r = (x^2 + y^2) / (2x)
+#     # if x == 0:
+#     #     return math.inf
+#     # radius = (x ** 2 + y ** 2) / (2 * abs(x))
+#     # return radius
 
 
 def _unit_vector(vector: np.ndarray) -> np.ndarray:
@@ -241,6 +241,27 @@ def _lookahead_trajectory_n_meters_ahead(
     return float(x), float(y)
 
 
+def _interpolate_trajectory_time(
+    waypoints: np.ndarray, lookahead_time: float
+) -> np.ndarray:
+    """
+    Get a waypoint that is `lookahead_time` time units ahead along the
+    (linearly interpolated) trajectory. One time unit is equal to the time
+    delta between individual waypoints.
+
+    :param waypoints: an `np.ndarray` of form [[X1, Y1], [X2, Y2], ...]
+    :param lookahead_time`: the lookahead time
+    """
+
+    t = math.floor(lookahead_time)
+    waypoint1 = waypoints[t]
+    waypoint2 = waypoints[t + 1]
+
+    interpolated = waypoint1 + (waypoint2 - waypoint1) * (lookahead_time - t)
+
+    return interpolated
+
+
 class VehicleController:
     def __init__(
         self,
@@ -250,6 +271,7 @@ class VehicleController:
     ):
         self._waypoint_step_gap = waypoint_step_gap
         self._dt = unit_time_per_step
+        self._vehicle_geometry = vehicle_geometry
         self._kinematic_bicycle = physics.KinematicBicycle(vehicle_geometry)
 
         self._speed_control = PidController(
@@ -323,8 +345,8 @@ class VehicleController:
         #     lookahead = 3.0
 
         # x, y = _lookahead_trajectory_n_meters_ahead(turn_waypoints, lookahead)
-        x, y = targets[2, :] * 1.5
-        radius = _turning_radius_to(x, y)
+        x, y = _interpolate_trajectory_time(targets, 2.3) * 1.02
+        radius = self._vehicle_geometry.origin_turning_radius(x, y)
         steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
             radius
         )
