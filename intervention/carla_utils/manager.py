@@ -117,8 +117,16 @@ class EgoVehicle:
         return event
 
     def add_rgb_camera(
-        self, carla_world: carla.World, image_size_x: int = 384, image_size_y: int = 160
+        self,
+        carla_world: carla.World,
+        image_size_x: int = 384,
+        image_size_y: int = 160,
+        effects: bool = True,
     ) -> carla.Sensor:
+        """
+        :param effects: if false, disables some camera effects
+        """
+
         def _create_listener(rgb_camera: carla.Sensor):
             def _enqueue_image(image):
                 logger.trace("Received image: {}", image)
@@ -131,6 +139,8 @@ class EgoVehicle:
         rgb_camera_bp.set_attribute("image_size_x", f"{image_size_x}")
         rgb_camera_bp.set_attribute("image_size_y", f"{image_size_y}")
         rgb_camera_bp.set_attribute("fov", "90")
+        if not effects:
+            rgb_camera_bp.set_attribute("motion_blur_intensity", "0.0")
         rgb_camera = carla_world.spawn_actor(
             rgb_camera_bp,
             carla.Transform(carla.Location(x=2.0, z=1.4), carla.Rotation(pitch=0)),
@@ -699,7 +709,7 @@ class ManagedEpisode:
         high_resolution_rgb_camera: Optional[carla.Sensor] = None
         if self.attach_high_resolution_rgb_camera:
             high_resolution_rgb_camera = ego_vehicle.add_rgb_camera(
-                carla_world, image_size_x=1920, image_size_y=800
+                carla_world, image_size_x=1920, image_size_y=800, effects=False
             )
             self._actor_dict["sensor"].append(high_resolution_rgb_camera)
             self._sensors.append(high_resolution_rgb_camera)
