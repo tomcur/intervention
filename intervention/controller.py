@@ -323,29 +323,6 @@ class VehicleController:
 
         acceleration = target_speed - state.speed
 
-        turn_waypoints = np.array(
-            [
-                coordinates.world_coordinate_to_ego_coordinate(
-                    world_x,
-                    world_y,
-                    current_location_x=state.location.x,
-                    current_location_y=state.location.y,
-                    current_forward_x=forward.x,
-                    current_forward_y=forward.y,
-                )
-                for world_x, world_y in self._previous_waypoints_world[0]
-            ]
-        )
-
-        # max_angle = np.arccos(
-        #     np.dot([0, 1], turn_waypoints[-1] / np.linalg.norm(turn_waypoints[-1]))
-        # )
-        # if max_angle < np.radians(5.0):
-        #     lookahead = 5.0
-        # else:
-        #     lookahead = 3.0
-
-        # x, y = _lookahead_trajectory_n_meters_ahead(turn_waypoints, lookahead)
         x, y = _interpolate_trajectory_time(targets, 2.3) * 1.02
         radius = self._vehicle_geometry.origin_turning_radius(x, y)
         steering_angle = self._kinematic_bicycle.turning_radius_to_steering_angle(
