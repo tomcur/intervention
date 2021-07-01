@@ -188,16 +188,20 @@ class EgoVehicle:
         return collision_detector
 
     def get_vehicle_geometry(self) -> physics.VehicleGeometry:
+        vehicle_location = self.vehicle.get_location()
         vehicle_physics = self.vehicle.get_physics_control()
 
         wheel_front_left = vehicle_physics.wheels[0]
         wheel_front_right = vehicle_physics.wheels[1]
         wheel_rear_left = vehicle_physics.wheels[2]
+        wheel_rear_right = vehicle_physics.wheels[3]
 
-        # print(wheel_front_left.max_steer_angle)
-        # print(wheel_front_right.max_steer_angle)
+        vehicle_pos = np.array(
+            [vehicle_location.x, vehicle_location.y, vehicle_location.z]
+        )
 
-        # These positions are world coordinates in centimeters
+        # The physics positions are world coordinates in centimeters, we convert to
+        # meters.
         wheel_front_left_pos = (
             np.array(
                 [
@@ -228,9 +232,40 @@ class EgoVehicle:
             )
             / 100.0
         )
+        wheel_rear_right_pos = (
+            np.array(
+                [
+                    wheel_rear_right.position.x,
+                    wheel_rear_right.position.y,
+                    wheel_rear_right.position.z,
+                ]
+            )
+            / 100.0
+        )
 
-        wheel_base = np.linalg.norm(wheel_front_left_pos - wheel_rear_left_pos)
+        # Calculate the points determining the longitudinal axis
+        front = (wheel_front_left_pos + wheel_front_right_pos) / 2.0
+        rear = (wheel_rear_left_pos + wheel_rear_right_pos) / 2.0
+
+        # Calculate offsets from the rear
+        rear_vehicle_offset = vehicle_pos - rear
+        rear_front_offset = front - rear
+
+        # Project the vehicle world location onto the longitudinal axis
+        # (the vehicle might be rotated somewhat during spawning)
+        vehicle_pos_projected_onto_axis = (
+            rear
+            + np.dot(rear_vehicle_offset, rear_front_offset)
+            / np.dot(rear_front_offset, rear_front_offset)
+            * rear_front_offset
+        )
+
+        wheel_base = np.linalg.norm(rear_front_offset)
         wheel_track = np.linalg.norm(wheel_front_left_pos - wheel_front_right_pos)
+
+        rear_axle_longitudinal_offset = np.linalg.norm(
+            vehicle_pos_projected_onto_axis - rear
+        )
 
         max_inner_wheel_angle = np.radians(wheel_front_left.max_steer_angle)
 
@@ -238,6 +273,7 @@ class EgoVehicle:
             wheel_base=float(wheel_base),
             wheel_track=float(wheel_track),
             max_inner_wheel_angle=float(max_inner_wheel_angle),
+            rear_axle_longitudinal_offset=rear_axle_longitudinal_offset,
         )
 
 
