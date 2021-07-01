@@ -155,7 +155,7 @@ def _interpolate_waypoint_n_meters_ahead(
     Gets a waypoint that is `meters` from the origin (at `0, 0`) along the trajectory in
     `waypoints`. This linearly interpolates the trajectory between the waypoints.
 
-    :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
+    :param waypoints: an `np.ndarray` of form [[X1, Y1], [X2, Y2], ...]
     :param meters`: the distance from the origin along the trajectory
     """
     total_dist = np.float_(0.0)
@@ -182,10 +182,11 @@ def _lookahead_trajectory_n_meters_ahead(
     waypoints: np.ndarray, lookahead: float
 ) -> Tuple[float, float]:
     """
-    Get a waypoint that is `meters` from the origin (at `0, 0`), that is on the
-    (linearly interpolated) trajectory.
+    Get a point on the trajectory that is `meters` from the origin (at `0, 0`)
+    along a circular arc to which a line straight ahead (`(0, 0) -- (0, 1)`) is
+    a tangent.
 
-    :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
+    :param waypoints: an `np.ndarray` of form [[X1, Y1], [X2, Y2], ...]
     :param meters`: the distance from the origin
     """
 
@@ -297,7 +298,7 @@ class VehicleController:
     ) -> Tuple[carla.VehicleControl, float]:
         """
         :param state: current tick's state data
-        :param waypoints: should be an `np.ndarray` of form [[X1, Y2], [X2, Y2], ...]
+        :param waypoints: an `np.ndarray` of form [[X1, Y1], [X2, Y2], ...]
         :param update_pids: whether to update the low-level PID controllers with this
         input
         """
