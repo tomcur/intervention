@@ -12,6 +12,7 @@ from typing_extensions import Literal
 
 from .carla_utils.agents.navigation.local_planner import RoadOption
 from .coordinates import ego_coordinate_to_image_coordinate
+from .physics import VehicleGeometry
 
 
 class Action(Enum):
@@ -188,6 +189,7 @@ class FramePainter:
 
     def add_turn_radius(
         self,
+        vehicle_geometry: VehicleGeometry,
         radius: float,
         direction: Union[Literal["LEFT"], Literal["RIGHT"]],
         color: Tuple[int, int, int] = (240, 240, 240),
@@ -196,12 +198,31 @@ class FramePainter:
         if grayout:
             color = (110, 110, 110)
 
-        max_y = min(radius, 40.0)
+        max_y = min(radius - vehicle_geometry.rear_axle_longitudinal_offset, 40.0)
         step_size = 0.25
+
+        # (x - h)^2 + (y - k)^2 = r^2
+        # => (0 - h)^2 + (0 - k)^2 = r^2
+        # with -k = rear axle offset = d
+        # => h = +/- sqrt(r^2 - d^2)
+        # we only take the positive solution here
+        h = math.sqrt(radius ** 2 - vehicle_geometry.rear_axle_longitudinal_offset ** 2)
 
         ys = np.arange(step_size, max_y, step_size)
         if math.isfinite(radius):
-            xs = radius - np.sqrt(-(ys ** 2) + radius ** 2)
+            # (x - h)^2 + (y - k)^2 = r^2
+            # => x^2 - 2xh + h^2 + (y + d)^2 = r^2
+            # => x^2 - 2xh + (-r^2 + h^2 + (y+d)^2) = 0
+            # by the quadratic formula
+            # => x = (2xh +/- sqrt( (2h)^2 - 4(-r^2 + h^2 + (y+d)^2) )) / 2
+            # => x = (2xh +/- sqrt( 4 (h^2 + r^2 - h^2 - (y+d)^2) )) / 2
+            # => x = h +/- sqrt( r^2 - (y+d)^2 )
+            # we're only visualizing the first quadrant of the circle
+            # => x = h - sqrt( r^2 - (y+d)^2 )
+            xs = h - np.sqrt(
+                radius ** 2 - (ys + vehicle_geometry.rear_axle_longitudinal_offset) ** 2
+            )
+
             if direction == "LEFT":
                 xs *= -1
         else:

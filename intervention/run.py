@@ -368,6 +368,7 @@ def run_student_episode(
                     color=(255, 145, 0),
                 )
                 painter.add_turn_radius(
+                    vehicle_geometry,
                     student_turn_radius,
                     "LEFT" if student_control.steer < 0 else "RIGHT",
                     color=(255, 145, 0),
@@ -619,6 +620,7 @@ def run_teacher_episode(
                 painter.add_control("teacher", teacher_control)
                 painter.add_waypoints(teacher_target_waypoints)
                 painter.add_turn_radius(
+                    vehicle_geometry,
                     teacher_turn_radius,
                     "LEFT" if teacher_control.steer < 0 else "RIGHT",
                     color=(0, 145, 255),
@@ -766,6 +768,7 @@ def run_intervention_episode(
                     grayout=comparer.student_in_control,
                 )
                 painter.add_turn_radius(
+                    vehicle_geometry,
                     teacher_turn_radius,
                     "LEFT" if teacher_control.steer < 0 else "RIGHT",
                     color=(0, 145, 255),
@@ -777,6 +780,7 @@ def run_intervention_episode(
                     grayout=not comparer.student_in_control,
                 )
                 painter.add_turn_radius(
+                    vehicle_geometry,
                     student_turn_radius,
                     "LEFT" if student_control.steer < 0 else "RIGHT",
                     color=(255, 145, 0),
