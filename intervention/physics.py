@@ -20,20 +20,20 @@ class VehicleGeometry:
 
         front
     ┏━━━━━━━━━━━┓
-    ┃     t     ┃
+    ┃     w     ┃
     █┈┈┈┈┈┬┈┈┈┈┈█
-    ┃     ┊ b   ┃
+    ┃     ┊ l   ┃
     ┃   ┬ ╳     ┃
-    ┃ o ┊ ┊     ┃
+    ┃ δ ┊ ┊     ┃
     █┈┈┈┴┈┴┈┈┈┈┈█
     ┃           ┃
     ┗━━━━━━━━━━━┛
         rear
 
     where
-    t = wheel track (distance between front wheels)
-    b = wheel base (distance between front and rear axle)
-    o = rear axle offset from the vehicle origin point (the 0-coordinate as given by
+    w = wheel track (distance between front wheels)
+    l = wheel base (distance between front and rear axle)
+    δ = rear axle offset from the vehicle origin point (the 0-coordinate as given by
     CARLA).
     ╳ marks the vehicle origin point
 
