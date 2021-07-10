@@ -418,7 +418,7 @@ class ManagedEpisode:
     town: CarlaTown = "Town01"
     weather: CarlaWeather = "Default"
     vehicle_name: str = "vehicle.mustang.mustang"
-    minimal_route_distance: int = 250
+    target_route_length: int = 600
     attach_high_resolution_rgb_camera: bool = False
 
     def __init__(self, carla_client: carla.Client):
@@ -455,15 +455,28 @@ class ManagedEpisode:
         spawn_points = carla_map.get_spawn_points()
 
         while True:
+            # We generate a hopeful start and end pose, but the end pose might be
+            # somewhere else (we try to generate a route of length
+            # `self.target_route_length`).
             start_pose = process.rng.choice(spawn_points)
             end_pose = process.rng.choice(spawn_points)
 
-            # FIXME
             local_planner = LocalPlannerNew(carla_map, 2.5, 9.0, 1.5)
-            local_planner.set_route(start_pose.location, end_pose.location)
+            local_planner.set_route(
+                start_pose.location,
+                end_pose.location,
+                max_length=self.target_route_length,
+            )
 
-            if local_planner.distance_to_goal >= self.minimal_route_distance:
+            # ... and we generate a different route if the distance is too short.
+            if local_planner.distance_to_goal >= self.target_route_length - 2.0:
+                logger.debug(f"Generated route length: {local_planner.distance_to_goal:.2f} m.")
                 return local_planner, start_pose, end_pose
+            else:
+                logger.trace(
+                    "Generated route length too short: "
+                    f"{local_planner.distance_to_goal:.2f} m. Regenerating."
+                )
 
     def _set_up(self) -> Episode:
         logger.trace("Loading world.")

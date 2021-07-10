@@ -314,7 +314,6 @@ class LocalPlannerNew(object):
         self._grp = GlobalRoutePlanner(GlobalRoutePlannerDAO(self._map, resolution))
         self._grp.setup()
 
-        self._route = None
         self._waypoints_queue = deque(maxlen=20000)
 
         self.target = (None, None)
@@ -325,22 +324,28 @@ class LocalPlannerNew(object):
         self.distance_to_goal = float("inf")
         self.distances = deque(maxlen=20000)
 
-    def set_route(self, start, target):
+    def set_route(self, start, target, max_length=float("inf")):
+        """
+        Generates a route from `start` to `target`
+        """
         self._waypoints_queue.clear()
 
-        self._route = self._grp.trace_route(start, target)
+        route = self._grp.trace_route(start, target)
 
         self.distance_to_goal = 0.0
 
         prev = None
 
-        for node in self._route:
+        for node in route:
             self._waypoints_queue.append(node)
 
             cur = node[0].transform.location
 
             if prev is not None:
                 delta = np.sqrt((cur.x - prev.x) ** 2 + (cur.y - prev.y) ** 2)
+
+                if self.distance_to_goal + delta > max_length:
+                    break
 
                 self.distance_to_goal += delta
                 self.distances.append(delta)
@@ -357,7 +362,7 @@ class LocalPlannerNew(object):
         )
 
     def run_step(self):
-        assert self._route is not None
+        assert self.distance_to_goal != float("inf")
 
         u = self._vehicle.get_transform().location
         max_index = -1
@@ -387,24 +392,6 @@ class LocalPlannerNew(object):
 
         if len(self._waypoints_queue) > 0:
             self.target = self._waypoints_queue[0]
-
-    def calculate_timeout(self, fps=10):
-        _numpy = lambda p: np.array([p.transform.location.x, p.transform.location.y])
-
-        distance = 0
-        node_prev = None
-
-        for node_cur, _ in self._route:
-            if node_prev is None:
-                node_prev = node_cur
-
-            distance += np.linalg.norm(_numpy(node_cur) - _numpy(node_prev))
-            node_prev = node_cur
-
-        timeout_in_seconds = ((distance / 1000.0) / 5.0) * 3600.0 + 20.0
-        timeout_in_frames = timeout_in_seconds * fps
-
-        return timeout_in_frames
 
     def is_done(self):
         return len(self._waypoints_queue) == 0
