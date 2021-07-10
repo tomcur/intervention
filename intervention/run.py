@@ -305,6 +305,8 @@ def run_student_episode(
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
+        summary.route_length = episode.route_length
+
         vehicle_geometry = episode.get_vehicle_geometry()
         vehicle_controller = controller.VehicleController(vehicle_geometry)
 
@@ -330,6 +332,7 @@ def run_student_episode(
             distance_delta = state.distance_travelled - summary.distance_travelled
             summary.student_distance_travelled += distance_delta
             summary.distance_travelled = state.distance_travelled
+            summary.route_length_completed = state.distance_travelled_along_route
 
             (
                 student_target_waypoints,
@@ -560,6 +563,8 @@ def run_teacher_episode(
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
+        summary.route_length = episode.route_length
+
         vehicle_geometry = episode.get_vehicle_geometry()
         vehicle_controller = controller.VehicleController(vehicle_geometry)
 
@@ -584,6 +589,7 @@ def run_teacher_episode(
             distance_delta = state.distance_travelled - summary.distance_travelled
             summary.teacher_distance_travelled += distance_delta
             summary.distance_travelled = state.distance_travelled
+            summary.route_length_completed = state.distance_travelled_along_route
 
             teacher_target_waypoints = teacher.run_step(
                 {
@@ -670,6 +676,8 @@ def run_intervention_episode(
 
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
+        summary.route_length = episode.route_length
+
         vehicle_geometry = episode.get_vehicle_geometry()
         vehicle_controller = controller.VehicleController(vehicle_geometry)
 
@@ -697,6 +705,7 @@ def run_intervention_episode(
             else:
                 summary.teacher_distance_travelled += distance_delta
             summary.distance_travelled = state.distance_travelled
+            summary.route_length_completed = state.distance_travelled_along_route
 
             teacher_target_waypoints = teacher.run_step(
                 {

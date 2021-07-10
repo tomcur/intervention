@@ -44,6 +44,8 @@ class EpisodeSummary:
     distance_travelled: float = 0.0
     student_distance_travelled: float = 0.0
     teacher_distance_travelled: float = 0.0
+    route_length_completed: float = 0.0
+    route_length: float = 0.0
     interventions: int = 0
     ticks: int = 0
     ticks_per_second: float = 0.0

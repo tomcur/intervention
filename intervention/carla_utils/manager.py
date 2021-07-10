@@ -59,6 +59,8 @@ class TickState:
     rotation: carla.Rotation
     distance_travelled: float
     distance_to_next_checkpoint: float
+    distance_to_goal: float
+    distance_travelled_along_route: float
     rgb: np.ndarray
     high_resolution_rgb: Optional[np.ndarray]
     lane_invasion: Optional[carla.LaneInvasionEvent]
@@ -298,6 +300,7 @@ class Episode:
         self._route_completed: bool = False
         self._unmoved_ticks: int = 0
         self._distance_travelled: float = 0.0
+        self.route_length: float = local_planner.distance_to_goal
 
     def get_vehicle_geometry(self) -> physics.VehicleGeometry:
         return self._ego_vehicle.get_vehicle_geometry()
@@ -359,6 +362,10 @@ class Episode:
             rotation=rotation,
             distance_travelled=self._distance_travelled,
             distance_to_next_checkpoint=distance_to_next_checkpoint,
+            distance_to_goal=self._local_planner.distance_to_goal,
+            distance_travelled_along_route=(
+                self.route_length - self._local_planner.distance_to_goal
+            ),
             rgb=rgb,
             high_resolution_rgb=high_resolution_rgb,
             lane_invasion=lane_invasion,
@@ -470,7 +477,9 @@ class ManagedEpisode:
 
             # ... and we generate a different route if the distance is too short.
             if local_planner.distance_to_goal >= self.target_route_length - 2.0:
-                logger.debug(f"Generated route length: {local_planner.distance_to_goal:.2f} m.")
+                logger.debug(
+                    f"Generated route length: {local_planner.distance_to_goal:.2f} m."
+                )
                 return local_planner, start_pose, end_pose
             else:
                 logger.trace(
