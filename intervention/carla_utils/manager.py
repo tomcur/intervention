@@ -425,7 +425,7 @@ class ManagedEpisode:
     town: CarlaTown = "Town01"
     weather: CarlaWeather = "Default"
     vehicle_name: str = "vehicle.mustang.mustang"
-    target_route_length: int = 600
+    target_route_length: float = 500.0
     attach_high_resolution_rgb_camera: bool = False
 
     def __init__(self, carla_client: carla.Client):
