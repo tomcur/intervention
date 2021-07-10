@@ -159,8 +159,17 @@ def cli_collect_params(func):
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
     help=("The checkpoint to use for the teacher."),
 )
+@click.option(
+    "--metrics-only",
+    is_flag=True,
+    type=bool,
+    help=(
+        "Only store metrics (i.e. do not store images and model output). "
+        "Has no impact on the --pdf flag."
+    ),
+)
 @cli_collect_params
-def collect_teacher(teacher_checkpoint: str, **kwargs):
+def collect_teacher(teacher_checkpoint: str, metrics_only: bool, **kwargs):
     """
     Collect examples of driving from a teacher agent.
     """
@@ -168,7 +177,10 @@ def collect_teacher(teacher_checkpoint: str, **kwargs):
 
     teacher_checkpoint_path = Path(teacher_checkpoint)
 
-    intervention.collect.collect_teacher_episodes(teacher_checkpoint_path)
+    intervention.collect.collect_teacher_episodes(
+        teacher_checkpoint_path,
+        metrics_only=metrics_only,
+    )
 
 
 @cli.command()

@@ -15,12 +15,13 @@ def collect_teacher_episode(
     teacher_checkpoint: Path,
     episode_dir: Path,
     seed_sequence: np.random.SeedSequence,
+    metrics_only: bool,
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
 
     with zipfile.ZipFile(episode_dir / "data.zip", mode="w") as zip_archive:
         with open(episode_dir / "episode.csv", mode="w", newline="") as csv_file:
-            store = data.ZipStore(zip_archive, csv_file)
+            store = data.ZipStore(zip_archive, csv_file, metrics_only=metrics_only)
             try:
                 summary = run.run_teacher_episode(store, teacher_checkpoint)
             finally:
@@ -28,7 +29,7 @@ def collect_teacher_episode(
             return summary
 
 
-def collect_teacher_episodes(teacher_checkpoint: Path) -> None:
+def collect_teacher_episodes(teacher_checkpoint: Path, metrics_only: bool) -> None:
     parent_seed_sequence = np.random.SeedSequence()
 
     episode_summaries_path = process.data_path / "episodes.csv"
@@ -57,6 +58,7 @@ def collect_teacher_episodes(teacher_checkpoint: Path) -> None:
                 teacher_checkpoint,
                 episode_dir,
                 seed_sequence,
+                metrics_only,
             )
             episode_summary.uuid = str(episode_id)
             episode_summaries_writer.writerow(episode_summary.as_csv_writeable_dict())
