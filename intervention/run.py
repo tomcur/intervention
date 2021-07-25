@@ -138,12 +138,19 @@ def waypoints_difference(
     This difference can be used to calculate whether models' outputs agree with each
     other.
     """
-    supervisor_wp = supervisor_target_waypoints[2]
-    model_wp = model_target_waypoints[2]
+    for idx in range(2, 5):
+        supervisor_wp = supervisor_target_waypoints[idx]
+        model_wp = model_target_waypoints[idx]
+        total_diff += max(
+            np.linalg.norm(supervisor_wp - model_wp)
+            / max(np.linalg.norm(supervisor_wp), np.linalg.norm(model_wp), 1.5)
+            - 0.25,
+            0.0,
+        )
 
-    x_diff = max(np.abs(supervisor_wp[0] - model_wp[0]) - 0.2, 0.0)
-    y_diff = max(np.abs(supervisor_wp[1] - model_wp[1]) - 1.2, 0.0)
-    return min(x_diff * 0.3 + y_diff * 0.25, 3.0)
+    total_diff *= 0.7 * (1.0 / 3.0)
+    return total_diff
+
 
 
 def control_stable(control) -> bool:
