@@ -138,6 +138,8 @@ def waypoints_difference(
     This difference can be used to calculate whether models' outputs agree with each
     other.
     """
+    total_diff = 0.0
+
     for idx in range(2, 5):
         supervisor_wp = supervisor_target_waypoints[idx]
         model_wp = model_target_waypoints[idx]
