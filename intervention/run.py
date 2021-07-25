@@ -143,7 +143,7 @@ def waypoints_difference(
 
     x_diff = max(np.abs(supervisor_wp[0] - model_wp[0]) - 0.2, 0.0)
     y_diff = max(np.abs(supervisor_wp[1] - model_wp[1]) - 1.2, 0.0)
-    return min(x_diff * 0.3 + y_diff * 0.25, 2.0)
+    return min(x_diff * 0.3 + y_diff * 0.25, 3.0)
 
 
 def control_stable(control) -> bool:
