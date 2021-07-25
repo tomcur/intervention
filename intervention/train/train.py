@@ -269,7 +269,7 @@ def imitation(
             optimizer.step()
 
             logger.trace(
-                f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
+                f"Epoch {epoch}: finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
                 f"Mean loss: {loss_mean}."
             )
             epoch_total_train_loss += loss_mean.item()
