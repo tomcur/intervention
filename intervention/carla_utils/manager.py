@@ -514,12 +514,12 @@ class ManagedEpisode:
         self._spawn_vehicles(
             self._carla_world,
             carla_map,
-            50,
+            100,
             [start_pose.location],
         )
 
         logger.debug("Spawning pedestrians.")
-        self._spawn_pedestrians(self._carla_world, 65)
+        self._spawn_pedestrians(self._carla_world, 250)
 
         for controller in self._pedestrian_controllers:
             controller.start()
