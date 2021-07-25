@@ -138,6 +138,8 @@ def imitation(
 
         logger.info(f"Resuming from Epoch {checkpoint['epoch']} checkpoint.")
         initial_epoch = checkpoint["epoch"] + 1
+
+        # (total_batches is incremented at the end of the inner loop, so no +1 required)
         total_batches = checkpoint["total_batches"]
 
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -145,7 +147,7 @@ def imitation(
 
     writer = SummaryWriter(
         log_dir=Path("logs") / "imitation" / PurePath(output_checkpoint_path).name,
-        purge_step=initial_epoch,
+        purge_step=total_batches,
     )
 
     for epoch in range(initial_epoch, initial_epoch + epochs):
