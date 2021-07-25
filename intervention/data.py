@@ -162,7 +162,7 @@ class ZipStoreBackend(Store):
     Episode store backed by zip-file.
     """
 
-    STORE_NUM_TICKS_BEFORE_INTERVENTION = (5 * 5) + 15
+    STORE_NUM_TICKS_BEFORE_INTERVENTION = 300
 
     def __init__(
         self, archive: zipfile.ZipFile, csv_file: TextIO, metrics_only: bool = False
@@ -172,6 +172,9 @@ class ZipStoreBackend(Store):
         self._metrics_only = metrics_only
 
         self._frame_data_queue: Deque[Tuple[int, FrameData]] = deque()
+        self._student_rgb_image_queue: Deque[Tuple[int, str, np.ndarray]] = deque(
+            maxlen=ZipStoreBackend.STORE_NUM_TICKS_BEFORE_INTERVENTION
+        )
 
         self._teacher_in_control = True
         self._intervention_tick = 0
@@ -208,7 +211,7 @@ class ZipStoreBackend(Store):
 
         if not self._metrics_only:
             rgb_filename = f"{tick:05d}-rgb-student.png"
-            self._add_rgb_image(rgb_filename, state.rgb)
+            self._student_rgb_image_queue.append((tick, rgb_filename, state.rgb))
 
             if teacher_waypoints is not None:
                 teacher_waypoints_filename = f"{tick:05d}-teacher-waypoints.npy"
@@ -360,14 +363,28 @@ class ZipStoreBackend(Store):
             return
         last_tick, _ = self._frame_data_queue[-1]
 
+        first_rgb_tick: int = 2 ** 63  # some very large _integer_ (math.inf is float)
+
+        if len(self._student_rgb_image_queue) > 0:
+            (tick, _, _) = self._student_rgb_image_queue[0]
+            first_rgb_tick = tick
+
         for (tick, frame_data) in self._frame_data_queue:
+            if tick < first_rgb_tick:
+                frame_data["rgb_filename"] = None
+
             if reason == "intervention":
                 frame_data["ticks_to_intervention"] = last_tick - tick
             elif reason == "end":
                 frame_data["ticks_to_end"] = last_tick - tick
 
             self._csv_writer.writerow(frame_data)
+
+        for (tick, filename, rgb) in self._student_rgb_image_queue:
+            self._add_rgb_image(filename, rgb)
+
         self._frame_data_queue.clear()
+        self._student_rgb_image_queue.clear()
 
     def stop(self) -> None:
         if self._teacher_in_control:
