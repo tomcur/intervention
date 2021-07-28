@@ -437,7 +437,7 @@ def intervention_data(
                     assert frame_data["controller"] == "teacher"
                     if (
                         frame_data["ticks_to_end"] is None
-                        or frame_data["ticks_to_end"] <= 50
+                        or frame_data["ticks_to_end"] >= 50
                         or episode.end_status == "success"
                     ):
                         idx = imitation_dataset_builder.add_datapoint(
