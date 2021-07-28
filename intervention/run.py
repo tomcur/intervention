@@ -174,7 +174,7 @@ class Comparer:
         self.difference_integral = 0.0
 
         self._stable_frames = 0
-        self.student_in_control = False
+        self.student_in_control = True
 
     def evaluate_and_compare(
         self,
