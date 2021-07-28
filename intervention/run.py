@@ -750,7 +750,8 @@ def run_intervention_episode(
                 model_image_heatmaps,
             ) = student_agent.step(state)
 
-            if not comparer.student_in_control:
+            student_in_control = comparer.student_in_control
+            if not student_in_control:
                 episode.apply_control(teacher_control)
                 store.push_teacher_driving(
                     step,
@@ -765,7 +766,7 @@ def run_intervention_episode(
                 student_target_waypoints,
                 update_pids=comparer.student_in_control,
             )
-            if comparer.student_in_control:
+            if student_in_control:
                 episode.apply_control(student_control)
                 store.push_student_driving(
                     step,
@@ -784,6 +785,10 @@ def run_intervention_episode(
                 student_target_waypoints,
                 student_control,
             )
+
+            if student_in_control and not comparer.student_in_control:
+                # Control was switched from student to teacher
+                summary.interventions += 1
 
             with visualizer as painter:
                 painter.add_command(state.command)
