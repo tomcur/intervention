@@ -421,7 +421,8 @@ def intervention_data(
                     ):
                         ticks_to_intervention = frame_data["ticks_to_end"]
 
-                    if ticks_to_intervention is None or ticks_to_intervention > 25:
+                    # if ticks_to_intervention is None or ticks_to_intervention > 25:
+                    if ticks_to_intervention is None or ticks_to_intervention > 5:
                         idx = supervision_signal_dataset_builder.add_datapoint(
                             zip_file, datapoint
                         )
