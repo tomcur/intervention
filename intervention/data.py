@@ -162,7 +162,7 @@ class ZipStoreBackend(Store):
     Episode store backed by zip-file.
     """
 
-    STORE_NUM_TICKS_BEFORE_INTERVENTION = 300
+    STORE_NUM_TICKS_BEFORE_INTERVENTION = 50
 
     def __init__(
         self, archive: zipfile.ZipFile, csv_file: TextIO, metrics_only: bool = False
