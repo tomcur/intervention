@@ -138,38 +138,46 @@ def waypoints_difference(
     This difference can be used to calculate whether models' outputs agree with each
     other.
     """
-    total_diff = 0.0
+    error_vectors = model_target_waypoints - supervisor_target_waypoints
+    errors = np.linalg.norm(error_vectors, axis=1)
 
-    for idx in range(2, 5):
-        supervisor_wp = supervisor_target_waypoints[idx]
-        model_wp = model_target_waypoints[idx]
-        total_diff += max(
-            np.linalg.norm(supervisor_wp - model_wp)
-            / max(np.linalg.norm(supervisor_wp), np.linalg.norm(model_wp), 1.5)
-            - 0.25,
-            0.0,
+    # Ignore small differences
+    threshold = 0.35
+    errors[errors < threshold] = 0.0
+
+    relative_errors = errors / (
+        (
+            np.linalg.norm(model_target_waypoints, axis=1)
+            + np.linalg.norm(supervisor_target_waypoints, axis=1)
         )
+        / 2
+    )
+    # print(model_target_waypoints[1])
+    # print(supervisor_target_waypoints[1])
+    # print(error_vectors[1])
+    # print(errors[1])
+    # print(relative_errors[1])
 
-    total_diff *= 0.7 * (1.0 / 3.0)
+    total_diff = relative_errors[1:2].mean()
     return total_diff
 
 
-
 def control_stable(control) -> bool:
-    """Determines whether a control is "stable". When a control is stable for a while,
+    """
+    Determines whether a control is "stable". When a control is stable for a while,
     the controller is assumed to be comfortable handing back control to the model.
     """
     return (
         not control.reverse
         and not control.hand_brake
-        and control.throttle > 0.01
-        and control.brake < 0.01
+        # and control.throttle > 0.01
+        and control.brake < 0.2
         and abs(control.steer) < 0.3
     )
 
 
 class Comparer:
-    def __init__(self, threshold: float = 3.5):
+    def __init__(self, threshold: float = 8.0):
         self.threshold = threshold
         self.difference_integral = 0.0
 
