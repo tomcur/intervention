@@ -141,8 +141,11 @@ def waypoints_difference(
     error_vectors = model_target_waypoints - supervisor_target_waypoints
     errors = np.linalg.norm(error_vectors, axis=1)
 
+    # Completely ignore very small differences
+    errors = np.maximum(errors - 0.15, 0.0)
+
     # Ignore small differences
-    threshold = 0.35
+    threshold = 0.30
     errors[errors < threshold] = 0.0
 
     relative_errors = errors / (
