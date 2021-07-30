@@ -406,7 +406,7 @@ def intervention(
     output_checkpoint_path: Path,
     target_source: TargetSource,
     loss_type: LossType,
-    batch_size: int = 30,
+    batch_size: int = 60,
     initial_checkpoint_path: Optional[Path] = None,
     epochs: int = 5,
 ) -> None:
