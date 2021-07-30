@@ -81,6 +81,7 @@
                 pkgs.libtiff.out
                 pkgs.xlibs.libXrender.out
                 pkgs.xlibs.libX11.out
+                pkgs.libGL.out
                 # For Carla RSS integration:
                 pkgs.tbb.out
                 packages.libproj
