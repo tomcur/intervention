@@ -197,7 +197,9 @@ def imitation(
             del rgb_image, speed
 
             if target_source is TargetSource.TEACHER_PREDICTION:
-                locations = batch["teacher_image_targets"].to(process.torch_device)
+                locations = batch["teacher_waypoints_image_coordinates"].to(
+                    process.torch_device
+                )
             elif target_source is TargetSource.LOCATION:
                 locations = batch["datapoint"]["next_locations_image_coordinates"].to(
                     process.torch_device
@@ -317,9 +319,10 @@ def _intervention_data_loaders(
     (1) generating negative batches, (2) recovery imitation batches and (3) regular
     imitation batches.
 
-    The batch sizes are such that the total batch distribution is the same as the
-    natural distribution of the intervention dataset.
+    The batch sizes are such that the total batch distribution is roughly the
+    same as the natural distribution of the intervention dataset.
     """
+
     intervention_datasets = dataset.intervention_data(intervention_dataset_path)
     imitation_dataset = dataset.off_policy_data(imitation_dataset_path)
 
@@ -336,8 +339,8 @@ def _intervention_data_loaders(
 
     total_len = negative_len + recovery_imitation_len + supervision_signal_len
 
-    negative_batch_size = round(negative_len / total_len * batch_size)
-    recovery_imitation_batch_size = round(
+    negative_batch_size = math.ceil(negative_len / total_len * batch_size)
+    recovery_imitation_batch_size = math.ceil(
         recovery_imitation_len / total_len * batch_size
     )
     regular_imitation_batch_size = (
@@ -401,13 +404,24 @@ def intervention(
     intervention_dataset_path: Path,
     imitation_dataset_path: Path,
     output_checkpoint_path: Path,
+    target_source: TargetSource,
+    loss_type: LossType,
     batch_size: int = 30,
     initial_checkpoint_path: Optional[Path] = None,
     epochs: int = 5,
 ) -> None:
     #: Global learning rate multiplier
-    LEARNING_RATE = 0.001
+
+    if loss_type is LossType.CROSS_ENTROPY:
+        LEARNING_RATE = 0.001 * 50
+    elif loss_type is LossType.EXPECTED_VALUE:
+        LEARNING_RATE = 0.001
+    else:
+        raise Exception("unexpected loss kind")
     GRADIENT_NORM_CLIPPING = 0.1
+
+    logger.info(f"Training using target source {target_source}.")
+    logger.info(f"Training using loss type {loss_type}.")
 
     #: The exponential decay time constant of negative learning, unit: number of frames
     # until intervention
@@ -452,6 +466,8 @@ def intervention(
 
         logger.info(f"Resuming from Epoch {checkpoint['epoch']} checkpoint.")
         initial_epoch = checkpoint["epoch"] + 1
+
+        # (total_batches is incremented at the end of the inner loop, so no +1 required)
         total_batches = checkpoint["total_batches"]
 
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -521,7 +537,9 @@ def intervention(
             # At start of every epoch, store some data in TensorBoard for sanity
             # checks.
             if batch_number == 0:
-                writer.add_text("progress", f"start of epoch {epoch}", total_batches)
+                writer.add_text(
+                    "progress", f"start of epoch {epoch}", global_step=total_batches
+                )
 
                 untransformed_rgb_images = torch.cat(
                     (
@@ -553,6 +571,37 @@ def intervention(
             )
             del rgb_images, speeds
 
+            if target_source is TargetSource.TEACHER_PREDICTION:
+                locations = torch.cat(
+                    (
+                        negative_batch["student_waypoints_image_coordinates"],
+                        recovery_imitation_batch["teacher_waypoints_image_coordinates"],
+                        regular_imitation_batch["teacher_waypoints_image_coordinates"],
+                    )
+                ).to(process.torch_device)
+            elif target_source is TargetSource.LOCATION:
+                locations = torch.cat(
+                    (
+                        # negative_batch["datapoint"][
+                        #     "next_locations_image_coordinates"
+                        # ].float(),
+                        negative_batch["student_waypoints_image_coordinates"],
+                        recovery_imitation_batch["datapoint"][
+                            "next_locations_image_coordinates"
+                        ].float(),
+                        regular_imitation_batch["datapoint"][
+                            "next_locations_image_coordinates"
+                        ].float(),
+                    )
+                ).to(process.torch_device)
+
+            # Transform X and Y differently; we can never have a waypoint above the
+            # horizon (i.e. above the vertical middle of the camera frame).
+            locations[..., 0] = locations[..., 0] / (0.5 * img_size[0]) - 1
+            locations[..., 1] = (locations[..., 1] - img_size[1] / 2) / (
+                0.25 * img_size[1]
+            ) - 1
+
             commands = torch.cat(
                 (
                     negative_batch["datapoint"]["command"],
@@ -565,93 +614,86 @@ def intervention(
             pred_locations = select_branch(
                 all_branch_predictions, list(map(int, commands))
             )
-            pred_locations = pred_locations[negative_len:, ...]
-
-            pred_heatmaps = select_branch(all_branch_heatmaps, list(map(int, commands)))
-            del commands, all_branch_predictions, all_branch_heatmaps
-
-            # Swap dimensions. Coming from the data loader, the first dimension are the
-            # batch samples. We expect the first dimension to be the output heads...
-            negative_image_heatmaps_output = torch.transpose(
-                negative_batch["student_image_heatmaps"], 0, 1
+            # pred_locations = pred_locations[negative_len:, ...]
+            expected_value_error = torch.mean(
+                torch.abs(pred_locations - locations), dim=(1, 2)
             )
+            del pred_locations
 
-            # ... and we actually expect the output heads to be a list.
-            converted = [out for out in negative_image_heatmaps_output[:, ...]]
-
-            # Select the original (erroneous) student model output head based on the
-            # planner's command.
-            original_negative_heatmaps_output = select_branch(
-                converted,
-                list(map(int, negative_batch["datapoint"]["command"])),
-            ).to(process.torch_device)
-
-            meta_learning_rates = torch.ones(negative_len)
-
-            locations = torch.cat(
-                (
-                    recovery_imitation_batch["datapoint"][
-                        "next_locations_image_coordinates"
-                    ].float(),
-                    regular_imitation_batch["datapoint"][
-                        "next_locations_image_coordinates"
-                    ].float(),
+            if loss_type is LossType.CROSS_ENTROPY:
+                pred_heatmaps = select_branch(
+                    all_branch_heatmaps, list(map(int, commands))
                 )
-            ).to(process.torch_device)
 
-            # Transform X and Y differently; we can never have a waypoint above the
-            # horizon (i.e. above the vertical middle of the camera frame).
-            locations[..., 0] = locations[..., 0] / (0.5 * img_size[0]) - 1
-            locations[..., 1] = (locations[..., 1] - img_size[1] / 2) / (
-                0.25 * img_size[1]
-            ) - 1
-
-            heatmaps_size = pred_heatmaps.size()
-            target_four_hot = torch.zeros(
-                (
-                    recovery_imitation_len + regular_imitation_len,
-                    heatmaps_size[1],
-                    heatmaps_size[2],
-                    heatmaps_size[3],
+                # Swap dimensions. Coming from the data loader, the first dimension are the
+                # batch samples. We expect the first dimension to be the output heads...
+                negative_image_heatmaps_output = torch.transpose(
+                    negative_batch["student_image_heatmaps"], 0, 1
                 )
-            )
 
-            for example_idx in range(recovery_imitation_len + regular_imitation_len):
-                for step in range(heatmaps_size[1]):
-                    target_four_hot[example_idx, step, ...] = cross_entropy_four_hot(
-                        locations[example_idx, step, 0].item(),
-                        locations[example_idx, step, 1].item(),
-                        heatmaps_size[3],
+                # ... and we actually expect the output heads to be a list.
+                converted = [out for out in negative_image_heatmaps_output[:, ...]]
+
+                # Select the original (erroneous) student model output head based on the
+                # planner's command.
+                original_negative_heatmaps_output = select_branch(
+                    converted,
+                    list(map(int, negative_batch["datapoint"]["command"])),
+                ).to(process.torch_device)
+
+                heatmaps_size = pred_heatmaps.size()
+                target_four_hot = torch.zeros(
+                    (
+                        recovery_imitation_len + regular_imitation_len,
+                        heatmaps_size[1],
                         heatmaps_size[2],
+                        heatmaps_size[3],
                     )
-            del locations
-
-            target_four_hot = target_four_hot.to(process.torch_device)
-
-            targets = torch.cat(
-                (
-                    original_negative_heatmaps_output,
-                    target_four_hot,
                 )
-            ).to(process.torch_device)
-            del original_negative_heatmaps_output, target_four_hot
 
-            loss = torch.mean(
-                -targets * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
+                for example_idx in range(
+                    recovery_imitation_len + regular_imitation_len
+                ):
+                    for step in range(heatmaps_size[1]):
+                        target_four_hot[
+                            example_idx, step, ...
+                        ] = cross_entropy_four_hot(
+                            locations[example_idx, step, 0].item(),
+                            locations[example_idx, step, 1].item(),
+                            heatmaps_size[3],
+                            heatmaps_size[2],
+                        )
+
+                target_four_hot = target_four_hot.to(process.torch_device)
+
+                targets = torch.cat(
+                    (
+                        original_negative_heatmaps_output,
+                        target_four_hot,
+                    )
+                ).to(process.torch_device)
+                del original_negative_heatmaps_output, target_four_hot
+
+                loss = torch.mean(
+                    -targets * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
+                )
+                del targets, pred_heatmaps
+            elif loss_type is LossType.EXPECTED_VALUE:
+                loss = expected_value_error
+            else:
+                raise Exception("unexpected loss kind")
+            del commands, all_branch_predictions, all_branch_heatmaps, locations
+
+            negative_learning_rates = -(
+                NEGATIVE_LEARNING_DECAY_INITIAL
+                * torch.exp(
+                    -negative_batch["datapoint"]["ticks_to_intervention"].float()
+                    / NEGATIVE_LEARNING_DECAY_TIME
+                )
             )
-            del targets, pred_heatmaps
-
             meta_learning_rates = torch.cat(
                 (
-                    -(
-                        NEGATIVE_LEARNING_DECAY_INITIAL
-                        * torch.exp(
-                            -negative_batch["datapoint"][
-                                "ticks_to_intervention"
-                            ].float()
-                            / NEGATIVE_LEARNING_DECAY_TIME
-                        )
-                    ),
+                    negative_learning_rates,
                     torch.ones(recovery_imitation_len),
                     torch.ones(regular_imitation_len),
                 )
@@ -659,7 +701,9 @@ def intervention(
             loss *= meta_learning_rates
             del meta_learning_rates
 
-            writer.add_histogram("loss", loss, global_step=total_batches)
+            writer.add_histogram(
+                "loss-positive", loss[negative_len:], global_step=total_batches
+            )
             writer.add_histogram(
                 "loss-negative", loss[negative_indices], global_step=total_batches
             )
@@ -674,26 +718,56 @@ def intervention(
                 global_step=total_batches,
             )
 
-            writer.add_scalar(
-                "loss-mean-negative",
-                loss[negative_indices].mean(),
-                global_step=total_batches,
-            )
-            writer.add_scalar(
-                "loss-mean-recovery-imitation",
-                loss[recovery_imitation_indices].mean(),
-                global_step=total_batches,
-            )
-            writer.add_scalar(
-                "loss-mean-regular-imitation",
-                loss[regular_imitation_indices].mean(),
-                global_step=total_batches,
-            )
+            with torch.no_grad():
+                loss_mean_positive = loss[negative_len:].mean()
+                loss_mean_negative = loss[negative_indices].mean()
+                writer.add_scalar(
+                    "loss-mean-positive",
+                    loss_mean_positive,
+                    global_step=total_batches,
+                )
+                writer.add_scalar(
+                    "loss-mean-negative",
+                    loss_mean_negative,
+                    global_step=total_batches,
+                )
+                writer.add_scalar(
+                    "loss-mean-recovery-imitation",
+                    loss[recovery_imitation_indices].mean(),
+                    global_step=total_batches,
+                )
+                writer.add_scalar(
+                    "loss-mean-regular-imitation",
+                    loss[regular_imitation_indices].mean(),
+                    global_step=total_batches,
+                )
 
             loss_mean = loss.mean()
             del loss
 
-            writer.add_scalar("loss-mean", loss_mean, global_step=total_batches)
+            with torch.no_grad():
+                writer.add_scalar("loss-mean", loss_mean, global_step=total_batches)
+                writer.add_scalar(
+                    "expected-value-error-positive",
+                    expected_value_error[negative_len:].mean(),
+                    global_step=total_batches,
+                )
+                writer.add_scalar(
+                    "expected-value-error-negative",
+                    expected_value_error[negative_indices].mean(),
+                    global_step=total_batches,
+                )
+                writer.add_scalar(
+                    "expected-value-error-mean-recovery-imitation",
+                    expected_value_error[recovery_imitation_indices].mean(),
+                    global_step=total_batches,
+                )
+                writer.add_scalar(
+                    "expected-value-error-mean-regular-imitation",
+                    expected_value_error[regular_imitation_indices].mean(),
+                    global_step=total_batches,
+                )
+            del expected_value_error
 
             optimizer.zero_grad()
             loss_mean.backward()
@@ -703,8 +777,8 @@ def intervention(
             optimizer.step()
 
             logger.trace(
-                f"Finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
-                f"Mean loss: {loss_mean}."
+                f"Epoch {epoch}: finished Batch {batch_number} ({batch_number+1}/{num_batches}). "
+                f"Mean negative loss: {loss_mean_negative:.8f}. Mean positive loss: {loss_mean_positive:.8f}"
             )
             epoch_total_train_loss += loss_mean.item()
             del loss_mean
@@ -719,6 +793,8 @@ def intervention(
                 "negative_learning_decay_time": NEGATIVE_LEARNING_DECAY_TIME,
                 "batch_size": batch_size,
                 "epoch": epoch,
+                "target_source": target_source.to_str(),
+                "loss_type": loss_type.to_str(),
             },
             {"hparam/epoch_mean_train_loss": epoch_total_train_loss / num_batches},
         )
@@ -734,3 +810,5 @@ def intervention(
         )
 
         logger.info(f"Saved Epoch {epoch} checkpoint to {out_path}.")
+
+    writer.close()

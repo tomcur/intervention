@@ -410,6 +410,28 @@ def train_imitation(
     help=("The directory to write the output checkpoints to."),
 )
 @click.option(
+    "-t",
+    "--target-source",
+    type=click.Choice(["teacher-prediction", "location"], case_sensitive=False),
+    required=True,
+    help=(
+        "The source of waypoint targets to use. "
+        "Set to `teacher-prediction` to train on the teacher's predicted waypoints or "
+        "`location` to train on the real vehicle locations."
+    ),
+)
+@click.option(
+    "-l",
+    "--loss-type",
+    type=click.Choice(["cross-entropy", "expected-value"], case_sensitive=False),
+    required=True,
+    help=(
+        "The type of loss to use. "
+        "Set to `cross-entropy` for cross-entropy log loss or `expected-value` for "
+        "expected-value loss."
+    ),
+)
+@click.option(
     "-i",
     "--initial-checkpoint",
     required=False,
@@ -428,10 +450,12 @@ def train_intervention(
     intervention_dataset_directory: str,
     imitation_dataset_directory: str,
     output_directory: str,
+    target_source: str,
+    loss_type: str,
     initial_checkpoint: Optional[str],
     num_epochs: int,
 ):
-    import intervention.train.train
+    import intervention.train.train as train
 
     intervention_dataset_path = Path(intervention_dataset_directory)
     imitation_dataset_path = Path(imitation_dataset_directory)
@@ -441,10 +465,15 @@ def train_intervention(
 
     initial_checkpoint_path = Path(initial_checkpoint) if initial_checkpoint else None
 
-    intervention.train.train.intervention(
+    target_source_ = train.TargetSource.from_str(target_source)
+    loss_type_ = train.LossType.from_str(loss_type)
+
+    train.intervention(
         intervention_dataset_path,
         imitation_dataset_path,
         output_path,
+        target_source_,
+        loss_type_,
         initial_checkpoint_path=initial_checkpoint_path,
         epochs=num_epochs,
     )
