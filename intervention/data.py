@@ -101,6 +101,15 @@ class FrameData(TypedDict):
     orientation_z: float
 
 
+@dataclasses.dataclass
+class _BulkData:
+    rgb: Optional[Tuple[str, bytes]]
+    teacher_waypoints: Optional[Tuple[str, bytes]]
+    student_waypoints: Optional[Tuple[str, bytes]]
+    student_image_targets: Optional[Tuple[str, bytes]]
+    student_image_heatmaps: Optional[Tuple[str, bytes]]
+
+
 class Store:
     """Episode store."""
 
@@ -157,6 +166,11 @@ class BlackHoleStore(Store):
         pass
 
 
+def _write_rgb_image(buffer: BytesIO, rgb: np.ndarray) -> None:
+    im = Image.fromarray(rgb)
+    im.save(buffer, format="PNG")
+
+
 class ZipStoreBackend(Store):
     """
     Episode store backed by zip-file.
@@ -165,18 +179,23 @@ class ZipStoreBackend(Store):
     STORE_NUM_TICKS_BEFORE_INTERVENTION = 50
 
     def __init__(
-        self, archive: zipfile.ZipFile, csv_file: TextIO, metrics_only: bool = False
+        self,
+        archive: zipfile.ZipFile,
+        csv_file: TextIO,
+        metrics_only: bool = False,
+        store_immediately: bool = False,
     ):
         self._archive = archive
         self._csv = csv
         self._metrics_only = metrics_only
+        self._store_immediately = store_immediately
 
         self._frame_data_queue: Deque[Tuple[int, FrameData]] = deque()
-        self._student_rgb_image_queue: Deque[Tuple[int, str, np.ndarray]] = deque(
+        self._bulk_data_queue: Deque[Tuple[int, _BulkData]] = deque(
             maxlen=ZipStoreBackend.STORE_NUM_TICKS_BEFORE_INTERVENTION
         )
 
-        self._teacher_in_control = True
+        self._teacher_in_control = False
         self._intervention_tick = 0
         self._engagement_tick = 0
 
@@ -203,21 +222,28 @@ class ZipStoreBackend(Store):
             self._teacher_in_control = False
             self._store_teacher_driving(reason="engagement")
 
-        rgb_filename = None
-        teacher_waypoints_filename = None
-        student_waypoints_filename = None
-        model_image_targets_filename = None
-        model_image_heatmaps_filename = None
+        bulk_data = _BulkData(
+            rgb=None,
+            teacher_waypoints=None,
+            student_waypoints=None,
+            student_image_targets=None,
+            student_image_heatmaps=None,
+        )
 
         if not self._metrics_only:
+            buffer = BytesIO()
             rgb_filename = f"{tick:05d}-rgb-student.png"
-            self._student_rgb_image_queue.append((tick, rgb_filename, state.rgb))
+            _write_rgb_image(buffer, state.rgb)
+            bulk_data.rgb = (rgb_filename, buffer.getvalue())
 
             if teacher_waypoints is not None:
                 teacher_waypoints_filename = f"{tick:05d}-teacher-waypoints.npy"
                 buffer = BytesIO()
                 np.save(buffer, teacher_waypoints)
-                self._add_file(teacher_waypoints_filename, buffer.getvalue())
+                bulk_data.teacher_waypoints = (
+                    teacher_waypoints_filename,
+                    buffer.getvalue(),
+                )
 
             student_waypoints_filename = f"{tick:05d}-student-waypoints.npy"
             model_image_targets_filename = f"{tick:05d}-image-targets-student.npy"
@@ -225,15 +251,29 @@ class ZipStoreBackend(Store):
 
             buffer = BytesIO()
             np.save(buffer, student_waypoints)
-            self._add_file(student_waypoints_filename, buffer.getvalue())
+            bulk_data.student_waypoints = (
+                student_waypoints_filename,
+                buffer.getvalue(),
+            )
 
             buffer = BytesIO()
             np.save(buffer, model_image_targets)
-            self._add_file(model_image_targets_filename, buffer.getvalue())
+            bulk_data.student_image_targets = (
+                model_image_targets_filename,
+                buffer.getvalue(),
+            )
 
             buffer = BytesIO()
             np.save(buffer, model_image_heatmaps)
-            self._add_file(model_image_heatmaps_filename, buffer.getvalue())
+            bulk_data.student_image_heatmaps = (
+                model_image_heatmaps_filename,
+                buffer.getvalue(),
+            )
+
+            if self._store_immediately:
+                self._add_bulk_data(bulk_data)
+            else:
+                self._bulk_data_queue.append((tick, bulk_data))
 
         orientation = state.rotation.get_forward_vector()
 
@@ -284,12 +324,13 @@ class ZipStoreBackend(Store):
         student_waypoints_filename = None
 
         if not self._metrics_only:
+            buffer = BytesIO()
             rgb_filename = f"{tick:05d}-rgb-teacher.png"
-            self._add_rgb_image(rgb_filename, state.rgb)
-
-            teacher_waypoints_filename = f"{tick:05d}-teacher-waypoints.npy"
+            _write_rgb_image(buffer, state.rgb)
+            self._add_file(rgb_filename, buffer.getvalue())
 
             buffer = BytesIO()
+            teacher_waypoints_filename = f"{tick:05d}-teacher-waypoints.npy"
             np.save(buffer, teacher_waypoints)
             self._add_file(teacher_waypoints_filename, buffer.getvalue())
 
@@ -331,14 +372,14 @@ class ZipStoreBackend(Store):
         )
         self._frame_data_queue.append((tick, frame_data))
 
-    def _add_rgb_image(self, filename: str, rgb: np.ndarray) -> None:
-        buffer = BytesIO()
-        im = Image.fromarray(rgb)
-        im.save(buffer, format="PNG")
-        self._add_file(filename, buffer.getvalue())
-
     def _add_file(self, filename: str, data: bytes) -> None:
         self._archive.writestr(filename, data)
+
+    def _add_bulk_data(self, bulk_data: _BulkData) -> None:
+        for val in dataclasses.astuple(bulk_data):
+            if val is not None:
+                (filename, data) = val
+                self._add_file(filename, data)
 
     def _store_teacher_driving(
         self, reason: Union[Literal["engagement"], Literal["end"]]
@@ -363,15 +404,20 @@ class ZipStoreBackend(Store):
             return
         last_tick, _ = self._frame_data_queue[-1]
 
-        first_rgb_tick: int = 2 ** 63  # some very large _integer_ (math.inf is float)
+        # some very large _integer_ (math.inf is float)
+        first_bulk_data_tick: int = 2 ** 63
 
-        if len(self._student_rgb_image_queue) > 0:
-            (tick, _, _) = self._student_rgb_image_queue[0]
-            first_rgb_tick = tick
+        if len(self._bulk_data_queue) > 0:
+            (tick, _) = self._bulk_data_queue[0]
+            first_bulk_data_tick = tick
 
         for (tick, frame_data) in self._frame_data_queue:
-            if tick < first_rgb_tick:
+            if not self._store_immediately and tick < first_bulk_data_tick:
                 frame_data["rgb_filename"] = None
+                frame_data["teacher_waypoints_filename"] = None
+                frame_data["student_waypoints_filename"] = None
+                frame_data["student_image_targets_filename"] = None
+                frame_data["student_image_heatmaps_filename"] = None
 
             if reason == "intervention":
                 frame_data["ticks_to_intervention"] = last_tick - tick
@@ -380,11 +426,11 @@ class ZipStoreBackend(Store):
 
             self._csv_writer.writerow(frame_data)
 
-        for (tick, filename, rgb) in self._student_rgb_image_queue:
-            self._add_rgb_image(filename, rgb)
+        for (tick, bulk_data) in self._bulk_data_queue:
+            self._add_bulk_data(bulk_data)
 
         self._frame_data_queue.clear()
-        self._student_rgb_image_queue.clear()
+        self._bulk_data_queue.clear()
 
     def stop(self) -> None:
         if self._teacher_in_control:
