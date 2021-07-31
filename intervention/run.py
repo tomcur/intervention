@@ -167,13 +167,14 @@ def waypoints_difference(
     return total_diff
 
 
-def control_stable(control) -> bool:
+def control_stable(state: TickState, control) -> bool:
     """
     Determines whether a control is "stable". When a control is stable for a while,
     the controller is assumed to be comfortable handing back control to the model.
     """
     return (
-        not control.reverse
+        state.speed > 0.5
+        and not control.reverse
         and not control.hand_brake
         # and control.throttle > 0.01
         and control.brake < 0.2
@@ -214,7 +215,7 @@ class Comparer:
                 self.student_in_control = False
                 self.difference_integral = 0
         else:
-            if control_stable(teacher_control):
+            if control_stable(state, teacher_control):
                 self._stable_frames += 1
                 if self._stable_frames >= 20:
                     logger.trace("switching to student control")
