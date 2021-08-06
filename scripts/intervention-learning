@@ -423,12 +423,16 @@ def train_imitation(
 @click.option(
     "-l",
     "--loss-type",
-    type=click.Choice(["cross-entropy", "expected-value"], case_sensitive=False),
+    type=click.Choice(
+        ["cross-entropy", "cross-entropy-swapped", "expected-value"],
+        case_sensitive=False,
+    ),
     required=True,
     help=(
         "The type of loss to use. "
-        "Set to `cross-entropy` for cross-entropy log loss or `expected-value` for "
-        "expected-value loss."
+        "Set to `cross-entropy` for cross-entropy log loss, or `cross-entropy-swapped` "
+        "for cross-entropy log loss with the distributions swapped for negative "
+        "samples, or `expected-value` for expected-value loss."
     ),
 )
 @click.option(

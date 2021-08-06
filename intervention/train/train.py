@@ -38,12 +38,15 @@ class TargetSource(Enum):
 
 class LossType(Enum):
     CROSS_ENTROPY = 0
-    EXPECTED_VALUE = 1
+    CROSS_ENTROPY_SWAPPED = 1
+    EXPECTED_VALUE = 2
 
     @classmethod
     def from_str(cls, s):
         if s.lower() in ("cross_entropy", "cross-entropy"):
             return cls.CROSS_ENTROPY
+        elif s.lower() in ("cross_entropy_swapped", "cross-entropy-swapped"):
+            return cls.CROSS_ENTROPY_SWAPPED
         elif s.lower() in ("expected_value", "expected-value"):
             return cls.EXPECTED_VALUE
         else:
@@ -52,6 +55,8 @@ class LossType(Enum):
     def to_str(self) -> str:
         if self is LossType.CROSS_ENTROPY:
             return "cross-entropy"
+        elif self is LossType.CROSS_ENTROPY_SWAPPED:
+            return "cross-entropy-swapped"
         elif self is LossType.EXPECTED_VALUE:
             return "expected-value"
 
@@ -412,7 +417,7 @@ def intervention(
 ) -> None:
     #: Global learning rate multiplier
 
-    if loss_type is LossType.CROSS_ENTROPY:
+    if loss_type in (LossType.CROSS_ENTROPY, LossType.CROSS_ENTROPY_SWAPPED):
         LEARNING_RATE = 0.001 * 50
     elif loss_type is LossType.EXPECTED_VALUE:
         LEARNING_RATE = 0.001
@@ -620,7 +625,7 @@ def intervention(
             )
             del pred_locations
 
-            if loss_type is LossType.CROSS_ENTROPY:
+            if loss_type in (LossType.CROSS_ENTROPY, LossType.CROSS_ENTROPY_SWAPPED):
                 pred_heatmaps = select_branch(
                     all_branch_heatmaps, list(map(int, commands))
                 )
@@ -666,54 +671,59 @@ def intervention(
 
                 target_four_hot = target_four_hot.to(process.torch_device)
 
-                # Given predicted waypoint distribution wp and target waypoint
-                # distribution wt we normally minimize the cross-entropy
-                # H(wt, wp) = -(wt * log(wp))
-                # through minimizing wp through the model parameters.
-                #
-                # The cross-entropy H(p, q) is equal to the entropy of p plus
-                # the Kullback–Leibler divergence of p and q. In the case of
-                # negative learning, we can instead seek to maximize H(wt, wp),
-                # (through minimizing -H(wt, wp)), but we can also maximize
-                # H(wp, wt): this allows for maximizing the cross-entropy through
-                # both (1) increasing the Kullback-Leibler divergence of wp and wt,
-                # and (2) increasing the entropy of wp----thereby pushing the model
-                # towards more randomness (exploration) for this input.
-                #
-                # This implementation uses maximization of H(wp, wt) for negative
-                # samples:
-                cross_entropy_swapped_distributions = torch.mean(
-                    -pred_heatmaps[:negative_len]
-                    * torch.log(original_negative_heatmaps_output + EPSILON),
-                    dim=(1, 2, 3),
-                )
-                cross_entropy_regular = torch.mean(
-                    -target_four_hot
-                    * torch.log(pred_heatmaps[negative_len:] + EPSILON),
-                    dim=(1, 2, 3),
-                )
-                loss = torch.cat(
-                    (
-                        cross_entropy_swapped_distributions,
-                        cross_entropy_regular,
+                if loss_type is LossType.CROSS_ENTROPY_SWAPPED:
+                    # Given predicted waypoint distribution `wp` and target waypoint
+                    # distribution `wt` we normally minimize the cross-entropy
+                    # H(wt, wp) = -(wt * log(wp))
+                    # through minimizing wp through the model parameters.
+                    #
+                    # The cross-entropy H(p, q) is equal to the entropy of `p` plus
+                    # the Kullback–Leibler divergence of `p` and `q`. In the case of
+                    # negative learning, we can instead seek to maximize H(wt, wp),
+                    # (through minimizing -H(wt, wp)), but we can also maximize
+                    # H(wp, wt): this allows for maximizing the cross-entropy through
+                    # both (1) increasing the Kullback-Leibler divergence of `wp` and
+                    # `wt`, and (2) increasing the entropy of `wp`---thereby pushing the
+                    # model towards more randomness (exploration) for this input.
+                    #
+                    # This implementation uses maximization of H(wp, wt) for negative
+                    # samples:
+                    cross_entropy_swapped_distributions = torch.mean(
+                        -pred_heatmaps[:negative_len]
+                        * torch.log(original_negative_heatmaps_output + EPSILON),
+                        dim=(1, 2, 3),
                     )
-                )
-                del original_negative_heatmaps_output, target_four_hot, pred_heatmaps
+                    cross_entropy_regular = torch.mean(
+                        -target_four_hot
+                        * torch.log(pred_heatmaps[negative_len:] + EPSILON),
+                        dim=(1, 2, 3),
+                    )
+                    loss = torch.cat(
+                        (
+                            cross_entropy_swapped_distributions,
+                            cross_entropy_regular,
+                        )
+                    )
+                    del (
+                        original_negative_heatmaps_output,
+                        target_four_hot,
+                        pred_heatmaps,
+                    )
+                else:
+                    # ... and here is the alternative implementation of simply
+                    # maximizing H(wt, wp) for negative samples:
+                    targets = torch.cat(
+                        (
+                            original_negative_heatmaps_output,
+                            target_four_hot,
+                        )
+                    ).to(process.torch_device)
+                    del original_negative_heatmaps_output, target_four_hot
 
-                # ... and here is the alternative implementation of simply maximizing
-                # H(wt, wp) for negative samples:
-                # targets = torch.cat(
-                #     (
-                #         original_negative_heatmaps_output,
-                #         target_four_hot,
-                #     )
-                # ).to(process.torch_device)
-                # del original_negative_heatmaps_output, target_four_hot
-
-                # loss = torch.mean(
-                #     -targets * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
-                # )
-                # del targets, pred_heatmaps
+                    loss = torch.mean(
+                        -targets * torch.log(pred_heatmaps + EPSILON), dim=(1, 2, 3)
+                    )
+                    del targets, pred_heatmaps
             elif loss_type is LossType.EXPECTED_VALUE:
                 loss = expected_value_error
             else:
