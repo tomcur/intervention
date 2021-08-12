@@ -532,19 +532,23 @@ def intervention(
 
             rgb_images = torch.cat(
                 (
-                    negative_batch["rgb_image"].float(),
-                    recovery_imitation_batch["rgb_image"].float(),
-                    regular_imitation_batch["rgb_image"].float(),
+                    negative_batch["rgb_image"],
+                    recovery_imitation_batch["rgb_image"],
+                    regular_imitation_batch["rgb_image"],
                 )
             ).to(process.torch_device)
 
-            speeds = torch.cat(
-                (
-                    negative_batch["datapoint"]["speed"].float(),
-                    recovery_imitation_batch["datapoint"]["speed"].float(),
-                    regular_imitation_batch["datapoint"]["speed"].float(),
+            speeds = (
+                torch.cat(
+                    (
+                        negative_batch["datapoint"]["speed"],
+                        recovery_imitation_batch["datapoint"]["speed"],
+                        regular_imitation_batch["datapoint"]["speed"],
+                    )
                 )
-            ).to(process.torch_device)
+                .float()
+                .to(process.torch_device)
+            )
 
             # At start of every epoch, store some data in TensorBoard for sanity
             # checks.
