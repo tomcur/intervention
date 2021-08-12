@@ -227,7 +227,7 @@ class _Dataset(torch.utils.data.Dataset):
         if datapoint["student_image_targets_filename"] != "":
             assert datapoint["student_image_heatmaps_filename"] != ""
 
-            with zip_file.open(datapoint["teacher_waypoints_filename"]) as f:
+            with zip_file.open(datapoint["student_waypoints_filename"]) as f:
                 student_waypoints = np.load(f)
 
             student_waypoints_image_coordinates = np.array(
