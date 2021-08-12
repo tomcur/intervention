@@ -11,6 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from .. import process
 from ..models.image import Image
+from ..models.utils import freeze_batch_norm_layers
 from . import dataset
 
 EPSILON = 1e-8
@@ -459,6 +460,12 @@ def intervention(
 
     model = Image().to(process.torch_device)
     model.train()
+
+    # Freeze batch normalization layers: their effect (creating a dependency between
+    # sampling and the network's output) might interact in unexpected ways with negative
+    # learning. We still use the running stats of the layers for normalization (if a
+    # checkpoint is loaded).
+    freeze_batch_norm_layers(model)
 
     img_size = torch.tensor([384, 160], device=process.torch_device)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
