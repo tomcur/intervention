@@ -598,6 +598,9 @@ def intervention(
                         regular_imitation_batch["teacher_waypoints_image_coordinates"],
                     )
                 ).to(process.torch_device)
+                negative_teacher_locations = negative_batch[
+                    "teacher_waypoints_image_coordinates"
+                ].to(process.torch_device)
             elif target_source is TargetSource.LOCATION:
                 locations = torch.cat(
                     (
@@ -621,6 +624,13 @@ def intervention(
                 0.25 * img_size[1]
             ) - 1
 
+            negative_teacher_locations[..., 0] = (
+                negative_teacher_locations[..., 0] / (0.5 * img_size[0]) - 1
+            )
+            negative_teacher_locations[..., 1] = (
+                negative_teacher_locations[..., 1] - img_size[1] / 2
+            ) / (0.25 * img_size[1]) - 1
+
             commands = torch.cat(
                 (
                     negative_batch["datapoint"]["command"],
@@ -633,11 +643,26 @@ def intervention(
             pred_locations = select_branch(
                 all_branch_predictions, list(map(int, commands))
             )
-            # pred_locations = pred_locations[negative_len:, ...]
-            expected_value_error = torch.mean(
-                torch.abs(pred_locations - locations), dim=(1, 2)
-            )
-            del pred_locations
+
+            if loss_type is LossType.EXPECTED_VALUE:
+                expected_value_error = torch.mean(
+                    torch.abs(pred_locations - locations), dim=(1, 2)
+                )
+            else:
+                with torch.no_grad():
+                    expected_value_error = torch.mean(
+                        torch.abs(pred_locations - locations), dim=(1, 2)
+                    )
+
+            with torch.no_grad():
+                negative_teacher_locations_expected_value_error = torch.mean(
+                    torch.abs(
+                        pred_locations[:negative_len] - negative_teacher_locations
+                    ),
+                    dim=(1, 2),
+                )
+
+            del pred_locations, negative_teacher_locations
 
             if loss_type in (LossType.CROSS_ENTROPY, LossType.CROSS_ENTROPY_SWAPPED):
                 pred_heatmaps = select_branch(
@@ -818,6 +843,11 @@ def intervention(
                     global_step=total_batches,
                 )
                 writer.add_scalar(
+                    "expected-value-error-negative-teacher-locations",
+                    negative_teacher_locations_expected_value_error.mean(),
+                    global_step=total_batches,
+                )
+                writer.add_scalar(
                     "expected-value-error-mean-recovery-imitation",
                     expected_value_error[recovery_imitation_indices].mean(),
                     global_step=total_batches,
@@ -827,7 +857,7 @@ def intervention(
                     expected_value_error[regular_imitation_indices].mean(),
                     global_step=total_batches,
                 )
-            del expected_value_error
+            del expected_value_error, negative_teacher_locations_expected_value_error
 
             optimizer.zero_grad()
             loss_mean.backward()
