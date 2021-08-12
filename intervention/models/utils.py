@@ -2,6 +2,13 @@ from torch import nn
 
 
 def freeze_batch_norm_layers(m: nn.Module):
+    """
+    Freezes all batch normalization layers in module `m`.
+
+    The batch normalization layers' parameters are set to not require gradients, and the
+    module is set to evaluation mode such that running statistics from previous training
+    are used for normalization.
+    """
     for module in m.modules():
         if isinstance(module, nn.BatchNorm2d):
             module.eval()
