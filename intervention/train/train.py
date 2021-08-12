@@ -580,7 +580,10 @@ def intervention(
                     "images-rgb-transformed", image_grid, global_step=total_batches
                 )
 
-                writer.add_graph(model, (rgb_images, speeds))
+                # ... if enabled this wipes out our freezing of the batch normalization,
+                # layers. So if you enable this, be sure to call
+                # `freeze_batch_norm_layers` afterwards.
+                # writer.add_graph(model, (rgb_images, speeds))
 
             all_branch_predictions, all_branch_heatmaps = model.forward(
                 rgb_images, speeds
