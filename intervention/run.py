@@ -183,8 +183,9 @@ def control_stable(state: TickState, control) -> bool:
 
 
 class Comparer:
-    def __init__(self, threshold: float = 6.0):
+    def __init__(self, threshold: float = 6.0, only_student_driving: bool = False):
         self.threshold = threshold
+        self.only_student_driving = only_student_driving
         self.difference_integral = 0.0
 
         self._stable_frames = 0
@@ -210,7 +211,10 @@ class Comparer:
                 teacher_target_waypoints,
                 student_target_waypoints,
             )
-            if self.difference_integral >= self.threshold:
+            if (
+                self.difference_integral >= self.threshold
+                and not self.only_student_driving
+            ):
                 logger.trace("switching to teacher control")
                 self.student_in_control = False
                 self.difference_integral = 0
@@ -678,7 +682,10 @@ def run_teacher_episode(
 
 
 def run_intervention_episode(
-    store: data.Store, student_checkpoint_path: Path, teacher_checkpoint_path: Path
+    store: data.Store,
+    student_checkpoint_path: Path,
+    teacher_checkpoint_path: Path,
+    only_student_driving: bool,
 ) -> data.EpisodeSummary:
     """
     Run an episode of on-policy student driving with teacher supervision and
@@ -689,7 +696,7 @@ def run_intervention_episode(
     from .models.image import Agent, Image
 
     visualizer = visualization.Visualizer()
-    comparer = Comparer()
+    comparer = Comparer(only_student_driving=only_student_driving)
 
     managed_episode = connect(
         carla_host=process.carla_host, carla_world_port=process.carla_world_port

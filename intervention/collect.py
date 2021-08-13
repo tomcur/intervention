@@ -135,6 +135,7 @@ def collect_intervention_episode(
     teacher_checkpoint: Path,
     episode_dir: Path,
     seed_sequence: np.random.SeedSequence,
+    only_student_driving: bool,
     metrics_only: bool,
 ) -> data.EpisodeSummary:
     process.rng = np.random.default_rng(seed_sequence)
@@ -144,7 +145,7 @@ def collect_intervention_episode(
             store = data.ZipStore(zip_archive, csv_file, metrics_only=metrics_only)
             try:
                 summary = run.run_intervention_episode(
-                    store, student_checkpoint, teacher_checkpoint
+                    store, student_checkpoint, teacher_checkpoint, only_student_driving
                 )
             finally:
                 store.stop()
@@ -154,6 +155,7 @@ def collect_intervention_episode(
 def collect_intervention_episodes(
     student_checkpoint: Path,
     teacher_checkpoint: Path,
+    only_student_driving: bool,
     metrics_only: bool,
 ) -> None:
     parent_seed_sequence = np.random.SeedSequence()
@@ -185,6 +187,7 @@ def collect_intervention_episodes(
                 teacher_checkpoint,
                 episode_dir,
                 seed_sequence,
+                only_student_driving,
                 metrics_only,
             )
             episode_summary.uuid = str(episode_id)
