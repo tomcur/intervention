@@ -9,92 +9,37 @@ from .data import EpisodeSummary, FrameData
 from .train.dataset import _parse_frame_data
 
 
-def episode_metrics(episode_directory: Path) -> Tuple[float, float, int]:
-    with open(episode_directory / "episode.csv") as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        frames = [_parse_frame_data(r) for r in csv_reader]
-
-    total_distance = 0.0
-    engaged_distance = 0.0
-    interventions = 0
-    controller = "teacher"
-    for frame in frames:
-        total_distance += frame["speed"] * 0.1
-
-        if controller == "student":
-            engaged_distance += frame["speed"] * 0.1
-            if frame["controller"] == "teacher":
-                interventions += 1
-
-        controller = frame["controller"]
-
-    return total_distance, engaged_distance, interventions
-
-
 def intervention_metrics(out: TextIO, data_directory: Path) -> None:
-    with open(data_directory / "episodes.csv") as episode_summaries_file:
-        episode_summaries_reader = DataclassReader(
-            episode_summaries_file, EpisodeSummary
+    episodes = pd.read_csv(data_directory / "episodes.csv")
+
+    def _sample_statistics(r):
+        episode = pd.read_csv(data_directory / r["uuid"] / "episode.csv")
+        return pd.Series(
+            {
+                "uuid": r["uuid"],
+                "town": r["town"],
+                "weather": r["weather"],
+                "student_ticks": (episode["controller"] == "student").sum(),
+                "teacher_ticks": (episode["controller"] == "teacher").sum(),
+                "total_ticks": len(episode.index),
+                "interventions": (episode["ticks_to_intervention"] == 0).sum(),
+            }
         )
-        episode_summaries: List[EpisodeSummary] = list(episode_summaries_reader)
 
-    total_distance = 0.0
-    engaged_distance = 0.0
-    interventions = 0
-    for summary in episode_summaries:
-        total_distance_, engaged_distance_, interventions_ = episode_metrics(
-            data_directory / summary.uuid
-        )
-        total_distance += total_distance_
-        engaged_distance += engaged_distance_
-        interventions += interventions_
+    sample_statistics = episodes.apply(_sample_statistics, axis="columns")
 
-    writer = csv.DictWriter(out, fieldnames=["metric", "value"])
-    writer.writeheader()
+    print("dataset\t\t\t\t\t\t", data_directory.name, file=out)
+    print("total episodes\t\t\t\t\t", len(episodes), file=out)
 
-    # total_distance_meters = sum(
-    #     map(lambda summary: summary.distance_travelled, episode_summaries)
-    # )
-    # total_interventions = sum(
-    #     map(lambda summary: summary.interventions, episode_summaries)
-    # )
-
-    writer.writerow(
-        {
-            "metric": "total_distance",
-            "value": total_distance,
-        }
+    print(file=out)
+    print("data distribution by town and weather", file=out)
+    print("==============", file=out)
+    print(
+        sample_statistics.groupby(["town", "weather"])[
+            ["student_ticks", "teacher_ticks", "total_ticks", "interventions"]
+        ].sum(),
+        file=out,
     )
-    writer.writerow(
-        {
-            "metric": "engaged_distance",
-            "value": engaged_distance,
-        }
-    )
-    writer.writerow(
-        {
-            "metric": "interventions",
-            "value": interventions,
-        }
-    )
-    writer.writerow(
-        {
-            "metric": "total_distance_per_intervention",
-            "value": total_distance / interventions,
-        }
-    )
-    writer.writerow(
-        {
-            "metric": "engaged_distance_per_intervention",
-            "value": engaged_distance / interventions,
-        }
-    )
-
-    # print("test")
-    # print(episode_summaries)
-    # for episode in episode_summaries:
-
-    pass
 
 
 def summarize(out: TextIO, data_directory: Path) -> None:
