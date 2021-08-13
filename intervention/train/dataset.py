@@ -453,7 +453,8 @@ def intervention_data(
                         combined_dataset_builder.add_datapoint(DataType.NEGATIVE, idx)
                 else:
                     assert frame_data["controller"] == "teacher"
-                    if (
+                    ticks_intervened = frame_data["ticks_intervened"]
+                    if ticks_intervened < 50 and (
                         frame_data["ticks_to_end"] is None
                         or frame_data["ticks_to_end"] >= 50
                         or episode.end_status == "success"
