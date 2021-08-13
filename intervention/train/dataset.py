@@ -401,7 +401,7 @@ class InterventionDatasets:
 
 
 def intervention_data(
-    data_directory, skip_masked: bool = False
+    data_directory, skip_masked: bool = False, use_all_teacher_samples: bool = False
 ) -> InterventionDatasets:
     """
     Load an (on-policy) intervention dataset. This consists of three separate datasets.
@@ -454,7 +454,7 @@ def intervention_data(
                 else:
                     assert frame_data["controller"] == "teacher"
                     ticks_intervened = frame_data["ticks_intervened"]
-                    if ticks_intervened < 50 and (
+                    if (ticks_intervened < 50 or use_all_teacher_samples) and (
                         frame_data["ticks_to_end"] is None
                         or frame_data["ticks_to_end"] >= 50
                         or episode.end_status == "success"
@@ -487,7 +487,7 @@ def off_policy_data(data_directory) -> torch.utils.data.Dataset:
     # Off-policy data can be seen as a special case of intervention data with only
     # imitation frames. Load it as intervention data, and return only the imitation
     # dataset.
-    datasets = intervention_data(data_directory)
+    datasets = intervention_data(data_directory, use_all_teacher_samples=True)
     assert (
         len(datasets.negative) == 0
     ), "Off-policy data should not have student driving"
