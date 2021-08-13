@@ -47,6 +47,8 @@ class EpisodeSummary:
     route_length_completed: float = 0.0
     route_length: float = 0.0
     interventions: int = 0
+    average_prediction_l1_error: Optional[float] = None
+    average_prediction_l2_error: Optional[float] = None
     ticks: int = 0
     ticks_per_second: float = 0.0
 
@@ -82,6 +84,8 @@ class FrameData(TypedDict):
     student_waypoints_filename: Optional[str]
     student_image_targets_filename: Optional[str]
     student_image_heatmaps_filename: Optional[str]
+    prediction_l1_error: Optional[float]
+    prediction_l2_error: Optional[float]
     ticks_engaged: Optional[int]
     ticks_to_intervention: Optional[int]
     ticks_intervened: Optional[int]
@@ -123,6 +127,8 @@ class Store:
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float] = None,
+        prediction_l2_error: Optional[float] = None,
     ) -> None:
         """Add one example of student driving to the store."""
         raise NotImplementedError
@@ -135,6 +141,8 @@ class Store:
         student_waypoints: Optional[np.ndarray],
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float] = None,
+        prediction_l2_error: Optional[float] = None,
     ) -> None:
         """Add one example of teacher driving to the store."""
         raise NotImplementedError
@@ -152,6 +160,8 @@ class BlackHoleStore(Store):
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float] = None,
+        prediction_l2_error: Optional[float] = None,
     ) -> None:
         pass
 
@@ -162,6 +172,8 @@ class BlackHoleStore(Store):
         student_waypoints: Optional[np.ndarray],
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float] = None,
+        prediction_l2_error: Optional[float] = None,
     ) -> None:
         pass
 
@@ -216,6 +228,8 @@ class ZipStoreBackend(Store):
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float],
+        prediction_l2_error: Optional[float],
     ) -> None:
         if self._teacher_in_control:
             self._engagement_tick = tick
@@ -286,6 +300,8 @@ class ZipStoreBackend(Store):
             student_waypoints_filename=student_waypoints_filename,
             student_image_targets_filename=model_image_targets_filename,
             student_image_heatmaps_filename=model_image_heatmaps_filename,
+            prediction_l1_error=prediction_l1_error,
+            prediction_l2_error=prediction_l2_error,
             ticks_engaged=tick - self._engagement_tick,
             ticks_to_intervention=None,
             ticks_intervened=None,
@@ -313,6 +329,8 @@ class ZipStoreBackend(Store):
         student_waypoints: Optional[np.ndarray],
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float],
+        prediction_l2_error: Optional[float],
     ) -> None:
         if not self._teacher_in_control:
             self._intervention_tick = tick
@@ -352,6 +370,8 @@ class ZipStoreBackend(Store):
             student_waypoints_filename=student_waypoints_filename,
             student_image_targets_filename=None,
             student_image_heatmaps_filename=None,
+            prediction_l1_error=prediction_l1_error,
+            prediction_l2_error=prediction_l2_error,
             ticks_engaged=None,
             ticks_to_intervention=None,
             ticks_intervened=tick - self._intervention_tick,
@@ -480,6 +500,8 @@ class ZipStore(Store):
         model_image_heatmaps: np.ndarray,
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float] = None,
+        prediction_l2_error: Optional[float] = None,
     ) -> None:
         self._queue.put(
             (
@@ -492,6 +514,8 @@ class ZipStore(Store):
                     model_image_heatmaps,
                     control,
                     state,
+                    prediction_l1_error,
+                    prediction_l2_error,
                 ),
             )
         )
@@ -503,11 +527,21 @@ class ZipStore(Store):
         student_waypoints: Optional[np.ndarray],
         control: carla.VehicleControl,
         state: TickState,
+        prediction_l1_error: Optional[float] = None,
+        prediction_l2_error: Optional[float] = None,
     ) -> None:
         self._queue.put(
             (
                 "push_teacher_driving",
-                (tick, teacher_waypoints, student_waypoints, control, state),
+                (
+                    tick,
+                    teacher_waypoints,
+                    student_waypoints,
+                    control,
+                    state,
+                    prediction_l1_error,
+                    prediction_l2_error,
+                ),
             )
         )
 

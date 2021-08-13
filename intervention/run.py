@@ -707,6 +707,8 @@ def run_intervention_episode(
     summary = data.EpisodeSummary.from_managed_episode(managed_episode)
     with managed_episode as episode:
         summary.route_length = episode.route_length
+        summary.average_prediction_l1_error = 0.0
+        summary.average_prediction_l2_error = 0.0
 
         vehicle_geometry = episode.get_vehicle_geometry()
         vehicle_controller = controller.VehicleController(vehicle_geometry)
@@ -763,6 +765,20 @@ def run_intervention_episode(
                 model_image_heatmaps,
             ) = student_agent.step(state)
 
+            prediction_l1_error = np.linalg.norm(
+                student_target_waypoints - teacher_target_waypoints, ord=1, axis=1
+            ).mean()
+            prediction_l2_error = np.linalg.norm(
+                student_target_waypoints - teacher_target_waypoints, ord=2, axis=1
+            ).mean()
+
+            summary.average_prediction_l1_error += (
+                prediction_l1_error - summary.average_prediction_l1_error
+            ) / summary.ticks
+            summary.average_prediction_l2_error += (
+                prediction_l2_error - summary.average_prediction_l2_error
+            ) / summary.ticks
+
             student_in_control = comparer.student_in_control
             if not student_in_control:
                 episode.apply_control(teacher_control)
@@ -772,6 +788,8 @@ def run_intervention_episode(
                     student_target_waypoints,
                     teacher_control,
                     state,
+                    prediction_l1_error,
+                    prediction_l2_error,
                 )
 
             student_control, student_turn_radius = vehicle_controller.step(
@@ -789,6 +807,8 @@ def run_intervention_episode(
                     model_image_heatmaps,
                     student_control,
                     state,
+                    prediction_l1_error,
+                    prediction_l2_error,
                 )
 
             comparer.evaluate_and_compare(
