@@ -86,6 +86,7 @@ class FrameData(TypedDict):
     student_image_heatmaps_filename: Optional[str]
     prediction_l1_error: Optional[float]
     prediction_l2_error: Optional[float]
+    heuristic_control_difference: Optional[float]
     ticks_engaged: Optional[int]
     ticks_to_intervention: Optional[int]
     ticks_intervened: Optional[int]
@@ -129,6 +130,7 @@ class Store:
         state: TickState,
         prediction_l1_error: Optional[float] = None,
         prediction_l2_error: Optional[float] = None,
+        heuristic_control_difference: Optional[float] = None,
     ) -> None:
         """Add one example of student driving to the store."""
         raise NotImplementedError
@@ -143,6 +145,7 @@ class Store:
         state: TickState,
         prediction_l1_error: Optional[float] = None,
         prediction_l2_error: Optional[float] = None,
+        heuristic_control_difference: Optional[float] = None,
     ) -> None:
         """Add one example of teacher driving to the store."""
         raise NotImplementedError
@@ -162,6 +165,7 @@ class BlackHoleStore(Store):
         state: TickState,
         prediction_l1_error: Optional[float] = None,
         prediction_l2_error: Optional[float] = None,
+        heuristic_control_difference: Optional[float] = None,
     ) -> None:
         pass
 
@@ -174,6 +178,7 @@ class BlackHoleStore(Store):
         state: TickState,
         prediction_l1_error: Optional[float] = None,
         prediction_l2_error: Optional[float] = None,
+        heuristic_control_difference: Optional[float] = None,
     ) -> None:
         pass
 
@@ -230,6 +235,7 @@ class ZipStoreBackend(Store):
         state: TickState,
         prediction_l1_error: Optional[float],
         prediction_l2_error: Optional[float],
+        heuristic_control_difference: Optional[float],
     ) -> None:
         if self._teacher_in_control:
             self._engagement_tick = tick
@@ -302,6 +308,7 @@ class ZipStoreBackend(Store):
             student_image_heatmaps_filename=model_image_heatmaps_filename,
             prediction_l1_error=prediction_l1_error,
             prediction_l2_error=prediction_l2_error,
+            heuristic_control_difference=heuristic_control_difference,
             ticks_engaged=tick - self._engagement_tick,
             ticks_to_intervention=None,
             ticks_intervened=None,
@@ -331,6 +338,7 @@ class ZipStoreBackend(Store):
         state: TickState,
         prediction_l1_error: Optional[float],
         prediction_l2_error: Optional[float],
+        heuristic_control_difference: Optional[float],
     ) -> None:
         if not self._teacher_in_control:
             self._intervention_tick = tick
@@ -372,6 +380,7 @@ class ZipStoreBackend(Store):
             student_image_heatmaps_filename=None,
             prediction_l1_error=prediction_l1_error,
             prediction_l2_error=prediction_l2_error,
+            heuristic_control_difference=heuristic_control_difference,
             ticks_engaged=None,
             ticks_to_intervention=None,
             ticks_intervened=tick - self._intervention_tick,
@@ -502,6 +511,7 @@ class ZipStore(Store):
         state: TickState,
         prediction_l1_error: Optional[float] = None,
         prediction_l2_error: Optional[float] = None,
+        heuristic_control_difference: Optional[float] = None,
     ) -> None:
         self._queue.put(
             (
@@ -516,6 +526,7 @@ class ZipStore(Store):
                     state,
                     prediction_l1_error,
                     prediction_l2_error,
+                    heuristic_control_difference,
                 ),
             )
         )
@@ -529,6 +540,7 @@ class ZipStore(Store):
         state: TickState,
         prediction_l1_error: Optional[float] = None,
         prediction_l2_error: Optional[float] = None,
+        heuristic_control_difference: Optional[float] = None,
     ) -> None:
         self._queue.put(
             (
@@ -541,6 +553,7 @@ class ZipStore(Store):
                     state,
                     prediction_l1_error,
                     prediction_l2_error,
+                    heuristic_control_difference,
                 ),
             )
         )

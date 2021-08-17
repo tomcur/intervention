@@ -790,6 +790,7 @@ def run_intervention_episode(
                     state,
                     prediction_l1_error,
                     prediction_l2_error,
+                    heuristic_control_difference=comparer.difference_integral,
                 )
 
             student_control, student_turn_radius = vehicle_controller.step(
@@ -809,6 +810,7 @@ def run_intervention_episode(
                     state,
                     prediction_l1_error,
                     prediction_l2_error,
+                    heuristic_control_difference=comparer.difference_integral,
                 )
 
             comparer.evaluate_and_compare(
