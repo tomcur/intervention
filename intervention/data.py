@@ -118,6 +118,12 @@ class _BulkData:
 class Store:
     """Episode store."""
 
+    # FIXME: This interface has become quite messy. It would make sense to
+    # reduce to a single method (`push`), in which the current controller is
+    # given, as well as some basic things like `step` and `state`, but also
+    # allowing to directly, dynamically set some FrameData values (such as
+    # `prediction_l1_error`).
+
     @abc.abstractmethod
     def push_student_driving(
         self,
@@ -249,6 +255,12 @@ class ZipStoreBackend(Store):
             student_image_targets=None,
             student_image_heatmaps=None,
         )
+
+        rgb_filename = None
+        teacher_waypoints_filename = None
+        student_waypoints_filename = None
+        model_image_targets_filename = None
+        model_image_heatmaps_filename = None
 
         if not self._metrics_only:
             buffer = BytesIO()
