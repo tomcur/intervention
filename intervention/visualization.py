@@ -110,7 +110,8 @@ class FramePainter:
     CONTROL_FIGURE_GRAPH_Y = 16 / 2
     CONTROL_FIGURE_GRAPH_HEIGHT = 100 - 16
     CONTROL_FIGURE_GRAPH_WIDTH = CONTROL_WIDTH - CONTROL_FIGURE_GRAPH_X
-    BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH + PADDING
+    BIRDVIEW_X = CONTROL_X + CONTROL_WIDTH + 50
+    BIRDVIEW_Y = PADDING
 
     def __init__(
         self,
@@ -394,7 +395,27 @@ class FramePainter:
         )
 
     def add_birdview(self, birdview) -> None:
-        self._surface.blit(birdview, (FramePainter.BIRDVIEW_X, 0))
+        pygame.draw.lines(
+            self._surface,
+            (0, 0, 0),
+            True,
+            [
+                (FramePainter.BIRDVIEW_X - 1, FramePainter.BIRDVIEW_Y - 1),
+                (
+                    FramePainter.BIRDVIEW_X + birdview.get_width(),
+                    FramePainter.BIRDVIEW_Y - 1,
+                ),
+                (
+                    FramePainter.BIRDVIEW_X + birdview.get_width(),
+                    FramePainter.BIRDVIEW_Y + birdview.get_height(),
+                ),
+                (
+                    FramePainter.BIRDVIEW_X - 1,
+                    FramePainter.BIRDVIEW_Y + birdview.get_height(),
+                ),
+            ],
+        )
+        self._surface.blit(birdview, (FramePainter.BIRDVIEW_X, FramePainter.BIRDVIEW_Y))
 
     def add_heatmap(self) -> None:
         pass
