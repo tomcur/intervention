@@ -1047,10 +1047,57 @@ class Renderer:
         return result
 
     def get_render(self):
-        self.rendered_surface.fill(COLOR_BLACK)
-        self.rendered_surface.blit(self.window_map_surface, (0, 0))
-        self.rendered_surface.blit(self.window_lane_surface, (0, 0))
-        self.rendered_surface.blit(self.window_vehicle_surface, (0, 0))
-        self.rendered_surface.blit(self.window_walker_surface, (0, 0))
-        self.rendered_surface.blit(self.window_traffic_light_surface, (0, 0))
-        return self.rendered_surface
+        size = self.hero_map_surface.get_size()
+        surface = pygame.Surface(size)
+        surface.fill((255, 255, 255))
+
+        map_surface = pygame.Surface(size)
+        map_surface.set_colorkey(COLOR_BLACK)
+        map_surface.fill((255, 208, 77))
+        map_surface.blit(
+            self.hero_map_surface, (0, 0), special_flags=pygame.BLEND_RGB_MULT
+        )
+        surface.blit(map_surface, (0, 0))
+
+        lane_surface = pygame.Surface(size)
+        lane_surface.set_colorkey(COLOR_BLACK)
+        lane_surface.fill((227, 158, 20))
+        lane_surface.blit(
+            self.hero_lane_surface, (0, 0), special_flags=pygame.BLEND_RGB_MULT
+        )
+        surface.blit(lane_surface, (0, 0))
+
+        vehicle_surface = pygame.Surface(size)
+        vehicle_surface.set_colorkey(COLOR_BLACK)
+        vehicle_surface.fill((0, 49, 128))
+        vehicle_surface.blit(
+            self.hero_vehicle_surface, (0, 0), special_flags=pygame.BLEND_RGB_MULT
+        )
+        surface.blit(vehicle_surface, (0, 0))
+
+        walker_surface = pygame.Surface(size)
+        walker_surface.set_colorkey(COLOR_BLACK)
+        walker_surface.fill((145, 37, 132))
+        walker_surface.blit(
+            self.hero_walker_surface, (0, 0), special_flags=pygame.BLEND_RGB_MULT
+        )
+        surface.blit(walker_surface, (0, 0))
+
+        traffic_light_surface = pygame.Surface(size)
+        traffic_light_surface.set_colorkey(COLOR_BLACK)
+        traffic_light_surface.blit(self.hero_traffic_light_surface, (0, 0))
+        traffic_light_pixel_array = pygame.PixelArray(traffic_light_surface)
+        traffic_light_pixel_array.replace(COLOR_TRAFFIC_RED, (204, 0, 0))
+        traffic_light_pixel_array.replace(COLOR_TRAFFIC_YELLOW, (204, 184, 0))
+        traffic_light_pixel_array.replace(COLOR_TRAFFIC_GREEN, (80, 179, 0))
+        traffic_light_pixel_array.close()
+
+        surface.blit(traffic_light_surface, (0, 0))
+
+        angle = (
+            0.0 if self.hero_actor is None else self.hero_transform.rotation.yaw + 90
+        )
+        rotated = pygame.transform.rotate(surface, angle)
+        pivot = rotated.get_rect(center=(size[0] / 2, size[1] / 2))
+        surface.blit(rotated, pivot)
+        return surface
