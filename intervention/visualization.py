@@ -14,6 +14,14 @@ from .carla_utils.agents.navigation.local_planner import RoadOption
 from .coordinates import ego_coordinate_to_image_coordinate
 from .physics import VehicleGeometry
 
+BACKGROUND_COLOR = (255, 255, 255)
+TEXT_COLOR = (15, 15, 15)
+BAR_COLOR = (80, 80, 80)
+GRAPH_RASTER_COLOR = (160, 160, 160)
+GRAPH_OUTLINE_COLOR = BAR_COLOR
+GRAPH_THRESHOLD_COLOR = (255, 64, 0)
+GRAPH_LINE_COLOR = TEXT_COLOR
+
 
 class Action(Enum):
     SWITCH_CONTROL = 0
@@ -35,41 +43,46 @@ def _render_control(control: carla.VehicleControl, font: pygame.font.Font):
     BAR_HEIGHT = 20
 
     surf = pygame.Surface((220, 100))
+    surf.fill(BACKGROUND_COLOR)
+
     text_surf = pygame.Surface((120, 100))
-    t = font.render("throttle:", True, (220, 220, 220))
+    text_surf.fill(BACKGROUND_COLOR)
+
+    t = font.render("throttle:", True, TEXT_COLOR)
     text_surf.blit(t, (0, 0))
-    t = font.render("brake:", True, (220, 220, 220))
+    t = font.render("brake:", True, TEXT_COLOR)
     text_surf.blit(t, (0, 30))
-    t = font.render("steering:", True, (220, 220, 220))
+    t = font.render("steering:", True, TEXT_COLOR)
     text_surf.blit(t, (0, 60))
 
     bar_surf = pygame.Surface((100, 100))
+    bar_surf.fill(BACKGROUND_COLOR)
 
     # Throttle
     r = pygame.Rect((0, 0), (BAR_WIDTH, BAR_HEIGHT))
-    pygame.draw.rect(bar_surf, (220, 220, 220), r, 2)
+    pygame.draw.rect(bar_surf, BAR_COLOR, r, 2)
 
     r = pygame.Rect((0, 0), (round(control.throttle * BAR_WIDTH), BAR_HEIGHT))
-    pygame.draw.rect(bar_surf, (220, 220, 220), r)
+    pygame.draw.rect(bar_surf, BAR_COLOR, r)
 
     # Brake
     r = pygame.Rect((0, 30), (BAR_WIDTH, BAR_HEIGHT))
-    pygame.draw.rect(bar_surf, (220, 220, 220), r, 2)
+    pygame.draw.rect(bar_surf, BAR_COLOR, r, 2)
 
     r = pygame.Rect((0, 30), (round(control.brake * BAR_WIDTH), BAR_HEIGHT))
-    pygame.draw.rect(bar_surf, (220, 220, 220), r)
+    pygame.draw.rect(bar_surf, BAR_COLOR, r)
 
     # Steering
     r = pygame.Rect((0, 60), (BAR_WIDTH, BAR_HEIGHT))
-    pygame.draw.rect(bar_surf, (220, 220, 220), r, 2)
+    pygame.draw.rect(bar_surf, BAR_COLOR, r, 2)
 
     scaled = round(abs(control.steer) * BAR_WIDTH)
     if control.steer < 0:
         r = pygame.Rect((BAR_WIDTH / 2 - scaled, 60), (scaled, BAR_HEIGHT))
-        pygame.draw.rect(bar_surf, (220, 220, 220), r)
+        pygame.draw.rect(bar_surf, BAR_COLOR, r)
     else:
         r = pygame.Rect((BAR_WIDTH / 2, 60), (scaled, BAR_HEIGHT))
-        pygame.draw.rect(bar_surf, (220, 220, 220), r)
+        pygame.draw.rect(bar_surf, BAR_COLOR, r)
 
     surf.blit(text_surf, (0, 0))
     surf.blit(bar_surf, (120, 0))
@@ -106,6 +119,7 @@ class FramePainter:
         control_difference: Deque[float],
     ):
         self._surface = pygame.Surface(size)
+        self._surface.fill(BACKGROUND_COLOR)
         self._font = font
         self._control_difference = control_difference
 
@@ -124,7 +138,7 @@ class FramePainter:
         if label:
             (width, height) = self._font.size(label)
             self._surface.blit(
-                self._font.render(label, True, (240, 240, 240)),
+                self._font.render(label, True, TEXT_COLOR),
                 (
                     FramePainter.COMMAND_LABEL_X - width // 2,
                     FramePainter.COMMAND_LABEL_Y,
@@ -147,7 +161,7 @@ class FramePainter:
         """
         cumulative_height = 0
         for i, text in enumerate(annotation):
-            label = self._font.render(text, True, (220, 220, 220))
+            label = self._font.render(text, True, TEXT_COLOR)
             self._surface.blit(
                 label,
                 (
@@ -163,7 +177,7 @@ class FramePainter:
     def add_waypoints(
         self,
         waypoints: Iterable[Tuple[float, float]],
-        color: Tuple[int, int, int] = (240, 240, 240),
+        color: Tuple[int, int, int] = (30, 30, 30),
         grayout: bool = False,
     ) -> None:
         if grayout:
@@ -180,10 +194,10 @@ class FramePainter:
             ):
                 continue
 
-            gfxdraw.aacircle(self._surface, draw_x, draw_y, 5, (255, 255, 255))
-            gfxdraw.filled_circle(self._surface, draw_x, draw_y, 5, (255, 255, 255))
-            gfxdraw.aacircle(self._surface, draw_x, draw_y, 4, (0, 0, 0))
-            gfxdraw.filled_circle(self._surface, draw_x, draw_y, 4, (0, 0, 0))
+            gfxdraw.aacircle(self._surface, draw_x, draw_y, 5, (0, 0, 0))
+            gfxdraw.filled_circle(self._surface, draw_x, draw_y, 5, (0, 0, 0))
+            gfxdraw.aacircle(self._surface, draw_x, draw_y, 4, (255, 255, 255))
+            gfxdraw.filled_circle(self._surface, draw_x, draw_y, 4, (255, 255, 255))
             gfxdraw.aacircle(self._surface, draw_x, draw_y, 3, color)
             gfxdraw.filled_circle(self._surface, draw_x, draw_y, 3, color)
 
@@ -192,7 +206,7 @@ class FramePainter:
         vehicle_geometry: VehicleGeometry,
         radius: float,
         direction: Union[Literal["LEFT"], Literal["RIGHT"]],
-        color: Tuple[int, int, int] = (240, 240, 240),
+        color: Tuple[int, int, int] = (30, 30, 30),
         grayout: bool = False,
     ) -> None:
         if grayout:
@@ -260,7 +274,7 @@ class FramePainter:
         self, name: str, control: carla.VehicleControl, grayout=False
     ) -> None:
         self._surface.blit(
-            self._font.render(name, True, (240, 240, 240)),
+            self._font.render(name, True, TEXT_COLOR),
             (
                 FramePainter.CONTROL_X,
                 self._next_control_y,
@@ -269,12 +283,12 @@ class FramePainter:
         control_surf = _render_control(control, self._font)
 
         if grayout:
-            dark = pygame.Surface(
+            fade = pygame.Surface(
                 (control_surf.get_width(), control_surf.get_height()),
                 flags=pygame.SRCALPHA,
             )
-            dark.fill((75, 75, 75, 0))
-            control_surf.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            fade.fill((255, 255, 255, 140))
+            control_surf.blit(fade, (0, 0))
 
         self._surface.blit(
             control_surf,
@@ -301,6 +315,7 @@ class FramePainter:
         surf = pygame.Surface(
             (FramePainter.CONTROL_WIDTH, FramePainter.CONTROL_FIGURE_HEIGHT)
         )
+        surf.fill(BACKGROUND_COLOR)
 
         graph_surf = pygame.Surface(
             (
@@ -308,12 +323,13 @@ class FramePainter:
                 FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT,
             )
         )
+        graph_surf.fill(BACKGROUND_COLOR)
 
         # Draw graph labels
         for idx in range(0, 6):
             y_label_y = idx / 5.0
             label = self._font.render(
-                f"{y_label_y*max_difference:4.1f}", True, (220, 220, 220)
+                f"{y_label_y*max_difference:4.1f}", True, TEXT_COLOR
             )
             surf.blit(
                 label, (0, (1 - y_label_y) * (FramePainter.CONTROL_FIGURE_HEIGHT - 16))
@@ -322,7 +338,7 @@ class FramePainter:
         # Draw graph outline
         pygame.draw.lines(
             graph_surf,
-            (240, 240, 240),
+            GRAPH_OUTLINE_COLOR,
             False,
             [
                 (0, 0),
@@ -339,7 +355,7 @@ class FramePainter:
             horizontal_raster_y = idx / 5 * FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT
             pygame.draw.line(
                 graph_surf,
-                (160, 160, 160),
+                GRAPH_RASTER_COLOR,
                 (0, horizontal_raster_y),
                 (FramePainter.CONTROL_FIGURE_GRAPH_WIDTH - 1, horizontal_raster_y),
             )
@@ -350,7 +366,7 @@ class FramePainter:
             ) * FramePainter.CONTROL_FIGURE_GRAPH_HEIGHT
             pygame.draw.line(
                 graph_surf,
-                (200, 200, 80),
+                GRAPH_THRESHOLD_COLOR,
                 (0, threshold_y),
                 (FramePainter.CONTROL_FIGURE_GRAPH_WIDTH - 1, threshold_y),
             )
@@ -369,7 +385,7 @@ class FramePainter:
             )
 
         if len(points) >= 2:
-            pygame.draw.lines(graph_surf, (240, 240, 240), False, points)
+            pygame.draw.lines(graph_surf, GRAPH_LINE_COLOR, False, points)
 
         surf.blit(
             graph_surf,
