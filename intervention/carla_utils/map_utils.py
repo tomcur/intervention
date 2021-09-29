@@ -791,6 +791,7 @@ class Renderer:
 
     def clip_surfaces(self, clipping_rect):
         # self.actors_surface.set_clip(clipping_rect)
+        self.self_surface.set_clip(clipping_rect)
         self.vehicle_surface.set_clip(clipping_rect)
         self.walker_surface.set_clip(clipping_rect)
         self.traffic_light_surface.set_clip(clipping_rect)
@@ -846,6 +847,7 @@ class Renderer:
             self._compute_scale(scale_factor)
 
         # Render Actors
+        self.self_surface.fill(COLOR_BLACK)
         self.vehicle_surface.fill(COLOR_BLACK)
         self.walker_surface.fill(COLOR_BLACK)
         self.traffic_light_surface.fill(COLOR_BLACK)
@@ -923,13 +925,13 @@ class Renderer:
 
             # self.hero_map_surface.blit
 
-            # self.hero_self_surface.fill(COLOR_BLACK)
+            self.hero_self_surface.fill(COLOR_BLACK)
             self.hero_map_surface.fill(COLOR_BLACK)
             self.hero_vehicle_surface.fill(COLOR_BLACK)
             self.hero_walker_surface.fill(COLOR_BLACK)
             self.hero_traffic_light_surface.fill(COLOR_BLACK)
 
-            # self.hero_self_surface.blit(self.self_surface, (-offset[0], -offset[1]))
+            self.hero_self_surface.blit(self.self_surface, (-offset[0], -offset[1]))
             self.hero_map_surface.blit(
                 self.map_image.map_surface, (-offset[0], -offset[1])
             )
@@ -1074,6 +1076,14 @@ class Renderer:
             self.hero_vehicle_surface, (0, 0), special_flags=pygame.BLEND_RGB_MULT
         )
         surface.blit(vehicle_surface, (0, 0))
+
+        self_surface = pygame.Surface(size)
+        self_surface.set_colorkey(COLOR_BLACK)
+        self_surface.fill((0, 170, 179))
+        self_surface.blit(
+            self.hero_self_surface, (0, 0), special_flags=pygame.BLEND_RGB_MULT
+        )
+        surface.blit(self_surface, (0, 0))
 
         walker_surface = pygame.Surface(size)
         walker_surface.set_colorkey(COLOR_BLACK)
