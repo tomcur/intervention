@@ -245,6 +245,7 @@ class FramePainter:
         prev_im_location_x, prev_im_location_y = ego_coordinate_to_image_coordinate(
             0, 0, forward_offset=0.0
         )
+        points = []
         for (location_x, location_y) in zip(xs, ys):
             im_location_x, im_location_y = ego_coordinate_to_image_coordinate(
                 float(location_x), float(location_y), forward_offset=0.0
@@ -259,16 +260,11 @@ class FramePainter:
                 and (0 <= start_draw_y < self._surface.get_height())
                 and (0 <= end_draw_y < self._surface.get_height())
             ):
-                gfxdraw.line(
-                    self._surface,
-                    start_draw_x,
-                    start_draw_y,
-                    end_draw_x,
-                    end_draw_y,
-                    color,
-                )
+                points.append((end_draw_x, end_draw_y))
             prev_im_location_x = im_location_x
             prev_im_location_y = im_location_y
+        if len(points) >= 2:
+            pygame.draw.lines(self._surface, color, False, points, width=3)
 
     def add_control(
         self, name: str, control: carla.VehicleControl, grayout=False
