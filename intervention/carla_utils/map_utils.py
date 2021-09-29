@@ -1052,6 +1052,7 @@ class Renderer:
         size = self.hero_map_surface.get_size()
         surface = pygame.Surface(size)
         surface.fill((255, 255, 255))
+        surface.set_colorkey((255, 255, 255))
 
         map_surface = pygame.Surface(size)
         map_surface.set_colorkey(COLOR_BLACK)
@@ -1109,5 +1110,6 @@ class Renderer:
         )
         rotated = pygame.transform.rotate(surface, angle)
         pivot = rotated.get_rect(center=(size[0] / 2, size[1] / 2))
+        surface.fill((255, 255, 255))
         surface.blit(rotated, pivot)
         return surface
