@@ -146,12 +146,17 @@ class FramePainter:
                 ),
             )
 
-    def add_rgb(self, rgb: np.ndarray) -> None:
+    def add_rgb(
+        self, rgb: np.ndarray, outline_color: Tuple[int, int, int] = (30, 30, 30)
+    ) -> None:
         """
         Add an RGB image. You should only add it once per frame.
         """
         self._rgb_height = rgb.shape[0]
         surface = pygame.surfarray.make_surface(rgb.swapaxes(0, 1))
+        outline = pygame.Surface((rgb.shape[1] + 6, rgb.shape[0] + 6))
+        outline.fill(outline_color)
+        self._surface.blit(outline, (FramePainter.IMAGE_X - 3, FramePainter.IMAGE_Y - 3))
         self._surface.blit(surface, (FramePainter.IMAGE_X, FramePainter.IMAGE_Y))
 
     def add_annotation(self, annotation: Iterable[str]) -> None:

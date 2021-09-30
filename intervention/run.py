@@ -392,7 +392,7 @@ def run_student_episode(
 
             with visualizer as painter:
                 painter.add_command(state.command)
-                painter.add_rgb(state.rgb)
+                painter.add_rgb(state.rgb, outline_color=(255, 145, 0))
                 painter.add_waypoints(
                     student_target_waypoints,
                     color=(255, 145, 0),
@@ -649,7 +649,7 @@ def run_teacher_episode(
             birdview_render = episode.render_birdview()
             with visualizer as painter:
                 painter.add_command(state.command)
-                painter.add_rgb(state.rgb)
+                painter.add_rgb(state.rgb, outline_color=(0, 145, 255))
                 painter.add_control("teacher", teacher_control)
                 painter.add_waypoints(teacher_target_waypoints)
                 painter.add_turn_radius(
@@ -827,7 +827,12 @@ def run_intervention_episode(
 
             with visualizer as painter:
                 painter.add_command(state.command)
-                painter.add_rgb(state.rgb)
+                painter.add_rgb(
+                    state.rgb,
+                    outline_color=(255, 145, 0)
+                    if comparer.student_in_control
+                    else (0, 145, 255),
+                )
                 painter.add_waypoints(
                     teacher_target_waypoints,
                     color=(0, 145, 255),
