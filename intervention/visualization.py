@@ -211,7 +211,7 @@ class FramePainter:
         grayout: bool = False,
     ) -> None:
         if grayout:
-            color = (110, 110, 110)
+            color = (180, 180, 180)
 
         max_y = min(radius - vehicle_geometry.rear_axle_longitudinal_offset, 40.0)
         step_size = 0.25
@@ -284,7 +284,7 @@ class FramePainter:
                 (control_surf.get_width(), control_surf.get_height()),
                 flags=pygame.SRCALPHA,
             )
-            fade.fill((255, 255, 255, 140))
+            fade.fill((255, 255, 255, 180))
             control_surf.blit(fade, (0, 0))
 
         self._surface.blit(
