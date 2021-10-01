@@ -272,7 +272,7 @@ def collect_student(student_checkpoint: str, metrics_only: bool, pdf: bool):
     help=("The checkpoint to use for the teacher."),
 )
 @click.option(
-    "--only-student-driving",
+    "--student-driving-only",
     is_flag=True,
     type=bool,
     help=(
@@ -290,7 +290,7 @@ def collect_student(student_checkpoint: str, metrics_only: bool, pdf: bool):
 def collect_intervention(
     student_checkpoint: str,
     teacher_checkpoint: str,
-    only_student_driving: bool,
+    student_driving_only: bool,
     metrics_only: bool,
 ):
     """
@@ -304,7 +304,7 @@ def collect_intervention(
     intervention.collect.collect_intervention_episodes(
         student_checkpoint_path,
         teacher_checkpoint_path,
-        only_student_driving=only_student_driving,
+        only_student_driving=student_driving_only,
         metrics_only=metrics_only,
     )
 
