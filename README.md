@@ -37,13 +37,67 @@ publication](https://github.com/dotchen/LearningByCheating):
 $ wget http://www.cs.utexas.edu/~dchen/lbc_release/ckpts/privileged/model-128.th
 ```
 
-Run CARLA Simulator. Then run:
+1) Run CARLA Simulator. Then collect a dataset of teacher examples.
 
 ```shell
-$ intervention-learning collect-teacher-examples \
+$ intervention-learning collect-teacher \
     --teacher-checkpoint ./model-128.th \
-    --directory ./a-new-dataset \
-    --num-episodes 5
+    --directory ./teacher-dataset \
+    --num-episodes 500
+```
+
+2) Train a student model from this dataset.
+
+```shell
+$ intervention-learning train-imitation \
+    --dataset-directory ./teacher-dataset \
+    --output-directory ./student-checkpoints \
+    --target-source teacher-prediction \
+    --loss-type cross-entropy \
+    --num-epochs 10
+```
+
+3) Collect intervention data from the student with teacher oversight.
+
+```shell
+$ intervention-learning collect-intervention \
+    --student-checkpoint ./student-checkpoints/9.pth \
+    --teacher-checkpoint ./model-128.th \
+    --directory ./intervention-dataset01 \
+    --num-episodes 250
+```
+
+4) Fine-tune the student model by learning from these interventions.
+
+```shell
+$ intervention-learning train-intervention \
+    --intervention-dataset-directory ./intervention-dataset01 \
+    --imitation-dataset-directory ./teacher-dataset \
+    --target-source teacher-prediction \
+    --loss-type cross-entropy-swapped \
+    --output-directory ./finetuned-student-checkpoints \
+    --initial-checkpoint ./student-checkpoints/9.pth \
+    --num-epochs 3
+```
+
+5) Evaluate the student model. Only the student drives this time, but the
+teacher is also evaluated to calculate similarity metrics.
+
+```shell
+$ intervention-learning collect-intervention \
+    --student-checkpoint ./finetuned-student-checkpoints/12.pth \
+    --teacher-checkpoint ./model-128.th \
+    --directory ./finetuned-student-dataset \
+    --metrics-only \
+    --student-driving-only \
+    --num-episodes 250
+```
+
+6) Analyze the driving performance.
+
+```shell
+$ intervention-learning summarize \
+    --dataset-directory ./finetuned-student-dataset
 ```
 
 ## Setup
