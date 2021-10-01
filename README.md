@@ -101,6 +101,9 @@ $ intervention-learning summarize \
     --dataset-directory ./finetuned-student-dataset
 ```
 
+Some example helper scripts to parallelize this are available at
+[tomcur/intervention-scripts](https://github.com/tomcur/intervention-scripts).
+
 ## Of interest
 
 This codebase includes an implementation of a driving controller that may be
