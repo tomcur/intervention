@@ -9,24 +9,17 @@ is used to improve the student.
 
 ## Examples
 
-<figure>
-    <center>
-        <img src="assets/interventions.gif" alt="Interventions" />
-        <figcaption>
-            The student makes mistakes, the teacher intervenes in time.
-        </figcaption>
-    </center>
-</figure>
+<p align="center">
+    <img src="assets/interventions.gif" alt="Interventions" />
+    <br>
+    <em>The student makes mistakes, the teacher intervenes in time.</em>
+</p>
 
-<figure>
-    <center>
-        <img src="assets/student.gif" alt="Student driving" />
-        <figcaption>
-            Student driving after learning from interventions.
-        </figcaption>
-    </center>
-</figure>
-
+<p align="center">
+    <img src="assets/student.gif" alt="Student driving" />
+    <br>
+    <em>Student driving after learning from interventions.</em>
+</p>
 
 ## Usage
 
