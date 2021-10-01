@@ -204,6 +204,10 @@ class VehicleController:
             derivative=0.02,
             integral_discounting_per_step=0.04,
         )
+
+        # Might be useful to calculate smoother control values (e.g., by
+        # smoothing away transient differences in predicted trajectories).
+        # Currently unused.
         self._previous_waypoints_world: Deque[List[Tuple[float, float]]] = deque(
             maxlen=3
         )
