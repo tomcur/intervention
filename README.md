@@ -101,6 +101,25 @@ $ intervention-learning summarize \
     --dataset-directory ./finetuned-student-dataset
 ```
 
+## Of interest
+
+This codebase includes an implementation of a driving controller that may be
+useful to users of CARLA.
+
+- [intervention/physics.py](https://github.com/tomcur/intervention/blob/04ddd4417ea2d7d0308b25ec0bb6d098120cc5c2/intervention/physics.py):
+  an implementation of a kinematic bicycle model to calculate the required
+  steering wheel angle to achieve a desired turning radius. This can be used to
+  control steering wheel angles in CARLA;
+- [intervention/carla_utils/manager.py](https://github.com/tomcur/intervention/blob/04ddd4417ea2d7d0308b25ec0bb6d098120cc5c2/intervention/carla_utils/manager.py#L192-L279):
+  code to retrieve the required vehicle geometry from CARLA for the above
+  calculations;
+- [intervention/controller.py](https://github.com/tomcur/intervention/blob/04ddd4417ea2d7d0308b25ec0bb6d098120cc5c2/intervention/controller.py#L181-L270):
+  a low-level controller to drive in CARLA based on trajectories (euclidean,
+  top-down, egocentric coordinates), using a PID controllers for throttle and
+  braking, and the above kinematic bicycle model for turning; and
+- [intervention/coordinates.py](https://github.com/tomcur/intervention/blob/04ddd4417ea2d7d0308b25ec0bb6d098120cc5c2/intervention/coordinates.py):
+  some common coordinate transforms.
+
 ## Setup
 ### System dependencies
 
