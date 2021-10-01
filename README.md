@@ -7,21 +7,26 @@ intervenes when it disagrees with the student. Each time the teacher
 intervenes, a failure mode of the student is signalled. This intervention data
 is used to improve the student.
 
-## Teacher interventions
+## Examples
 
-<p align="center">
-    <img src="assets/interventions.gif" alt="Interventions" />
-</p>
+<figure>
+    <center>
+        <img src="assets/interventions.gif" alt="Interventions" />
+        <figcaption>
+            The student makes mistakes, the teacher intervenes in time.
+        </figcaption>
+    </center>
+</figure>
 
-The student makes mistakes, the teacher intervenes in time.
+<figure>
+    <center>
+        <img src="assets/student.gif" alt="Student driving" />
+        <figcaption>
+            Student driving after learning from interventions.
+        </figcaption>
+    </center>
+</figure>
 
-## Student driving
-
-<p align="center">
-    <img src="assets/student.gif" alt="Student driving" />
-</p>
-
-Student driving after learning from interventions.
 
 ## Usage
 
