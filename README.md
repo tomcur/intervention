@@ -37,7 +37,8 @@ publication](https://github.com/dotchen/LearningByCheating):
 $ wget http://www.cs.utexas.edu/~dchen/lbc_release/ckpts/privileged/model-128.th
 ```
 
-1) Run CARLA Simulator. Then collect a dataset of teacher examples.
+1) Run [CARLA Simulator](https://github.com/carla-simulator/carla). Then
+collect a dataset of teacher examples.
 
 ```shell
 $ intervention-learning collect-teacher \
