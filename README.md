@@ -9,13 +9,17 @@ is used to improve the student.
 
 ## Teacher interventions
 
-![Interventions](assets/interventions.gif)
+<p align="center">
+    <img src="assets/interventions.gif" alt="Interventions" />
+</p>
 
 The student makes mistakes, the teacher intervenes in time.
 
 ## Student driving
 
-![Student driving](assets/student.gif)
+<p align="center">
+    <img src="assets/student.gif" alt="Student driving" />
+</p>
 
 Student driving after learning from interventions.
 
