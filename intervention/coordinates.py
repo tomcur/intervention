@@ -43,7 +43,7 @@ def world_coordinate_to_ego_coordinate(
      \
       \
        \
-        >
+        v
          Y (right)
 
     This function transforms coordinates to an egocentric, right-handed, top-down
