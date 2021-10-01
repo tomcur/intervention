@@ -115,7 +115,7 @@ useful to users of CARLA.
   calculations;
 - [intervention/controller.py](https://github.com/tomcur/intervention/blob/04ddd4417ea2d7d0308b25ec0bb6d098120cc5c2/intervention/controller.py#L181-L270):
   a low-level controller to drive in CARLA based on trajectories (euclidean,
-  top-down, egocentric coordinates), using a PID controllers for throttle and
+  top-down, egocentric coordinates), using PID controllers for throttle and
   braking, and the above kinematic bicycle model for turning; and
 - [intervention/coordinates.py](https://github.com/tomcur/intervention/blob/04ddd4417ea2d7d0308b25ec0bb6d098120cc5c2/intervention/coordinates.py):
   some common coordinate transforms.
