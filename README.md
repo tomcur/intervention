@@ -9,11 +9,6 @@ is used to improve the student.
 
 ## Examples
 
-Waypoints are represented as circles; arcs represent the turning radius
-calculated from these waypoints. Orange indicates student driving. Blue
-indicates teacher driving. Only one model is in control of the vehicle at any
-one time. Predictions of the model that is _not_ in control are gray.
-
 <p align="center">
     <img src="assets/interventions.gif" alt="Interventions" />
     <br>
@@ -25,6 +20,11 @@ one time. Predictions of the model that is _not_ in control are gray.
     <br>
     <em>Student driving after learning from interventions.</em>
 </p>
+
+Waypoints are represented as circles; arcs represent the turning radius
+calculated from these waypoints. Orange indicates student driving. Blue
+indicates teacher driving. Only one model is in control of the vehicle at any
+one time. Predictions of the model that is _not_ in control are gray.
 
 ## Quickstart
 
