@@ -28,7 +28,7 @@ one time. Predictions of the model that is _not_ in control are gray.
 
 ## Quickstart
 
-This quickstart you have [CARLA Simulator](https://github.com/carla-simulator/carla)
+This quickstart assumes you have [CARLA Simulator](https://github.com/carla-simulator/carla)
 installed.
 
 ```shell
