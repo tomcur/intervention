@@ -53,7 +53,7 @@ $ intervention-learning collect-student \
     --metrics-only
 ```
 
-## Usage
+## Intervention learning from scratch
 
 For general usage information, see `intervention-learning --help`.
 
