@@ -26,6 +26,33 @@ one time. Predictions of the model that is _not_ in control are gray.
     <em>Student driving after learning from interventions.</em>
 </p>
 
+## Quickstart
+
+This quickstart you have [CARLA Simulator](https://github.com/carla-simulator/carla)
+installed.
+
+```shell
+# Clone this repository
+$ git clone https://github.com/tomcur/intervention.git
+$ cd intervention
+
+# Install dependencies (more detailed instructions can be found below)
+$ python3 -m pip install -r requirements.txt
+$ python3 -m pip install -e .
+
+# Download the student network checkpoint
+$ wget https://churchman.nl/assets/intervention-student-i-r-nr-16.pth
+
+# Start CARLA simulator (in a different shell)
+
+# Evaluate the student agent
+$ intervention-learning collect-student \
+    --directory ./test-student \
+    --num-episodes 3 \
+    --student-checkpoint ./intervention-student-i-r-nr-16.pth \
+    --metrics-only
+```
+
 ## Usage
 
 For general usage information, see `intervention-learning --help`.
